@@ -1,0 +1,30 @@
+name: E2E
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar dependencias del backend
+        working-directory: backend
+        run: npm ci
+
+      - name: Instalar dependencias del frontend
+        working-directory: frontend
+        run: npm ci
+
+      - name: Instalar navegadores de Playwright
+        working-directory: frontend
+        run: npx playwright install --with-deps
+
+      - name: Ejecutar tests e2e
+        working-directory: frontend
+        run: npm run test:e2e
