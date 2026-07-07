@@ -100,13 +100,13 @@ $infoBackground: #eaf2fe;
 
 Los componentes consumen siempre la Custom Property (`var(--primary-color)`), nunca la `$variable` SCSS directamente en su propio `.scss`, salvo dentro de los propios ficheros de `styles/` que la definen. Así, un cambio de tema en runtime (cambiar las Custom Properties vía JS/clase en `<html>`) afecta a toda la plataforma sin recompilar.
 
-| Categoría | Variables SCSS | Custom Property expuesta |
-|---|---|---|
-| Color | `$primaryColor`, `$textColor`, `$backgroundColor`, `$surfaceColor`, `$borderColor` | `--primary-color`, `--text-color`, `--background-color`, `--surface-color`, `--border-color` |
-| Color de estado | `$successColor/Background`, `$warningColor/Background`, `$dangerColor/Background`, `$infoColor/Background` | `--success-color/-background`, `--warning-...`, `--danger-...`, `--info-...` |
-| Tipografía | `$fontFamilyBase`, `$fontSizeSm/Md/Lg/Xl` | `--font-family-base`, `--font-size-sm/md/lg/xl` |
-| Border-radius | `$borderRadiusSm/Md/Lg` | `--border-radius-sm/md/lg` |
-| Spacing (padding/gap) | `$spacingXs/Sm/Md/Lg/Xl` | `--spacing-xs/sm/md/lg/xl` |
+| Categoría             | Variables SCSS                                                                                             | Custom Property expuesta                                                                     |
+| --------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Color                 | `$primaryColor`, `$textColor`, `$backgroundColor`, `$surfaceColor`, `$borderColor`                         | `--primary-color`, `--text-color`, `--background-color`, `--surface-color`, `--border-color` |
+| Color de estado       | `$successColor/Background`, `$warningColor/Background`, `$dangerColor/Background`, `$infoColor/Background` | `--success-color/-background`, `--warning-...`, `--danger-...`, `--info-...`                 |
+| Tipografía            | `$fontFamilyBase`, `$fontSizeSm/Md/Lg/Xl`                                                                  | `--font-family-base`, `--font-size-sm/md/lg/xl`                                              |
+| Border-radius         | `$borderRadiusSm/Md/Lg`                                                                                    | `--border-radius-sm/md/lg`                                                                   |
+| Spacing (padding/gap) | `$spacingXs/Sm/Md/Lg/Xl`                                                                                   | `--spacing-xs/sm/md/lg/xl`                                                                   |
 
 ### Paleta de marca
 
@@ -118,7 +118,7 @@ Para los estados (éxito/advertencia/error/info) se usa el patrón "fondo tintad
 
 ### Tipografía
 
-Familia tipográfica: **Fira Sans**, cargada como *web font* con los pesos Regular (400), Medium (500) y Bold (700). Se define como `$fontFamilyBase: 'Fira Sans', sans-serif;`, con una pila de *fallback* a fuentes de sistema (`sans-serif`) para el tiempo de carga inicial.
+Familia tipográfica: **Fira Sans**, cargada como _web font_ con los pesos Regular (400), Medium (500) y Bold (700). Se define como `$fontFamilyBase: 'Fira Sans', sans-serif;`, con una pila de _fallback_ a fuentes de sistema (`sans-serif`) para el tiempo de carga inicial.
 
 ---
 
@@ -126,16 +126,16 @@ Familia tipográfica: **Fira Sans**, cargada como *web font* con los pesos Regul
 
 No toda pieza reutilizable necesita ser un Angular Component. La regla es según complejidad:
 
-| Pieza | Implementación | Motivo |
-|---|---|---|
-| Títulos (`h1`-`h4`) | Clases CSS globales (`.title-xl`, `.title-lg`...) sobre etiquetas HTML nativas | Sin lógica ni estado; un componente sería sobrecoste innecesario. |
-| Párrafos / texto | Clases CSS globales (`.text-body`, `.text-muted`...) | Igual que títulos. |
-| Box / contenedor | Clase CSS global (`.box`) | Puramente visual (padding, border-radius, sombra); sin comportamiento. |
-| Label | Clase CSS global (`.form-label`) sobre `<label>` nativo | Sin lógica propia. |
-| Input / campo de formulario | Angular Component (`InputComponent`, integrado con Reactive Forms via `ControlValueAccessor`) | Tiene estado (valor, validación, error) y comportamiento (eventos, accesibilidad de errores). |
-| Formulario completo | Angular Component (`FormFieldComponent`, orquestando Inputs/Labels) | Coordina validación y layout de varios campos. |
-| Tabla | Angular Component (`TableComponent`) | Tiene estado (orden, paginación) y lógica de renderizado por columnas. |
-| Notificación / Toast | Angular Component (`ToastComponent`) + `ToastService` | Tiene estado compartido entre toda la aplicación (cola de mensajes activos) y comportamiento temporal (auto-dismiss); ver detalle abajo. |
+| Pieza                       | Implementación                                                                                | Motivo                                                                                                                                   |
+| --------------------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Títulos (`h1`-`h4`)         | Clases CSS globales (`.title-xl`, `.title-lg`...) sobre etiquetas HTML nativas                | Sin lógica ni estado; un componente sería sobrecoste innecesario.                                                                        |
+| Párrafos / texto            | Clases CSS globales (`.text-body`, `.text-muted`...)                                          | Igual que títulos.                                                                                                                       |
+| Box / contenedor            | Clase CSS global (`.box`)                                                                     | Puramente visual (padding, border-radius, sombra); sin comportamiento.                                                                   |
+| Label                       | Clase CSS global (`.form-label`) sobre `<label>` nativo                                       | Sin lógica propia.                                                                                                                       |
+| Input / campo de formulario | Angular Component (`InputComponent`, integrado con Reactive Forms via `ControlValueAccessor`) | Tiene estado (valor, validación, error) y comportamiento (eventos, accesibilidad de errores).                                            |
+| Formulario completo         | Angular Component (`FormFieldComponent`, orquestando Inputs/Labels)                           | Coordina validación y layout de varios campos.                                                                                           |
+| Tabla                       | Angular Component (`TableComponent`)                                                          | Tiene estado (orden, paginación) y lógica de renderizado por columnas.                                                                   |
+| Notificación / Toast        | Angular Component (`ToastComponent`) + `ToastService`                                         | Tiene estado compartido entre toda la aplicación (cola de mensajes activos) y comportamiento temporal (auto-dismiss); ver detalle abajo. |
 
 Todas estas piezas —con o sin componente Angular— se maquetan siempre con **Flexbox** (`display: flex`), nunca con `float` ni posicionamiento absoluto para layout, salvo casos justificados (overlays, tooltips).
 
@@ -173,7 +173,13 @@ Todas estas piezas —con o sin componente Angular— se maquetan siempre con **
 
 ## 12.5 Iconografía
 
-Los iconos usan **Iconsax**, en su versión gratuita (set "Essential"), como SVGs individuales importados por componente (no como *icon font*, para poder aplicar `aria-hidden`/`aria-label` icono a icono).
+Los iconos usan **Iconsax**, en su versión gratuita (set "Essential"), como SVGs individuales importados por componente (no como _icon font_, para poder aplicar `aria-hidden`/`aria-label` icono a icono).
+
+### SVGs descargados manualmente, no un paquete npm
+
+Se evaluaron dos vías de implementación: un paquete comunitario (ej. `@ng-icons/iconsax`) que expone el catálogo de Iconsax como funciones SVG tree-shakeable, o descargar manualmente los `.svg` del set gratuito y servirlos como assets propios.
+
+Se descarta el paquete comunitario porque mezcla en un único paquete npm **todo** el catálogo de Iconsax, incluidos los estilos de pago, sin ningún mecanismo que impida usar por error un icono no licenciado — ese riesgo solo se detectaría en una auditoría manual, nunca en build ni en CI. Se opta por descargar manualmente el set gratuito real y mantener únicamente esos SVGs en el repo (`frontend/public/icons/`, ver su propio `README.md`): es físicamente imposible usar un icono no licenciado porque no existe en el proyecto. El coste asumido es perder el tree-shaking automático de un paquete npm y mantener un `IconComponent` propio (`frontend/src/app/shared/ui/icon/icon.component.ts`) que carga cada SVG por nombre vía `HttpClient` + `DomSanitizer`, cacheado en memoria — aceptable frente a la garantía de licencia que exige una plataforma comercial.
 
 > Antes de usar un icono fuera del set "Essential" gratuito, verificar la licencia de Iconsax: la versión de pago cubre variantes y categorías adicionales, y mezclar accidentalmente iconos de pago sin licencia sería un incumplimiento de licencia, no solo un problema de estilo.
 
@@ -187,15 +193,17 @@ Enfoque **mobile-first**: los estilos base son para móvil, y se amplían hacia 
 
 Breakpoints estándar:
 
-| Nombre | Ancho mínimo | Uso típico |
-|---|---|---|
-| `sm` | 480px | Móvil grande |
-| `md` | 768px | Tablet |
-| `lg` | 1024px | Portátil / escritorio pequeño |
-| `xl` | 1280px | Escritorio |
+| Nombre | Ancho mínimo | Uso típico                    |
+| ------ | ------------ | ----------------------------- |
+| `sm`   | 480px        | Móvil grande                  |
+| `md`   | 768px        | Tablet                        |
+| `lg`   | 1024px       | Portátil / escritorio pequeño |
+| `xl`   | 1280px       | Escritorio                    |
 
 ```scss
 // breakpoints.scss
+@use 'sass:map';
+
 $breakpoints: (
   sm: 480px,
   md: 768px,
@@ -204,7 +212,7 @@ $breakpoints: (
 );
 
 @mixin respond($breakpoint) {
-  @media (min-width: map-get($breakpoints, $breakpoint)) {
+  @media (min-width: map.get($breakpoints, $breakpoint)) {
     @content;
   }
 }

@@ -1,0 +1,15 @@
+// docs/12-convenciones-frontend.md, apartado 12.3.
+
+$spacingXs: 0.25rem;
+$spacingSm: 0.5rem;
+$spacingMd: 1rem;
+$spacingLg: 1.5rem;
+$spacingXl: 2.5rem;
+
+:root {
+  --spacing-xs: #{$spacingXs};
+  --spacing-sm: #{$spacingSm};
+  --spacing-md: #{$spacingMd};
+  --spacing-lg: #{$spacingLg};
+  --spacing-xl: #{$spacingXl};
+}

@@ -1,0 +1,38 @@
+// Clases CSS globales de formulario — docs/12-convenciones-frontend.md, apartado 12.4.
+// El label es una clase global (sin lógica); Input/FormField son Angular Components
+// que además usan estas clases para su maquetación base.
+
+.form-label {
+  display: flex;
+  font-size: var(--font-size-sm);
+  color: var(--text-color);
+  font-weight: 500;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.form-input {
+  display: flex;
+  width: 100%;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md);
+  color: var(--text-color);
+  background: var(--background-color);
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 1px;
+  }
+}
+
+.form-error {
+  font-size: var(--font-size-sm);
+  color: var(--danger-color);
+}

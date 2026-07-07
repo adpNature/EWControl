@@ -1,0 +1,11 @@
+// docs/12-convenciones-frontend.md, apartado 12.3.
+
+$borderRadiusSm: 4px;
+$borderRadiusMd: 8px;
+$borderRadiusLg: 16px;
+
+:root {
+  --border-radius-sm: #{$borderRadiusSm};
+  --border-radius-md: #{$borderRadiusMd};
+  --border-radius-lg: #{$borderRadiusLg};
+}

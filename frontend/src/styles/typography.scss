@@ -1,0 +1,16 @@
+// docs/12-convenciones-frontend.md, apartado "Tipografía".
+// Fira Sans self-hosted vía @fontsource (sin depender de un CDN externo).
+
+$fontFamilyBase: 'Fira Sans', sans-serif;
+$fontSizeSm: 0.875rem;
+$fontSizeMd: 1rem;
+$fontSizeLg: 1.25rem;
+$fontSizeXl: 1.75rem;
+
+:root {
+  --font-family-base: #{$fontFamilyBase};
+  --font-size-sm: #{$fontSizeSm};
+  --font-size-md: #{$fontSizeMd};
+  --font-size-lg: #{$fontSizeLg};
+  --font-size-xl: #{$fontSizeXl};
+}

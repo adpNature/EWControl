@@ -45,12 +45,12 @@ Las capas internas contienen las reglas de negocio. Las capas externas contienen
 
 ## Capas canónicas
 
-| Capa | Contiene | No conoce |
-|---|---|---|
-| Entities | Reglas de negocio puras, entidades del dominio | Nada externo |
-| Use Cases | Orquestación de casos de uso de la aplicación | Frameworks, bases de datos, UI |
-| Interface Adapters | Traducción entre el mundo exterior y los casos de uso (controladores, presentadores, repositorios, proveedores de datos) | Detalles de frameworks concretos |
-| Frameworks & Drivers | Frameworks, bases de datos, UI, dispositivos externos | — |
+| Capa                 | Contiene                                                                                                                 | No conoce                        |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------- |
+| Entities             | Reglas de negocio puras, entidades del dominio                                                                           | Nada externo                     |
+| Use Cases            | Orquestación de casos de uso de la aplicación                                                                            | Frameworks, bases de datos, UI   |
+| Interface Adapters   | Traducción entre el mundo exterior y los casos de uso (controladores, presentadores, repositorios, proveedores de datos) | Detalles de frameworks concretos |
+| Frameworks & Drivers | Frameworks, bases de datos, UI, dispositivos externos                                                                    | —                                |
 
 El mapeo concreto de las capas ya existentes del proyecto (Domain, Application, Infrastructure, Adapters, Presentation) a esta nomenclatura canónica está detallado en:
 
@@ -106,6 +106,8 @@ Cada criterio de aceptación de una spec (backend o frontend) se traduce en al m
 
 Las capas Entities y Use Cases, al concentrar las reglas de negocio, son las que requieren mayor cobertura de tests. Los detalles de Frameworks & Drivers (configuración, wiring) se cubren en menor medida.
 
+Umbral mínimo exigido: **80% de líneas y ramas en Entities y Use Cases**, tanto en Backend como en Frontend. Se configura como `coverage.thresholds` en la configuración de Vitest de cada proyecto al scaffoldearlo (Documento 13), de forma que el propio comando `pnpm run test` falle si la cobertura cae por debajo del umbral — no es un objetivo aspiracional sin verificación, sino una condición para que el CI (Documento 13) pase en un Pull Request. Frameworks & Drivers no tiene umbral mínimo forzado, dado su menor valor de negocio por línea cubierta.
+
 ## Stack de testing
 
 EWControl usa **Vitest** como runner de tests unitarios y de componentes tanto en Backend como en Frontend, en vez de Jest en el Backend y Jasmine/Karma en el Frontend. Se descarta Jest en el Backend —pese a ser la opción más "oficial" y documentada para NestJS— porque Vitest es API-compatible con Jest (mismo `describe`/`it`/`expect`) y permite mantener un único runner y una única configuración mental de testing en todo el stack. Se descarta Jasmine/Karma en el Frontend porque es el stack histórico de Angular CLI, ya en proceso de sustitución oficial por Vitest en el propio framework.
@@ -141,10 +143,10 @@ La checklist detallada, con la mitigación concreta aplicada en EWControl para c
 
 # Resumen
 
-| Práctica | Responde a |
-|---|---|
-| Spec-Driven Development | Qué construir y cómo se sabe que está bien construido |
-| Clean Architecture | Cómo se organiza el código para que sea mantenible y testeable |
-| Docs as Code | Cómo evitar que la documentación se desactualice |
-| TDD | Cómo se verifica que el código cumple la spec |
-| OWASP Top 10 | Cómo evitar introducir vulnerabilidades conocidas |
+| Práctica                | Responde a                                                     |
+| ----------------------- | -------------------------------------------------------------- |
+| Spec-Driven Development | Qué construir y cómo se sabe que está bien construido          |
+| Clean Architecture      | Cómo se organiza el código para que sea mantenible y testeable |
+| Docs as Code            | Cómo evitar que la documentación se desactualice               |
+| TDD                     | Cómo se verifica que el código cumple la spec                  |
+| OWASP Top 10            | Cómo evitar introducir vulnerabilidades conocidas              |

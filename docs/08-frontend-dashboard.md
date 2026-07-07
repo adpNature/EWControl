@@ -1,11 +1,12 @@
 # Documento 8
+
 # Frontend / Dashboard
 
 # 8.1 Introducción y Objetivos
 
 ## Introducción
 
-Los documentos anteriores describen el backend de EWControl: dominio, persistencia, despliegue, seguridad y observabilidad. Este documento describe la capa de presentación: la aplicación Angular 20 (Documento 1) mediante la que los usuarios de cada Company consultan sus máquinas, sus históricos y sus alarmas.
+Los documentos anteriores describen el backend de EWControl: dominio, persistencia, despliegue, seguridad y observabilidad. Este documento describe la capa de presentación: la aplicación Angular 21 (Documento 1) mediante la que los usuarios de cada Company consultan sus máquinas, sus históricos y sus alarmas.
 
 ---
 
@@ -39,7 +40,7 @@ Definir cómo se organiza la aplicación Angular y cómo se comunica con el Back
 
 ## Estructura General
 
-EWControl usa **Standalone Components** (sin `NgModule`), el modelo por defecto de Angular 20. Cada área funcional es una carpeta de *feature* (`auth/`, `dashboard/`, `config/`, `history/`, `alarms/`) con sus propios componentes, rutas *lazy* (`loadComponent`/`loadChildren` sobre rutas standalone) y servicios, sin un módulo agregador. Se descarta `NgModule` porque ya está en vía de desaparición en Angular y añadiría una capa de organización redundante frente a las carpetas de feature.
+EWControl usa **Standalone Components** (sin `NgModule`), el modelo por defecto de Angular 21. Cada área funcional es una carpeta de _feature_ (`auth/`, `dashboard/`, `config/`, `history/`, `alarms/`) con sus propios componentes, rutas _lazy_ (`loadComponent`/`loadChildren` sobre rutas standalone) y servicios, sin un módulo agregador. Se descarta `NgModule` porque ya está en vía de desaparición en Angular y añadiría una capa de organización redundante frente a las carpetas de feature.
 
 ```mermaid
 flowchart TB
@@ -70,10 +71,10 @@ Cada feature de Angular se corresponde con un área funcional del dominio (Docum
 
 ## Comunicación con el Backend
 
-| Necesidad | Adapter utilizado |
-|---|---|
-| Login, CRUD de configuración, consulta de históricos | REST Adapter |
-| Actualización en tiempo real de Signals y alarmas | WebSocket Adapter |
+| Necesidad                                            | Adapter utilizado |
+| ---------------------------------------------------- | ----------------- |
+| Login, CRUD de configuración, consulta de históricos | REST Adapter      |
+| Actualización en tiempo real de Signals y alarmas    | WebSocket Adapter |
 
 El Frontend nunca simula en el cliente el cálculo de una Signal ni la evaluación de una alarma; siempre solicita el resultado ya calculado al Backend.
 
@@ -83,12 +84,12 @@ El Frontend nunca simula en el cliente el cálculo de una Signal ni la evaluaci�
 
 El Frontend sigue los mismos principios de Clean Architecture que el Backend (Documento 0, "Clean Architecture"; Documento 2, "Equivalencia con Clean Architecture"), adaptados a una aplicación Angular sin lógica de negocio propia.
 
-| Capa en Angular | Capa canónica de Clean Architecture | Contiene |
-|---|---|---|
-| Modelos de dominio | Entities | Interfaces TypeScript que reflejan las entidades del Documento 3 (`Machine`, `Signal`, `AlarmDefinition`...); sin dependencias de Angular. |
-| Servicios de aplicación / estado | Use Cases | Orquestación de flujos de la interfaz (ej. "cargar Dashboard", "hacer login", "suscribirse a las Signals de una Machine"); coordinan Interface Adapters, sin conocer HTTP ni WebSocket directamente. Implementados con **Angular Signals** (`signal()`/`computed()`/`effect()`) como mecanismo de estado — se descarta una librería externa (NgRx/Akita) por ser sobreingeniería para el volumen de estado compartido actual (Documento 2, "Simplicidad"), y se descarta RxJS puro como estado persistente porque Signals ofrece un modelo más simple de lectura síncrona para plantillas, reservando RxJS para flujos verdaderamente asíncronos (WebSocket, HTTP). |
-| Adapters REST/WebSocket, Guards, Interceptors | Interface Adapters | Traducción entre los servicios de aplicación y el mundo exterior: llamadas HTTP al Documento 11, gestión del canal WebSocket, `AuthGuard` de rutas, interceptor de refresh de token (ver [specs/auth-login.md](specs/auth-login.md)). |
-| Componentes de UI, routing, Angular en sí | Frameworks & Drivers | El framework Angular (Standalone Components, sin `NgModule`), sus componentes visuales y su router; el detalle de renderizado nunca se filtra hacia los Use Cases. |
+| Capa en Angular                               | Capa canónica de Clean Architecture | Contiene                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| --------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Modelos de dominio                            | Entities                            | Interfaces TypeScript que reflejan las entidades del Documento 3 (`Machine`, `Signal`, `AlarmDefinition`...); sin dependencias de Angular.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Servicios de aplicación / estado              | Use Cases                           | Orquestación de flujos de la interfaz (ej. "cargar Dashboard", "hacer login", "suscribirse a las Signals de una Machine"); coordinan Interface Adapters, sin conocer HTTP ni WebSocket directamente. Implementados con **Angular Signals** (`signal()`/`computed()`/`effect()`) como mecanismo de estado — se descarta una librería externa (NgRx/Akita) por ser sobreingeniería para el volumen de estado compartido actual (Documento 2, "Simplicidad"), y se descarta RxJS puro como estado persistente porque Signals ofrece un modelo más simple de lectura síncrona para plantillas, reservando RxJS para flujos verdaderamente asíncronos (WebSocket, HTTP). |
+| Adapters REST/WebSocket, Guards, Interceptors | Interface Adapters                  | Traducción entre los servicios de aplicación y el mundo exterior: llamadas HTTP al Documento 11, gestión del canal WebSocket, `AuthGuard` de rutas, interceptor de refresh de token (ver [specs/auth-login.md](specs/auth-login.md)).                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Componentes de UI, routing, Angular en sí     | Frameworks & Drivers                | El framework Angular (Standalone Components, sin `NgModule`), sus componentes visuales y su router; el detalle de renderizado nunca se filtra hacia los Use Cases.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 La regla de dependencia se cumple igual que en el Backend: un componente visual puede depender de un servicio de aplicación, pero un modelo de dominio nunca depende de un componente ni de Angular.
 
@@ -187,7 +188,7 @@ Cuando una Machine pasa a estado OFFLINE (Documento 2, apartado 2.6), el Fronten
 
 ## Reglas Arquitectónicas
 
-**Regla 1.** El Frontend nunca consulta el valor de una Signal mediante sondeo periódico (*polling*) mientras exista una conexión WebSocket activa.
+**Regla 1.** El Frontend nunca consulta el valor de una Signal mediante sondeo periódico (_polling_) mientras exista una conexión WebSocket activa.
 
 **Regla 2.** La pérdida de conexión con una Machine se muestra explícitamente al usuario, nunca de forma silenciosa.
 
@@ -207,11 +208,11 @@ Definir cómo se visualizan y gestionan las alarmas industriales (Documento 3, a
 
 ## Visualización de Alarmas
 
-| Vista | Contenido |
-|---|---|
-| Widget de tipo ALARM_LIST | Alarmas activas de las Signals asociadas al Dashboard |
-| Panel de alarmas | Todas las alarmas activas de la Company, independientemente del Dashboard |
-| Histórico de alarmas | Consulta de `AlarmState` pasados, obtenidos vía REST |
+| Vista                     | Contenido                                                                 |
+| ------------------------- | ------------------------------------------------------------------------- |
+| Widget de tipo ALARM_LIST | Alarmas activas de las Signals asociadas al Dashboard                     |
+| Panel de alarmas          | Todas las alarmas activas de la Company, independientemente del Dashboard |
+| Histórico de alarmas      | Consulta de `AlarmState` pasados, obtenidos vía REST                      |
 
 Las alarmas activas se actualizan en tiempo real por WebSocket, igual que cualquier otra Signal; el histórico de alarmas se consulta bajo demanda vía REST, igual que un histórico de Signal.
 
@@ -245,11 +246,11 @@ Definir cómo un usuario administrador configura Machines, Signals, AlarmDefinit
 
 ## Operaciones de Configuración
 
-| Operación | Entidad afectada | Rol requerido |
-|---|---|---|
-| Registrar una Machine | Machine, MachineConnection | AdminCliente / SuperAdmin |
-| Definir una Signal | Signal | AdminCliente / SuperAdmin |
-| Definir una regla de alarma | AlarmDefinition | AdminCliente / SuperAdmin |
+| Operación                      | Entidad afectada           | Rol requerido             |
+| ------------------------------ | -------------------------- | ------------------------- |
+| Registrar una Machine          | Machine, MachineConnection | AdminCliente / SuperAdmin |
+| Definir una Signal             | Signal                     | AdminCliente / SuperAdmin |
+| Definir una regla de alarma    | AlarmDefinition            | AdminCliente / SuperAdmin |
 | Crear o modificar un Dashboard | Dashboard, DashboardWidget | AdminCliente / SuperAdmin |
 
 Cada formulario del Frontend se corresponde con una entidad del dominio (Documento 3) y con los endpoints de escritura definidos en el Documento 11. El Frontend valida el formato de los datos introducidos, pero la validación de negocio (por ejemplo, que una Signal FORMULA solo referencie Variables de su misma Machine) siempre se revalida en el Backend.
@@ -281,10 +282,10 @@ Definir cómo el Frontend consulta y representa la información histórica almac
 El Frontend solicita un histórico indicando la Signal (o Machine) y el rango temporal deseado; nunca solicita agregaciones concretas de InfluxDB directamente, sino que delega en el Backend la selección de resolución adecuada (Documento 4, apartado 4.3).
 
 | Rango solicitado | Resolución típica devuelta por el Backend |
-|---|---|
-| Últimas horas | Valores en bruto |
-| Últimos días | Media por minuto u hora |
-| Últimos meses | Media diaria o mensual |
+| ---------------- | ----------------------------------------- |
+| Últimas horas    | Valores en bruto                          |
+| Últimos días     | Media por minuto u hora                   |
+| Últimos meses    | Media diaria o mensual                    |
 
 ---
 

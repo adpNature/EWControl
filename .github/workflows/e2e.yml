@@ -9,22 +9,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Instalar dependencias del backend
         working-directory: backend
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Instalar dependencias del frontend
         working-directory: frontend
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Instalar navegadores de Playwright
         working-directory: frontend
-        run: npx playwright install --with-deps
+        run: pnpm exec playwright install --with-deps
 
       - name: Ejecutar tests e2e
         working-directory: frontend
-        run: npm run test:e2e
+        run: pnpm run test:e2e

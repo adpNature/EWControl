@@ -1,4 +1,5 @@
 # Documento 6
+
 # Seguridad Global
 
 # 6.1 Introducción y Alcance
@@ -80,9 +81,9 @@ Vida útil de **7 días**. Se entrega en una cookie `httpOnly`, `Secure`, `SameS
 
 Los roles ya definidos en el Documento 3 (`UserRole`: SuperAdmin, AdminCliente) determinan el alcance de cada token:
 
-| Rol | Alcance del token |
-|---|---|
-| SuperAdmin | Acceso a cualquier Company de la plataforma |
+| Rol          | Alcance del token                                    |
+| ------------ | ---------------------------------------------------- |
+| SuperAdmin   | Acceso a cualquier Company de la plataforma          |
 | AdminCliente | Acceso exclusivo a los recursos de su propia Company |
 
 Ningún token de tipo AdminCliente puede ampliarse en tiempo de ejecución para acceder a otra Company; el alcance queda fijado en el momento de la emisión.
@@ -101,12 +102,12 @@ El endpoint de login limita a 5 intentos fallidos por email cada 15 minutos; sup
 
 Se evaluaron dos algoritmos de hash de contraseñas:
 
-| | bcrypt | Argon2id |
-|---|---|---|
-| Resistencia a ataques paralelos (GPU/ASIC) | Media — usa poca memoria por intento (~4 KB) | Alta — *memory-hard*, exige memoria configurable (ej. 64 MB) por intento |
-| Recomendación OWASP actual | Alternativa aceptada | Primera opción |
-| Madurez en Node/NestJS | Estándar de facto, muy probado en producción | Menos extendido, requiere dependencias nativas adicionales |
-| Fricción operativa (build de imágenes Docker) | Baja | Mayor (compilación nativa) |
+|                                               | bcrypt                                       | Argon2id                                                                 |
+| --------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------ |
+| Resistencia a ataques paralelos (GPU/ASIC)    | Media — usa poca memoria por intento (~4 KB) | Alta — _memory-hard_, exige memoria configurable (ej. 64 MB) por intento |
+| Recomendación OWASP actual                    | Alternativa aceptada                         | Primera opción                                                           |
+| Madurez en Node/NestJS                        | Estándar de facto, muy probado en producción | Menos extendido, requiere dependencias nativas adicionales               |
+| Fricción operativa (build de imágenes Docker) | Baja                                         | Mayor (compilación nativa)                                               |
 
 Se opta por **bcrypt** para EWControl: el perfil de amenaza de la plataforma no requiere la resistencia adicional de Argon2id frente a ataques con hardware especializado, y bcrypt ofrece menor fricción operativa (sin dependencias nativas problemáticas en la imagen del Backend, Documento 5) con un historial de producción más largo. Esta decisión se revisará si en el futuro cambia el perfil de riesgo del proyecto (por ejemplo, al manejar datos de mayor sensibilidad).
 
@@ -192,7 +193,7 @@ Todo Data Provider desplegado en el edge se autentica frente al Backend mediante
 
 ## Objetivo
 
-Establecer los principios de segmentación entre la red industrial (OT, *Operational Technology*) donde operan los PLCs y servidores OPC UA, y la red corporativa e informática (IT) donde se ejecuta el resto de la plataforma.
+Establecer los principios de segmentación entre la red industrial (OT, _Operational Technology_) donde operan los PLCs y servidores OPC UA, y la red corporativa e informática (IT) donde se ejecuta el resto de la plataforma.
 
 ---
 
@@ -255,12 +256,12 @@ Consolidar en un único lugar los tramos de comunicación de la plataforma y su 
 
 ## Cifrado en Tránsito
 
-| Tramo | Protección |
-|---|---|
-| Angular ↔ Ingress | HTTPS / WSS |
-| Ingress ↔ Backend | TLS interno del clúster |
-| Backend ↔ PostgreSQL / InfluxDB | TLS interno del clúster |
-| Data Provider (Edge) ↔ Backend | mTLS (apartado 6.3) |
+| Tramo                           | Protección                                                                |
+| ------------------------------- | ------------------------------------------------------------------------- |
+| Angular ↔ Ingress               | HTTPS / WSS                                                               |
+| Ingress ↔ Backend               | TLS interno del clúster                                                   |
+| Backend ↔ PostgreSQL / InfluxDB | TLS interno del clúster                                                   |
+| Data Provider (Edge) ↔ Backend  | mTLS (apartado 6.3)                                                       |
 | Data Provider ↔ Servidor OPC UA | Política de seguridad OPC UA definida en `ConnectionConfig` (Documento 3) |
 
 Ningún tramo de la plataforma transmite información en claro, incluida la red interna del clúster.
@@ -303,11 +304,11 @@ Ampliar a nivel de sistema la auditoría de configuración ya definida en el Doc
 
 ## Niveles de Auditoría
 
-| Nivel | Qué registra | Dónde se define |
-|---|---|---|
-| Configuración | Creación, modificación y desactivación de entidades del dominio | Documento 4, apartado 4.2 |
-| Acceso | Inicios de sesión, renovaciones de token, intentos fallidos de autenticación | Este documento |
-| Seguridad | Conexiones de Data Providers, certificados revocados, rechazos de conexión | Este documento |
+| Nivel         | Qué registra                                                                 | Dónde se define           |
+| ------------- | ---------------------------------------------------------------------------- | ------------------------- |
+| Configuración | Creación, modificación y desactivación de entidades del dominio              | Documento 4, apartado 4.2 |
+| Acceso        | Inicios de sesión, renovaciones de token, intentos fallidos de autenticación | Este documento            |
+| Seguridad     | Conexiones de Data Providers, certificados revocados, rechazos de conexión   | Este documento            |
 
 ---
 
@@ -355,12 +356,12 @@ El Documento 3 establece que ninguna relación del dominio puede cruzar el lími
 
 El aislamiento entre Companies se refuerza en varias capas independientes, de forma que el fallo de una no exponga a las demás:
 
-| Capa | Mecanismo |
-|---|---|
-| Autenticación | El token de usuario fija su Company (apartado 6.2) |
-| Aplicación | Todo caso de uso del Backend filtra por `company_id` (Documento 4) |
-| Base de datos | Claves foráneas y consultas siempre acotadas por Company (Documento 4) |
-| Series temporales | Todo punto en InfluxDB incluye el tag `company_id` (Documento 4) |
+| Capa              | Mecanismo                                                              |
+| ----------------- | ---------------------------------------------------------------------- |
+| Autenticación     | El token de usuario fija su Company (apartado 6.2)                     |
+| Aplicación        | Todo caso de uso del Backend filtra por `company_id` (Documento 4)     |
+| Base de datos     | Claves foráneas y consultas siempre acotadas por Company (Documento 4) |
+| Series temporales | Todo punto en InfluxDB incluye el tag `company_id` (Documento 4)       |
 
 ---
 
@@ -382,15 +383,15 @@ El aislamiento multiempresa, definido como regla de dominio en el Documento 3, s
 
 Este apartado reúne, a modo de referencia rápida, las reglas de seguridad ya justificadas en los apartados anteriores.
 
-| Regla | Origen |
-|---|---|
-| Ninguna petición se procesa sin un token válido | 6.2 |
-| El alcance de un token nunca se amplía tras su emisión | 6.2 |
-| Todo Data Provider en el edge se autentica mediante mTLS | 6.3 |
-| La red OT nunca es accesible desde internet | 6.4 |
-| Ningún dato viaja sin cifrar, ni siquiera en la red interna | 6.5 |
-| Todo intento de autenticación se audita | 6.6 |
-| Ninguna consulta se ejecuta sin acotar por Company | 6.7 |
+| Regla                                                       | Origen |
+| ----------------------------------------------------------- | ------ |
+| Ninguna petición se procesa sin un token válido             | 6.2    |
+| El alcance de un token nunca se amplía tras su emisión      | 6.2    |
+| Todo Data Provider en el edge se autentica mediante mTLS    | 6.3    |
+| La red OT nunca es accesible desde internet                 | 6.4    |
+| Ningún dato viaja sin cifrar, ni siquiera en la red interna | 6.5    |
+| Todo intento de autenticación se audita                     | 6.6    |
+| Ninguna consulta se ejecuta sin acotar por Company          | 6.7    |
 
 ---
 
@@ -416,18 +417,18 @@ Ninguna de estas capas sustituye a las demás: la plataforma asume que cualquier
 
 Recorrer explícitamente los 10 riesgos de OWASP (edición 2021) y dejar constancia de la mitigación aplicada en EWControl para cada uno. Esta checklist se revisa en cada feature vertical nueva (Documento 0, "OWASP Top 10"), no solo en este documento.
 
-| Riesgo OWASP | Mitigación en EWControl |
-|---|---|
-| A01 Broken Access Control | Filtrado automático por `company_id` en cada consulta (apartado 6.7); roles `SuperAdmin`/`AdminCliente` verificados en cada endpoint (Documento 11); un recurso de otra Company responde `404`, no `403`, para no confirmar su existencia. |
-| A02 Cryptographic Failures | Contraseñas con hash + salt mediante bcrypt (comparativa frente a Argon2id en el apartado 6.2), nunca en texto plano. TLS en tránsito para toda comunicación externa (apartado 6.5). Refresh token en cookie `httpOnly`/`Secure`, nunca accesible por JavaScript. |
-| A03 Injection | ORM/query builder parametrizado para todo acceso a PostgreSQL (nunca SQL concatenado); validación de payloads de entrada en cada endpoint (Documento 11) antes de llegar a la capa de aplicación. |
-| A04 Insecure Design | Spec-Driven Development (Documento 0): cada feature define sus casos borde y de error antes de implementarse, incluyendo los de seguridad. |
-| A05 Security Misconfiguration | Variables de entorno para todo secreto (sin credenciales hardcodeadas); cabeceras de seguridad HTTP (`Content-Security-Policy`, `X-Content-Type-Options`, etc.) activas por defecto en el Backend. |
-| A06 Vulnerable and Outdated Components | Dependencias con versiones fijadas y actualización revisada periódicamente; sin frameworks o librerías sin mantenimiento activo. |
-| A07 Identification and Authentication Failures | Access token de vida corta (15 min) + refresh token rotado con detección de reutilización (apartado 6.2); rate limiting de 5 intentos/15 min en login; mensajes de error de login genéricos, sin confirmar si el email existe. |
-| A08 Software and Data Integrity Failures | Los eventos internos (`SignalUpdated`, `AlarmTriggered`, Documento 2) solo se publican desde componentes de confianza del propio Backend; ningún cliente externo puede inyectar eventos directamente. |
-| A09 Security Logging and Monitoring Failures | Todo intento de autenticación, fallido o exitoso, y toda reutilización de refresh token se audita (apartado 6.6); trazabilidad end-to-end con `correlation_id` (Documento 7). |
-| A10 Server-Side Request Forgery (SSRF) | El Backend nunca realiza peticiones HTTP salientes a URLs proporcionadas por el usuario; las conexiones a Data Providers usan configuración validada por un administrador, no URLs arbitrarias de usuario final. |
+| Riesgo OWASP                                   | Mitigación en EWControl                                                                                                                                                                                                                                                                                  |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A01 Broken Access Control                      | Filtrado automático por `company_id` en cada consulta (apartado 6.7); roles `SuperAdmin`/`AdminCliente` verificados en cada endpoint (Documento 11); un recurso de otra Company responde `404`, no `403`, para no confirmar su existencia.                                                               |
+| A02 Cryptographic Failures                     | Contraseñas con hash + salt mediante bcrypt (comparativa frente a Argon2id en el apartado 6.2), nunca en texto plano. TLS en tránsito para toda comunicación externa (apartado 6.5). Refresh token en cookie `httpOnly`/`Secure`, nunca accesible por JavaScript.                                        |
+| A03 Injection                                  | ORM/query builder parametrizado para todo acceso a PostgreSQL (nunca SQL concatenado); validación de payloads de entrada en cada endpoint (Documento 11) antes de llegar a la capa de aplicación.                                                                                                        |
+| A04 Insecure Design                            | Spec-Driven Development (Documento 0): cada feature define sus casos borde y de error antes de implementarse, incluyendo los de seguridad.                                                                                                                                                               |
+| A05 Security Misconfiguration                  | Variables de entorno para todo secreto (sin credenciales hardcodeadas); cabeceras de seguridad HTTP (`Content-Security-Policy`, `X-Content-Type-Options`, etc.) activas por defecto en el Backend.                                                                                                       |
+| A06 Vulnerable and Outdated Components         | Dependencias con versiones fijadas; **Dependabot** (Documento 13) abre Pull Requests semanales de actualización para `/`, `/backend`, `/frontend` y GitHub Actions, revisados como cualquier otro PR antes de mergear — no es una revisión manual periódica sin mecanismo, sino un proceso automatizado. |
+| A07 Identification and Authentication Failures | Access token de vida corta (15 min) + refresh token rotado con detección de reutilización (apartado 6.2); rate limiting de 5 intentos/15 min en login; mensajes de error de login genéricos, sin confirmar si el email existe.                                                                           |
+| A08 Software and Data Integrity Failures       | Los eventos internos (`SignalUpdated`, `AlarmTriggered`, Documento 2) solo se publican desde componentes de confianza del propio Backend; ningún cliente externo puede inyectar eventos directamente.                                                                                                    |
+| A09 Security Logging and Monitoring Failures   | Todo intento de autenticación, fallido o exitoso, y toda reutilización de refresh token se audita (apartado 6.6); trazabilidad end-to-end con `correlation_id` (Documento 7).                                                                                                                            |
+| A10 Server-Side Request Forgery (SSRF)         | El Backend nunca realiza peticiones HTTP salientes a URLs proporcionadas por el usuario; las conexiones a Data Providers usan configuración validada por un administrador, no URLs arbitrarias de usuario final.                                                                                         |
 
 ## Decisión Arquitectónica
 

@@ -1,0 +1,50 @@
+// Clases CSS globales reutilizables — docs/12-convenciones-frontend.md, apartado 12.4.
+// Elementos sin lógica ni estado: títulos, texto, box, tablas. Todo maquetado con Flexbox.
+
+.title-xl {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--text-color);
+  margin: 0;
+}
+
+.title-lg {
+  font-size: var(--font-size-lg);
+  font-weight: 500;
+  color: var(--text-color);
+  margin: 0;
+}
+
+.text-body {
+  font-size: var(--font-size-md);
+  color: var(--text-color);
+  margin: 0;
+}
+
+.text-muted {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted-color);
+  margin: 0;
+}
+
+.box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  border-radius: var(--border-radius-md);
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+}
+
+.table-flex {
+  display: flex;
+  flex-direction: column;
+
+  &__row {
+    display: flex;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px solid var(--border-color);
+  }
+}

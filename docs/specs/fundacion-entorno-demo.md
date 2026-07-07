@@ -8,7 +8,7 @@ Las specs `simulador-generar-lectura.md`, `simulador-forzar-fallo.md` y `simulad
 
 ## Actor(es)
 
-Sistema, disparado por el comando `npm run seed` (README, sección c) al levantar el entorno de desarrollo por primera vez.
+Sistema, disparado por el comando `pnpm run seed` (README, sección c) al levantar el entorno de desarrollo por primera vez.
 
 ## Precondiciones
 
@@ -20,7 +20,7 @@ Sistema, disparado por el comando `npm run seed` (README, sección c) al levanta
 ### Flujo principal (Given/When/Then)
 
 - **Given** una base de datos con el esquema migrado y vacía.
-- **When** se ejecuta `npm run seed`.
+- **When** se ejecuta `pnpm run seed`.
 - **Then** se crea, en una única transacción:
   1. Una `Company` demo (`name: "EWControl Demo"`).
   2. Un `User` con `email: "demo@ewcontrol.local"`, `role: AdminCliente`, contraseña `Demo1234!` hasheada con bcrypt (Documento 6, apartado 6.2), asociado a la Company anterior.
@@ -35,7 +35,7 @@ Sistema, disparado por el comando `npm run seed` (README, sección c) al levanta
 ### Casos borde / errores (Given/When/Then)
 
 - **Given** el seed ya se ejecutó previamente (existe una Company con el mismo nombre de seed).
-- **When** se vuelve a ejecutar `npm run seed`.
+- **When** se vuelve a ejecutar `pnpm run seed`.
 - **Then** el comando es idempotente: no crea entidades duplicadas y termina con éxito, informando que el entorno demo ya existía.
 
 - **Given** un fallo a mitad de la creación (ej. la base de datos se desconecta tras crear la Company pero antes de crear la Machine).
@@ -43,16 +43,16 @@ Sistema, disparado por el comando `npm run seed` (README, sección c) al levanta
 - **Then** toda la operación se revierte (transacción única): no queda una Company sin User, ni una Machine sin Signals.
 
 - **Given** las migraciones de TypeORM no se han aplicado todavía.
-- **When** se ejecuta `npm run seed`.
+- **When** se ejecuta `pnpm run seed`.
 - **Then** el comando falla con un mensaje explícito indicando que faltan migraciones por aplicar, sin intentar crear datos sobre un esquema inexistente.
 
 ### Contrato de entrada/salida
 
-No es un endpoint HTTP: es un script de utilidad de desarrollo (`npm run seed`, README sección c), no forma parte del catálogo de `docs/11-api-rest.md`. Usa directamente los mismos repositorios/entidades que expondrán después los endpoints de `Company`, `User`, `Machine`, `MachineConnection` y `Signal` del Documento 11.
+No es un endpoint HTTP: es un script de utilidad de desarrollo (`pnpm run seed`, README sección c), no forma parte del catálogo de `docs/11-api-rest.md`. Usa directamente los mismos repositorios/entidades que expondrán después los endpoints de `Company`, `User`, `Machine`, `MachineConnection` y `Signal` del Documento 11.
 
 ### Criterios de aceptación backend
 
-1. Tras ejecutar `npm run seed` sobre una base de datos vacía y migrada, existen exactamente una Company, un User, una Machine, una MachineConnection y seis Signals, con los valores descritos en el flujo principal.
+1. Tras ejecutar `pnpm run seed` sobre una base de datos vacía y migrada, existen exactamente una Company, un User, una Machine, una MachineConnection y seis Signals, con los valores descritos en el flujo principal.
 2. El usuario `demo@ewcontrol.local` puede autenticarse con éxito contra `POST /api/v1/auth/login` (spec `auth-login.md`) usando la contraseña `Demo1234!`.
 3. La contraseña se almacena hasheada con bcrypt, nunca en texto plano.
 4. Ejecutar el comando dos veces no duplica ninguna entidad.

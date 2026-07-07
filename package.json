@@ -2,6 +2,10 @@
   "name": "ewcontrol",
   "private": true,
   "description": "Tooling compartido de EWControl: git hooks, formato y release (Documento 0, Documento 13). El código de la plataforma vive en /backend y /frontend, cada uno con su propio package.json.",
+  "engines": {
+    "node": ">=20.19.0 <21"
+  },
+  "packageManager": "pnpm@10.34.3",
   "scripts": {
     "prepare": "husky"
   },
@@ -18,14 +22,14 @@
   "lint-staged": {
     "backend/**/*.ts": [
       "prettier --write",
-      "eslint --fix"
+      "backend/node_modules/.bin/eslint --fix --config backend/eslint.config.js"
     ],
     "frontend/**/*.ts": [
       "prettier --write",
-      "eslint --fix"
+      "frontend/node_modules/.bin/eslint --fix --config frontend/eslint.config.js"
     ],
     "frontend/**/*.scss": [
-      "stylelint --fix",
+      "frontend/node_modules/.bin/stylelint --fix --config frontend/.stylelintrc.json",
       "prettier --write"
     ],
     "*.md": [

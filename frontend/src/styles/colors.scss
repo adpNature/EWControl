@@ -1,0 +1,37 @@
+// Paleta de marca y estados — docs/12-convenciones-frontend.md, apartado 12.3.
+// Fuente de verdad en SCSS ($variables camelCase); expuestas como Custom Properties
+// en :root para permitir cambio de tema en runtime (ej. modo oscuro futuro).
+
+$primaryColor: #ff6b35;
+$primaryColorHover: #e85a28;
+$textColor: #1d1d1b;
+$textMutedColor: #6b6b69;
+$backgroundColor: #fff;
+$surfaceColor: #faf9f8;
+$borderColor: #e4e1dd;
+$successColor: #2f9e44;
+$successBackground: #eaf6ec;
+$warningColor: #e8a400;
+$warningBackground: #fff4db;
+$dangerColor: #dc3545;
+$dangerBackground: #fbe9ea;
+$infoColor: #2f80ed;
+$infoBackground: #eaf2fe;
+
+:root {
+  --primary-color: #{$primaryColor};
+  --primary-color-hover: #{$primaryColorHover};
+  --text-color: #{$textColor};
+  --text-muted-color: #{$textMutedColor};
+  --background-color: #{$backgroundColor};
+  --surface-color: #{$surfaceColor};
+  --border-color: #{$borderColor};
+  --success-color: #{$successColor};
+  --success-background: #{$successBackground};
+  --warning-color: #{$warningColor};
+  --warning-background: #{$warningBackground};
+  --danger-color: #{$dangerColor};
+  --danger-background: #{$dangerBackground};
+  --info-color: #{$infoColor};
+  --info-background: #{$infoBackground};
+}
