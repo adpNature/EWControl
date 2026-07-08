@@ -5,4 +5,5 @@ export const MACHINE_REPOSITORY = Symbol('MachineRepository');
 
 export interface IMachineRepository {
   create(data: { companyId: string; name: string }, ctx: TransactionContext): Promise<Machine>;
+  findById(id: string, ctx: TransactionContext): Promise<Machine | null>;
 }

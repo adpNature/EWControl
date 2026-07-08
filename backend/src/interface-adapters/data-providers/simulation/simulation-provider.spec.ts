@@ -134,5 +134,84 @@ describe('SimulationProvider', () => {
 
       expect(listener).toHaveBeenCalledTimes(1);
     });
+
+    it('sigue disparando tick() en segundo plano tras disconnect (spec 03: reversible sin volver a llamar startScheduler)', async () => {
+      const provider = new SimulationProvider(SINGLE_SIGNAL_CONFIG);
+      const listener = vi.fn();
+      provider.subscribe(listener);
+      await provider.connect();
+      provider.startScheduler();
+
+      await provider.disconnect();
+      vi.advanceTimersByTime(2000);
+      expect(listener).not.toHaveBeenCalled();
+
+      await provider.connect();
+      vi.advanceTimersByTime(1000);
+      expect(listener).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('forceQuality', () => {
+    it('degrada exactamente durationTicks lecturas y luego vuelve a GOOD', async () => {
+      const provider = new SimulationProvider(SINGLE_SIGNAL_CONFIG);
+      const listener = vi.fn();
+      provider.subscribe(listener);
+      await provider.connect();
+
+      provider.forceQuality('WindingSpeed', DataQuality.Bad, 2);
+
+      provider.tick();
+      provider.tick();
+      provider.tick();
+
+      const qualities = listener.mock.calls.map(([variable]: [Variable]) => variable.quality);
+      expect(qualities).toEqual([DataQuality.Bad, DataQuality.Bad, DataQuality.Good]);
+    });
+
+    it('sigue generando el valor con normalidad durante la degradación', async () => {
+      const provider = new SimulationProvider(SINGLE_SIGNAL_CONFIG, () => 1);
+      const listener = vi.fn();
+      provider.subscribe(listener);
+      await provider.connect();
+
+      provider.forceQuality('WindingSpeed', DataQuality.Uncertain, 1);
+      provider.tick(); // 600, degradado
+      provider.tick(); // 615, ya GOOD de nuevo
+
+      const values = listener.mock.calls.map(([variable]: [Variable]) => variable.value);
+      expect(values).toEqual([600, 615]);
+    });
+
+    it('no afecta a otras Signals de la misma Machine', async () => {
+      const provider = new SimulationProvider(MULTI_SIGNAL_CONFIG, () => 1);
+      const listener = vi.fn();
+      provider.subscribe(listener);
+      await provider.connect();
+
+      provider.forceQuality('WindingSpeed', DataQuality.Bad, 5);
+      provider.tick();
+
+      const byName = new Map(
+        listener.mock.calls.map(([variable]: [Variable]) => [variable.name, variable.quality]),
+      );
+      expect(byName.get('WindingSpeed')).toBe(DataQuality.Bad);
+      expect(byName.get('PieceCounter')).toBe(DataQuality.Good);
+      expect(byName.get('RunStop')).toBe(DataQuality.Good);
+    });
+
+    it('con durationTicks=1 degrada solo la siguiente lectura', async () => {
+      const provider = new SimulationProvider(SINGLE_SIGNAL_CONFIG);
+      const listener = vi.fn();
+      provider.subscribe(listener);
+      await provider.connect();
+
+      provider.forceQuality('WindingSpeed', DataQuality.Bad, 1);
+      provider.tick();
+      provider.tick();
+
+      const qualities = listener.mock.calls.map(([variable]: [Variable]) => variable.quality);
+      expect(qualities).toEqual([DataQuality.Bad, DataQuality.Good]);
+    });
   });
 });

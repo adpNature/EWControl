@@ -16,6 +16,8 @@ Sin hardware real, el Alarm Engine (Documento 2, apartado 2.6) y la lógica de r
 - La Machine tiene `MachineConnection.ProviderType = Simulator`.
 - El usuario autenticado tiene acceso a esa Machine (misma Company, o `SuperAdmin`).
 
+> **Nota de implementación**: esta spec se implementó antes que [05-auth-login.md](05-auth-login.md), por lo que los endpoints `/simulator/*` se registraron sin Auth Guard (no existía ningún guard ni JWT en el proyecto en ese momento). El Auth Guard se diseñó como interceptor global (Documento 2, "Auth Guard"), así que en cuanto la spec 05 lo registre, estos endpoints quedan protegidos automáticamente (JWT + rol + aislamiento por Company) sin requerir ningún cambio en su código. Los 5 criterios de aceptación backend de esta spec son puramente funcionales y no dependen de esa protección.
+
 ## Backend
 
 ### Flujo principal (Given/When/Then)

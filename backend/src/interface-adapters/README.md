@@ -8,6 +8,7 @@ Traduce entre el mundo exterior y los Use Cases:
 - `persistence/postgres/` — repositorios TypeORM (`typeorm/`) y migraciones (`migrations/`).
 - `persistence/influxdb/` — cliente y repositorios de InfluxDB.
 - `rest/` — controladores REST (`docs/11-api-rest.md`).
+- `events/` — Event Publisher, envuelve `EventEmitter2` de NestJS (Documento 2, apartado 2.7).
 - `websocket/` — gateway WebSocket (`docs/11-api-rest.md`, sección WebSocket).
 - `email/` — Email Adapter (Documento 2, apartado 2.10).
 - `auth-guard/` — único punto de verificación del JWT (Documento 2, "Auth Guard"; `docs/06-seguridad-global.md`).
