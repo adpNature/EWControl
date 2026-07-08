@@ -8,6 +8,14 @@ EWControl is a multi-tenant web platform for industrial monitoring of machinery 
 
 Stack: Angular 21 (frontend), NestJS (backend), PostgreSQL via TypeORM (config data), InfluxDB (time-series history), JWT (access+refresh) + bcrypt (auth), Pino (logging), pnpm, Docker Compose. Vitest + Testing Library for unit/component tests on both sides, Playwright for e2e.
 
+## Testing Pyramid
+
+Three tiers, per `docs/00-metodologia-y-calidad.md` ("Pirámide de Testing") — pick the right one, don't default to integration/e2e for what a unit test with fakes already covers:
+
+- **Unit** — `*.spec.ts` colocated with the source. No real I/O; mock/fake every port. Runs on every PR.
+- **Integration** — `backend/test/*.integration-spec.ts`. Exercises an adapter or flow against a real Postgres/InfluxDB (via `docker compose`), never through HTTP. One test per _flow_ is usually enough (it exercises all its adapters transitively); only add a dedicated per-adapter integration test when that adapter's persistence logic is non-trivial (aggregations, token rotation, race conditions). Runs on every PR (`ci.yml` boots a Postgres service).
+- **E2E** — Playwright, `frontend/e2e/tests/*.spec.ts`. The full user-facing flow through the real UI. Runs only on merge to `main` (`e2e.yml`), not on every PR — it's the slowest tier.
+
 ## Mandatory workflow: Spec-Driven Development + TDD
 
 **No feature is coded without a spec first.** This is enforced process, not a suggestion:
@@ -53,9 +61,9 @@ Run from `/backend` or `/frontend` respectively (or via `docker compose exec bac
 ```bash
 # Backend (NestJS)
 pnpm run start:dev          # dev server, watch mode
-pnpm run test               # Vitest unit/component tests + coverage (enforces 80% threshold)
+pnpm run test               # Vitest unit tests + coverage (enforces 80% threshold)
 pnpm run test:watch         # Vitest watch mode
-pnpm run test:e2e           # Vitest e2e config (test/vitest.config.ts)
+pnpm run test:integration   # Vitest against real Postgres/InfluxDB (test/vitest.config.ts) — needs docker compose up
 pnpm run lint                # ESLint --fix
 pnpm run build               # nest build
 pnpm run migration:generate  # TypeORM migration from entity changes

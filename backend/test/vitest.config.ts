@@ -5,7 +5,7 @@ export default mergeConfig(
   baseConfig,
   defineConfig({
     test: {
-      include: ['test/**/*.e2e-spec.ts'],
+      include: ['test/**/*.integration-spec.ts'],
       // Levantar la app Nest completa (+ conexión a Postgres) tarda más que un unit test.
       hookTimeout: 30000,
     },

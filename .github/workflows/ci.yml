@@ -24,6 +24,26 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ewcontrol
+          POSTGRES_PASSWORD: ewcontrol_ci
+          POSTGRES_DB: ewcontrol
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ewcontrol -d ewcontrol"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ewcontrol
+      POSTGRES_USER: ewcontrol
+      POSTGRES_PASSWORD: ewcontrol_ci
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -35,6 +55,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run lint
       - run: pnpm run test
+      - run: pnpm run migration:run
+      - run: pnpm run test:integration
       - run: pnpm run build
 
   frontend:

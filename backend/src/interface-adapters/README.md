@@ -11,6 +11,7 @@ Traduce entre el mundo exterior y los Use Cases:
 - `websocket/` — gateway WebSocket (`docs/11-api-rest.md`, sección WebSocket).
 - `email/` — Email Adapter (Documento 2, apartado 2.10).
 - `auth-guard/` — único punto de verificación del JWT (Documento 2, "Auth Guard"; `docs/06-seguridad-global.md`).
+- `security/` — hashing de contraseñas (`bcrypt-password-hasher.ts`, Documento 6 apartado 6.2).
 
 Regla de dependencia: puede depender de `entities/`, nunca al revés.
 

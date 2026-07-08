@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
+import { ENTITIES } from '../entities';
+import { postgresConnectionOptions } from './database/postgres.config';
 
 /**
  * Módulo raíz. Registra el arranque de los motores externos (PostgreSQL, logging);
@@ -10,14 +12,8 @@ import { LoggerModule } from 'nestjs-pino';
 @Module({
   imports: [
     TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.POSTGRES_HOST,
-      port: Number(process.env.POSTGRES_PORT ?? 5432),
-      database: process.env.POSTGRES_DB,
-      username: process.env.POSTGRES_USER,
-      password: process.env.POSTGRES_PASSWORD,
-      entities: [__dirname + '/../entities/**/*.entity{.ts,.js}'],
-      synchronize: false, // Documento 4: nunca sincronizar automáticamente fuera de tests, siempre vía migraciones
+      ...postgresConnectionOptions(),
+      entities: ENTITIES,
     }),
     LoggerModule.forRoot({
       pinoHttp: {
