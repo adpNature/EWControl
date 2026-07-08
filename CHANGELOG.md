@@ -1,3 +1,9 @@
+# [1.2.0](https://github.com/adpNature/EWControl/compare/v1.1.0...v1.2.0) (2026-07-08)
+
+### Features
+
+- implementa endpoints para forzar fallo del simulador (spec 03) ([16ae669](https://github.com/adpNature/EWControl/commit/16ae6695b30b3cc5950fa5f347ba957256dc21e8))
+
 # [1.1.0](https://github.com/adpNature/EWControl/compare/v1.0.2...v1.1.0) (2026-07-08)
 
 ### Features
