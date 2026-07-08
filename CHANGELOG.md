@@ -1,3 +1,9 @@
+## [1.0.2](https://github.com/adpNature/EWControl/compare/v1.0.1...v1.0.2) (2026-07-08)
+
+### Bug Fixes
+
+- adapta tsconfig del backend a los nuevos defaults de TypeScript 6 ([545312a](https://github.com/adpNature/EWControl/commit/545312abfe2343f64f8ea84de53efc5560921844))
+
 ## [1.0.1](https://github.com/adpNature/EWControl/compare/v1.0.0...v1.0.1) (2026-07-08)
 
 ### Bug Fixes
