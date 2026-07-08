@@ -52,27 +52,30 @@ Esta convención no es solo estética: es lo que permite generar versión y chan
 
 En esta fase (fundación backend + primeras features verticales, sin entorno de producción todavía) el pipeline de CI cubre exclusivamente **integración continua**: verificar que el código de cada Pull Request cumple las convenciones y pasa sus tests, no desplegar nada.
 
-| Workflow                        | Disparador                         | Qué hace                                                                                                                                                         |
-| ------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.github/workflows/ci.yml`      | Pull Request contra `main`         | Lint (ESLint + Stylelint) + tests unitarios/componente (Vitest) + build de Backend y Frontend.                                                                   |
-| `.github/workflows/e2e.yml`     | Push a `main` (tras mergear un PR) | Tests end-to-end con Playwright contra la aplicación completa. Se ejecuta solo al mergear, no en cada PR, para no ralentizar la revisión con la suite más lenta. |
-| `.github/workflows/release.yml` | Push a `main`                      | `semantic-release`: analiza los commits desde el último release y publica versión + `CHANGELOG.md` si corresponde.                                               |
+| Workflow                        | Disparador                         | Qué hace                                                                                                                                                                                               |
+| ------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `.github/workflows/ci.yml`      | Pull Request contra `main`         | Lint (ESLint + Stylelint) + tests unitarios/componente (Vitest) + tests de integración de Backend contra un servicio Postgres real (Documento 0, "Pirámide de Testing") + build de Backend y Frontend. |
+| `.github/workflows/e2e.yml`     | Push a `main` (tras mergear un PR) | Tests end-to-end con Playwright contra la aplicación completa. Se ejecuta solo al mergear, no en cada PR, para no ralentizar la revisión con la suite más lenta.                                       |
+| `.github/workflows/release.yml` | Push a `main`                      | `semantic-release`: analiza los commits desde el último release y publica versión + `CHANGELOG.md` si corresponde.                                                                                     |
+
+Los tests de integración sí corren en cada Pull Request, a diferencia de los e2e de Playwright: son rápidos (fracciones de segundo por test, solo levantan un contenedor Postgres, no un navegador), así que no justifican diferirlos a post-merge — hacerlo dejaría pasar un PR con una regresión de integración sin detectarla hasta después de mergear.
 
 ### Scripts que cada proyecto debe exponer
 
 Para que estos workflows funcionen, `backend/package.json` y `frontend/package.json` deben definir, con esos nombres exactos, los scripts que invoca el pipeline:
 
-| Script      | Backend                   | Frontend                 |
-| ----------- | ------------------------- | ------------------------ |
-| `lint`      | ESLint                    | ESLint                   |
-| `stylelint` | —                         | Stylelint sobre `*.scss` |
-| `test`      | Vitest (unit/component)   | Vitest + Testing Library |
-| `test:e2e`  | — (o Supertest si aplica) | Playwright               |
-| `build`     | Build de NestJS           | Build de Angular         |
+| Script             | Backend                                                                 | Frontend                 |
+| ------------------ | ----------------------------------------------------------------------- | ------------------------ |
+| `lint`             | ESLint                                                                  | ESLint                   |
+| `stylelint`        | —                                                                       | Stylelint sobre `*.scss` |
+| `test`             | Vitest (unitario, Documento 0)                                          | Vitest + Testing Library |
+| `test:integration` | Vitest contra Postgres/InfluxDB reales (Documento 0)                    | —                        |
+| `test:e2e`         | — (reservado para un futuro test HTTP vía Supertest, no existe todavía) | Playwright               |
+| `build`            | Build de NestJS                                                         | Build de Angular         |
 
 ### Estado actual
 
-El scaffolding real de `/backend` y `/frontend` (Documento 0, Fase 1) ya existe, con los scripts exactos que esperan los tres workflows: el pipeline está activo desde el primer Pull Request. El Frontend ya tiene sus primeros tests (`app.spec.ts`); el Backend, al no tener todavía lógica de negocio propia (solo wiring de Frameworks & Drivers), no tiene specs propias — `backend/vitest.config.ts` fija `passWithNoTests: true` para que esa ausencia temporal no tumbe el CI. En cuanto la primera feature vertical (`docs/specs/05-auth-login.md`) añada código en Entities/Use Cases, sus tests dejan de ser opcionales y el umbral del 80% de cobertura (Documento 0, "Cobertura") empieza a aplicarse de verdad.
+El scaffolding real de `/backend` y `/frontend` (Documento 0, Fase 1) ya existe, con los scripts exactos que esperan los tres workflows: el pipeline está activo desde el primer Pull Request. El Frontend ya tiene sus primeros tests (`app.spec.ts`); el Backend añadió su primera lógica de negocio real (Entities/Use Cases) en la spec `docs/specs/01-fundacion-entorno-demo.md` — a partir de ahí sus tests dejan de ser opcionales y el umbral del 80% de cobertura (Documento 0, "Cobertura") se aplica de verdad, ya no depende de `passWithNoTests: true`.
 
 ---
 

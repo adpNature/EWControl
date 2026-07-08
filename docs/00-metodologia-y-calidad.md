@@ -110,7 +110,21 @@ Umbral mínimo exigido: **80% de líneas y ramas en Entities y Use Cases**, tant
 
 ## Stack de testing
 
-EWControl usa **Vitest** como runner de tests unitarios y de componentes tanto en Backend como en Frontend, en vez de Jest en el Backend y Jasmine/Karma en el Frontend. Se descarta Jest en el Backend —pese a ser la opción más "oficial" y documentada para NestJS— porque Vitest es API-compatible con Jest (mismo `describe`/`it`/`expect`) y permite mantener un único runner y una única configuración mental de testing en todo el stack. Se descarta Jasmine/Karma en el Frontend porque es el stack histórico de Angular CLI, ya en proceso de sustitución oficial por Vitest en el propio framework.
+### Pirámide de Testing
+
+EWControl organiza sus tests en tres niveles, para que cada spec sepa dónde encaja cada verificación sin decidirlo de nuevo cada vez:
+
+| Nivel       | Qué verifica                                                                     | Dependencias reales                         | Herramienta | Dónde vive                           | Cuándo corre                                        |
+| ----------- | -------------------------------------------------------------------------------- | ------------------------------------------- | ----------- | ------------------------------------ | --------------------------------------------------- |
+| Unitario    | Lógica de negocio aislada (Entities, Use Cases)                                  | Ninguna — todo mockeado/fake                | Vitest      | `*.spec.ts`, junto al código         | Cada PR (Documento 13, `ci.yml`)                    |
+| Integración | Que un adaptador o flujo funciona contra su dependencia real, sin pasar por HTTP | Postgres/InfluxDB reales (`docker compose`) | Vitest      | `backend/test/*.integration-spec.ts` | Cada PR (Documento 13, `ci.yml`, servicio Postgres) |
+| E2E         | El flujo completo tal como lo vive el usuario, a través de la interfaz real      | Aplicación completa desplegada              | Playwright  | `frontend/e2e/tests/*.spec.ts`       | Al mergear a `main` (Documento 13, `e2e.yml`)       |
+
+Un test de integración nunca sustituye a un test unitario: la lógica de un use-case se sigue verificando con fakes de sus puertos (Documento 0, "TDD"), no reejecutándola contra una base de datos real. Tampoco sustituye a un e2e, que verifica la experiencia de usuario, no la mecánica interna de un adaptador. Es la capa intermedia entre ambos: "esto funciona contra la dependencia real" (mapeo de columnas, restricciones de FK/unicidad, que una transacción hace rollback de verdad) sin pagar el coste de levantar todo el stack ni de simular la interfaz de usuario.
+
+No toda spec necesita un test de integración por cada adaptador que toca: para operaciones CRUD simples sin lógica de query propia, un único test de integración por flujo que ejercite todos sus adaptadores de forma transitiva es suficiente. Se justifica un test de integración dedicado por adaptador cuando su lógica de persistencia deja de ser trivial — agregaciones sobre InfluxDB, rotación de refresh tokens, condiciones de carrera — porque ahí un test transitivo ya no aísla la causa de un fallo.
+
+EWControl usa **Vitest** como runner de tests unitarios, de integración y de componentes tanto en Backend como en Frontend, en vez de Jest en el Backend y Jasmine/Karma en el Frontend. Se descarta Jest en el Backend —pese a ser la opción más "oficial" y documentada para NestJS— porque Vitest es API-compatible con Jest (mismo `describe`/`it`/`expect`) y permite mantener un único runner y una única configuración mental de testing en todo el stack, incluida la capa de integración. Se descarta Jasmine/Karma en el Frontend porque es el stack histórico de Angular CLI, ya en proceso de sustitución oficial por Vitest en el propio framework.
 
 En el Frontend, Vitest se combina con **Testing Library** (`@testing-library/angular`), que obliga a testear componentes consultándolos por rol/texto accesible en vez de por detalles de implementación — reforzando la accesibilidad como efecto colateral (Documento 12, apartado 12.7).
 
