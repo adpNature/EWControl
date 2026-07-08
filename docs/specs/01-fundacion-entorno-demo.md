@@ -4,7 +4,7 @@
 
 ## Contexto
 
-Las specs `simulador-generar-lectura.md`, `simulador-forzar-fallo.md` y `simulador-seed-historico.md` asumen que ya existe una Machine demo con sus Signals configuradas (Documento 10, apartado 10.2). Ninguna spec anterior cubre cómo se crea esa Machine, ni el `User`/`Company` de prueba documentados en el README (sección f). Esta spec cierra ese hueco y es, en la práctica, el primer caso de uso que se implementa del proyecto.
+Las specs `02-simulador-generar-lectura.md`, `03-simulador-forzar-fallo.md` y `04-simulador-seed-historico.md` asumen que ya existe una Machine demo con sus Signals configuradas (Documento 10, apartado 10.2). Ninguna spec anterior cubre cómo se crea esa Machine, ni el `User`/`Company` de prueba documentados en el README (sección f). Esta spec cierra ese hueco y es, en la práctica, el primer caso de uso que se implementa del proyecto.
 
 ## Actor(es)
 
@@ -29,7 +29,7 @@ Sistema, disparado por el comando `pnpm run seed` (README, sección c) al levant
   5. Las Signals `DIRECT` correspondientes a esa seed (`WindingSpeed`, `ThreadTension`, `MotorTemperature`, `MotorCurrent`, `PieceCounter`, `RunStop`), cada una vinculada a la Machine anterior.
 
 - **Given** el seed anterior ya se ejecutó con éxito.
-- **When** se llama a `POST /api/v1/machines/:machineId/simulator/seed-history` (spec `simulador-seed-historico.md`).
+- **When** se llama a `POST /api/v1/machines/:machineId/simulator/seed-history` (spec `04-simulador-seed-historico.md`).
 - **Then** la Machine recién creada ya tiene histórico pre-poblado, quedando el entorno demo completamente utilizable de principio a fin.
 
 ### Casos borde / errores (Given/When/Then)
@@ -53,8 +53,8 @@ No es un endpoint HTTP: es un script de utilidad de desarrollo (`pnpm run seed`,
 ### Criterios de aceptación backend
 
 1. Tras ejecutar `pnpm run seed` sobre una base de datos vacía y migrada, existen exactamente una Company, un User, una Machine, una MachineConnection y seis Signals, con los valores descritos en el flujo principal.
-2. El usuario `demo@ewcontrol.local` puede autenticarse con éxito contra `POST /api/v1/auth/login` (spec `auth-login.md`) usando la contraseña `Demo1234!`.
+2. El usuario `demo@ewcontrol.local` puede autenticarse con éxito contra `POST /api/v1/auth/login` (spec `05-auth-login.md`) usando la contraseña `Demo1234!`.
 3. La contraseña se almacena hasheada con bcrypt, nunca en texto plano.
 4. Ejecutar el comando dos veces no duplica ninguna entidad.
 5. Un fallo a mitad de la operación no deja datos parciales (Company sin User, Machine sin Signals, etc.).
-6. Tras el seed, `simulador-generar-lectura.md` puede ejecutarse sin ninguna configuración adicional sobre la Machine creada.
+6. Tras el seed, `02-simulador-generar-lectura.md` puede ejecutarse sin ninguna configuración adicional sobre la Machine creada.

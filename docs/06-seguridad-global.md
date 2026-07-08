@@ -65,7 +65,7 @@ Angular->>Backend: /auth/refresh cuando expira el accessToken
 Backend-->>Angular: nuevo accessToken + refreshToken rotado
 ```
 
-Cada petición posterior incluye el `accessToken` en la cabecera `Authorization`, que el Backend valida y utiliza para resolver el contexto de la petición: qué Company, qué permisos. El flujo completo (login, refresh, logout) está especificado como caso de uso en [specs/auth-login.md](specs/auth-login.md).
+Cada petición posterior incluye el `accessToken` en la cabecera `Authorization`, que el Backend valida y utiliza para resolver el contexto de la petición: qué Company, qué permisos. El flujo completo (login, refresh, logout) está especificado como caso de uso en [specs/05-auth-login.md](specs/05-auth-login.md).
 
 ### Access token
 

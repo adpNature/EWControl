@@ -1,6 +1,6 @@
 ## Spec
 
-<!-- Enlace a la spec que implementa este PR, ej. docs/specs/auth-login.md -->
+<!-- Enlace a la spec que implementa este PR, ej. docs/specs/05-auth-login.md -->
 
 ## Checklist (Documento 0 — Spec-Driven Development / TDD)
 

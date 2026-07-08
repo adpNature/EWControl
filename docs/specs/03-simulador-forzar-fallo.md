@@ -12,7 +12,7 @@ Sin hardware real, el Alarm Engine (Documento 2, apartado 2.6) y la lógica de r
 
 ## Precondiciones
 
-- Se ha ejecutado la spec [fundacion-entorno-demo.md](fundacion-entorno-demo.md) (o una equivalente), de forma que ya existe al menos una Machine demo configurada.
+- Se ha ejecutado la spec [01-fundacion-entorno-demo.md](01-fundacion-entorno-demo.md) (o una equivalente), de forma que ya existe al menos una Machine demo configurada.
 - La Machine tiene `MachineConnection.ProviderType = Simulator`.
 - El usuario autenticado tiene acceso a esa Machine (misma Company, o `SuperAdmin`).
 

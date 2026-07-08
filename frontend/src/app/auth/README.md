@@ -1,6 +1,6 @@
 # Auth
 
-Feature de autenticación (`docs/specs/auth-login.md`), primera feature vertical del proyecto.
+Feature de autenticación (`docs/specs/05-auth-login.md`), primera feature vertical del proyecto.
 
 - `entities/` — `user.model.ts` (interfaz TS pura, sin imports de Angular).
 - `use-cases/` — `auth.state.ts` (`signal(currentUser)`, `computed(isAuthenticated)`, `login()`/`logout()`).

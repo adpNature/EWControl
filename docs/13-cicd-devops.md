@@ -72,7 +72,7 @@ Para que estos workflows funcionen, `backend/package.json` y `frontend/package.j
 
 ### Estado actual
 
-El scaffolding real de `/backend` y `/frontend` (Documento 0, Fase 1) ya existe, con los scripts exactos que esperan los tres workflows: el pipeline está activo desde el primer Pull Request. El Frontend ya tiene sus primeros tests (`app.spec.ts`); el Backend, al no tener todavía lógica de negocio propia (solo wiring de Frameworks & Drivers), no tiene specs propias — `backend/vitest.config.ts` fija `passWithNoTests: true` para que esa ausencia temporal no tumbe el CI. En cuanto la primera feature vertical (`docs/specs/auth-login.md`) añada código en Entities/Use Cases, sus tests dejan de ser opcionales y el umbral del 80% de cobertura (Documento 0, "Cobertura") empieza a aplicarse de verdad.
+El scaffolding real de `/backend` y `/frontend` (Documento 0, Fase 1) ya existe, con los scripts exactos que esperan los tres workflows: el pipeline está activo desde el primer Pull Request. El Frontend ya tiene sus primeros tests (`app.spec.ts`); el Backend, al no tener todavía lógica de negocio propia (solo wiring de Frameworks & Drivers), no tiene specs propias — `backend/vitest.config.ts` fija `passWithNoTests: true` para que esa ausencia temporal no tumbe el CI. En cuanto la primera feature vertical (`docs/specs/05-auth-login.md`) añada código en Entities/Use Cases, sus tests dejan de ser opcionales y el umbral del 80% de cobertura (Documento 0, "Cobertura") empieza a aplicarse de verdad.
 
 ---
 

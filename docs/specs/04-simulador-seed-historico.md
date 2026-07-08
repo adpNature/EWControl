@@ -12,7 +12,7 @@ Sistema, disparado por un `AdminCliente`/`SuperAdmin` al provisionar una Machine
 
 ## Precondiciones
 
-- Se ha ejecutado la spec [fundacion-entorno-demo.md](fundacion-entorno-demo.md) (o una equivalente), de forma que ya existe al menos una Machine demo configurada.
+- Se ha ejecutado la spec [01-fundacion-entorno-demo.md](01-fundacion-entorno-demo.md) (o una equivalente), de forma que ya existe al menos una Machine demo configurada.
 - La Machine tiene `MachineConnection.ProviderType = Simulator` y sus Signals ya están configuradas (Documento 10, apartado 10.3).
 - InfluxDB está disponible y accesible por el backend (Documento 4).
 
@@ -33,7 +33,7 @@ Sistema, disparado por un `AdminCliente`/`SuperAdmin` al provisionar una Machine
 
 - **Given** una Machine con `ProviderType = OpcUa`.
 - **When** se llama a `seed-history`.
-- **Then** la API responde `422 NOT_A_SIMULATED_MACHINE` (igual que en la spec `simulador-forzar-fallo`).
+- **Then** la API responde `422 NOT_A_SIMULATED_MACHINE` (igual que en la spec `03-simulador-forzar-fallo`).
 
 - **Given** InfluxDB no disponible en el momento de la llamada.
 - **When** se ejecuta el seed.

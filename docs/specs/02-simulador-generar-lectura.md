@@ -12,7 +12,7 @@ Sistema (proceso interno del `SimulationProvider`, sin intervención de usuario)
 
 ## Precondiciones
 
-- Se ha ejecutado la spec [fundacion-entorno-demo.md](fundacion-entorno-demo.md) (o una equivalente), de forma que ya existe al menos una Machine demo configurada.
+- Se ha ejecutado la spec [01-fundacion-entorno-demo.md](01-fundacion-entorno-demo.md) (o una equivalente), de forma que ya existe al menos una Machine demo configurada.
 - Existe una Machine con `MachineConnection.ProviderType = Simulator`.
 - La Machine tiene al menos una Signal configurada con parámetros de generación (`min`, `max`, `stepMax`) en su `ConnectionConfig` (Documento 10, apartado 10.3).
 - El `SimulationProvider` de esa Machine está `connected` (`isConnected() = true`).
@@ -43,7 +43,7 @@ Sistema (proceso interno del `SimulationProvider`, sin intervención de usuario)
 - **When** se genera un tick.
 - **Then** el valor booleano solo cambia cada `cycleTicks` ticks, no en cada tick.
 
-- **Given** el `SimulationProvider` de la Machine no está conectado (desconexión forzada, ver spec `simulador-forzar-fallo`).
+- **Given** el `SimulationProvider` de la Machine no está conectado (desconexión forzada, ver spec `03-simulador-forzar-fallo`).
 - **When** transcurre un tick.
 - **Then** no se genera ninguna lectura para esa Machine hasta que se reconecte.
 
@@ -59,4 +59,4 @@ No es un endpoint HTTP: es un proceso interno programado (scheduler) por Machine
 4. Las Signals con `mode: "incremental"` nunca decrecen.
 5. Las Signals con `mode: "cycle"` solo cambian de valor cada `cycleTicks` ticks.
 6. Ninguna lectura se genera para una Machine desconectada.
-7. Todas las lecturas se publican con calidad `GOOD`, salvo degradación forzada activa (ver spec `simulador-forzar-fallo`).
+7. Todas las lecturas se publican con calidad `GOOD`, salvo degradación forzada activa (ver spec `03-simulador-forzar-fallo`).

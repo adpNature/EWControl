@@ -138,7 +138,7 @@ Email:      demo@ewcontrol.local
 Contraseña: Demo1234!
 ```
 
-Válido tanto para el login del Frontend como para obtener un token directamente contra `POST /api/v1/auth/login` (Documento 11). Detalle completo del flujo en [docs/specs/auth-login.md](docs/specs/auth-login.md).
+Válido tanto para el login del Frontend como para obtener un token directamente contra `POST /api/v1/auth/login` (Documento 11). Detalle completo del flujo en [docs/specs/05-auth-login.md](docs/specs/05-auth-login.md).
 
 ---
 
