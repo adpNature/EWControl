@@ -1,3 +1,9 @@
+# [1.1.0](https://github.com/adpNature/EWControl/compare/v1.0.2...v1.1.0) (2026-07-08)
+
+### Features
+
+- implementa generacion de lectura simulada de una Signal (spec 02) ([564a82b](https://github.com/adpNature/EWControl/commit/564a82b18c80763df4d6660d4fe162b22cfe367d))
+
 ## [1.0.2](https://github.com/adpNature/EWControl/compare/v1.0.1...v1.0.2) (2026-07-08)
 
 ### Bug Fixes
