@@ -10,4 +10,8 @@ export class MachineTypeOrmRepository implements IMachineRepository {
     const repository = (ctx as EntityManager).getRepository(Machine);
     return repository.save(repository.create(data));
   }
+
+  findById(id: string, ctx: TransactionContext): Promise<Machine | null> {
+    return (ctx as EntityManager).getRepository(Machine).findOne({ where: { id } });
+  }
 }

@@ -15,6 +15,10 @@ export class SimulationProvider implements IDataProvider {
   private timer: ReturnType<typeof setInterval> | undefined;
   private readonly listeners = new Set<VariableListener>();
   private readonly generators: ISignalTickGenerator[];
+  private readonly forcedQualities = new Map<
+    string,
+    { quality: DataQuality; remainingTicks: number }
+  >();
 
   constructor(
     connectionConfig: ConnectionConfig,
@@ -32,7 +36,6 @@ export class SimulationProvider implements IDataProvider {
 
   async disconnect(): Promise<void> {
     this.connected = false;
-    this.stopScheduler();
   }
 
   isConnected(): boolean {
@@ -45,6 +48,15 @@ export class SimulationProvider implements IDataProvider {
 
   unsubscribe(listener: VariableListener): void {
     this.listeners.delete(listener);
+  }
+
+  /**
+   * Degrada la calidad de una Signal durante las próximas `durationTicks` lecturas
+   * (spec 03-simulador-forzar-fallo, criterio de aceptación 3); pasado ese número
+   * de ticks, vuelve a `GOOD` automáticamente sin intervención manual.
+   */
+  forceQuality(variableName: string, quality: DataQuality, durationTicks: number): void {
+    this.forcedQualities.set(variableName, { quality, remainingTicks: durationTicks });
   }
 
   /**
@@ -64,14 +76,24 @@ export class SimulationProvider implements IDataProvider {
         value: generator.tick(),
         type: generator.variableType,
         timestamp,
-        // La degradación de calidad (spec 03-simulador-forzar-fallo) sustituirá
-        // esta constante por una consulta al estado forzado de la Signal.
-        quality: DataQuality.Good,
+        quality: this.resolveQuality(generator.variableName),
       };
       for (const listener of this.listeners) {
         listener(variable);
       }
     }
+  }
+
+  private resolveQuality(variableName: string): DataQuality {
+    const forced = this.forcedQualities.get(variableName);
+    if (!forced) {
+      return DataQuality.Good;
+    }
+    forced.remainingTicks -= 1;
+    if (forced.remainingTicks <= 0) {
+      this.forcedQualities.delete(variableName);
+    }
+    return forced.quality;
   }
 
   /** Dispara `tick()` cada `intervalMs` (1000 por defecto, Documento 10, apartado 10.1). */

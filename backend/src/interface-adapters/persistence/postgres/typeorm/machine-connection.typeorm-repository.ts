@@ -15,4 +15,19 @@ export class MachineConnectionTypeOrmRepository implements IMachineConnectionRep
     const repository = (ctx as EntityManager).getRepository(MachineConnection);
     return repository.save(repository.create(data));
   }
+
+  findByMachineId(machineId: string, ctx: TransactionContext): Promise<MachineConnection | null> {
+    return (ctx as EntityManager)
+      .getRepository(MachineConnection)
+      .findOne({ where: { machineId } });
+  }
+
+  findAllByProviderType(
+    providerType: ProviderType,
+    ctx: TransactionContext,
+  ): Promise<MachineConnection[]> {
+    return (ctx as EntityManager)
+      .getRepository(MachineConnection)
+      .find({ where: { providerType } });
+  }
 }

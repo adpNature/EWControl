@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
 import { ENTITIES } from '../entities';
+import { SimulatorModule } from './simulator.module';
 import { postgresConnectionOptions } from './database/postgres.config';
 
 /**
@@ -15,6 +17,8 @@ import { postgresConnectionOptions } from './database/postgres.config';
       ...postgresConnectionOptions(),
       entities: ENTITIES,
     }),
+    EventEmitterModule.forRoot(),
+    SimulatorModule,
     LoggerModule.forRoot({
       pinoHttp: {
         level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',

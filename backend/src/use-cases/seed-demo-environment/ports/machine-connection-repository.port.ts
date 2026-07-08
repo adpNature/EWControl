@@ -10,4 +10,9 @@ export interface IMachineConnectionRepository {
     data: { machineId: string; providerType: ProviderType; connectionConfig: ConnectionConfig },
     ctx: TransactionContext,
   ): Promise<MachineConnection>;
+  findByMachineId(machineId: string, ctx: TransactionContext): Promise<MachineConnection | null>;
+  findAllByProviderType(
+    providerType: ProviderType,
+    ctx: TransactionContext,
+  ): Promise<MachineConnection[]>;
 }
