@@ -1,0 +1,16 @@
+import { Company } from './company.entity';
+import { MachineConnection } from './machine-connection.entity';
+import { Machine } from './machine.entity';
+import { Signal } from './signal.entity';
+import { User } from './user.entity';
+
+/**
+ * Lista explícita de entidades TypeORM para `TypeOrmModule.forRoot()`
+ * (app.module.ts, seed.module.ts). No se usa un glob de archivos porque
+ * `TypeOrmModule` requiere en tiempo de ejecución cada `.entity.ts` por ruta
+ * de archivo, lo que falla fuera de un runtime con `ts-node` registrado
+ * (por ejemplo, bajo Vitest en los tests e2e). El CLI de migraciones
+ * (postgres.datasource.ts) sí puede usar un glob porque `typeorm-ts-node-commonjs`
+ * registra `ts-node` antes de ejecutarse.
+ */
+export const ENTITIES = [Company, User, Machine, MachineConnection, Signal];

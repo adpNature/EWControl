@@ -50,8 +50,8 @@ $ pnpm run start:prod
 # tests unitarios
 $ pnpm run test
 
-# tests e2e
-$ pnpm run test:e2e
+# tests de integración (requieren Postgres real, ver docker-compose.yml)
+$ pnpm run test:integration
 
 # cobertura de tests
 $ pnpm run test:cov
