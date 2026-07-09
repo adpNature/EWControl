@@ -2,6 +2,8 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { HistoryAlreadySeededError } from '../../../use-cases/history/errors/history-already-seeded.error';
+import { SeedHistoryUseCase } from '../../../use-cases/history/seed-history.use-case';
 import { MachineNotFoundError } from '../../../use-cases/simulator-control/errors/machine-not-found.error';
 import { NotASimulatedMachineError } from '../../../use-cases/simulator-control/errors/not-a-simulated-machine.error';
 import { SignalNotFoundError } from '../../../use-cases/simulator-control/errors/signal-not-found.error';
@@ -16,11 +18,13 @@ describe('SimulatorController (HTTP)', () => {
   let forceDisconnectUseCase: { execute: ReturnType<typeof vi.fn> };
   let reconnectUseCase: { execute: ReturnType<typeof vi.fn> };
   let forceSignalQualityUseCase: { execute: ReturnType<typeof vi.fn> };
+  let seedHistoryUseCase: { execute: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     forceDisconnectUseCase = { execute: vi.fn().mockResolvedValue(undefined) };
     reconnectUseCase = { execute: vi.fn().mockResolvedValue(undefined) };
     forceSignalQualityUseCase = { execute: vi.fn().mockResolvedValue(undefined) };
+    seedHistoryUseCase = { execute: vi.fn().mockResolvedValue({}) };
 
     const moduleRef = await Test.createTestingModule({
       controllers: [SimulatorController],
@@ -28,6 +32,7 @@ describe('SimulatorController (HTTP)', () => {
         { provide: ForceDisconnectSimulatorUseCase, useValue: forceDisconnectUseCase },
         { provide: ReconnectSimulatorUseCase, useValue: reconnectUseCase },
         { provide: ForceSignalQualityUseCase, useValue: forceSignalQualityUseCase },
+        { provide: SeedHistoryUseCase, useValue: seedHistoryUseCase },
       ],
     }).compile();
 
@@ -138,6 +143,73 @@ describe('SimulatorController (HTTP)', () => {
       signalId: '11111111-1111-4111-8111-111111111111',
       quality: 'BAD',
       durationTicks: 10,
+    });
+  });
+
+  it('POST seed-history responde 200 en el caso feliz con force por defecto en false', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/machines/machine-1/simulator/seed-history')
+      .send();
+
+    expect(response.status).toBe(200);
+    expect(seedHistoryUseCase.execute).toHaveBeenCalledWith({
+      machineId: 'machine-1',
+      force: false,
+    });
+  });
+
+  it('POST seed-history responde 409 HISTORY_ALREADY_SEEDED si el use-case lo lanza', async () => {
+    seedHistoryUseCase.execute.mockRejectedValue(new HistoryAlreadySeededError('machine-1'));
+
+    const response = await request(app.getHttpServer())
+      .post('/machines/machine-1/simulator/seed-history')
+      .send();
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual(expect.objectContaining({ code: 'HISTORY_ALREADY_SEEDED' }));
+  });
+
+  it('POST seed-history responde 422 NOT_A_SIMULATED_MACHINE si el use-case lo lanza', async () => {
+    seedHistoryUseCase.execute.mockRejectedValue(new NotASimulatedMachineError('machine-1'));
+
+    const response = await request(app.getHttpServer())
+      .post('/machines/machine-1/simulator/seed-history')
+      .send();
+
+    expect(response.status).toBe(422);
+    expect(response.body).toEqual(expect.objectContaining({ code: 'NOT_A_SIMULATED_MACHINE' }));
+  });
+
+  it('POST seed-history responde 400 si force no es booleano', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/machines/machine-1/simulator/seed-history')
+      .send({ force: 'yes' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('BAD_REQUEST');
+    expect(seedHistoryUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('POST seed-history responde 500 INTERNAL_ERROR ante un error no mapeado', async () => {
+    seedHistoryUseCase.execute.mockRejectedValue(new Error('boom'));
+
+    const response = await request(app.getHttpServer())
+      .post('/machines/machine-1/simulator/seed-history')
+      .send();
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual(expect.objectContaining({ code: 'INTERNAL_ERROR' }));
+  });
+
+  it('POST seed-history reenvía force: true al use-case', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/machines/machine-1/simulator/seed-history')
+      .send({ force: true });
+
+    expect(response.status).toBe(200);
+    expect(seedHistoryUseCase.execute).toHaveBeenCalledWith({
+      machineId: 'machine-1',
+      force: true,
     });
   });
 });

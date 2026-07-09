@@ -38,12 +38,32 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      influxdb:
+        image: influxdb:2.7-alpine
+        env:
+          DOCKER_INFLUXDB_INIT_MODE: setup
+          DOCKER_INFLUXDB_INIT_USERNAME: ci
+          DOCKER_INFLUXDB_INIT_PASSWORD: ewcontrol_ci_local_only
+          DOCKER_INFLUXDB_INIT_ORG: ewcontrol
+          DOCKER_INFLUXDB_INIT_BUCKET: signals_history
+          DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ewcontrol-ci-admin-token
+        ports:
+          - 8086:8086
+        options: >-
+          --health-cmd "influx ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       POSTGRES_HOST: localhost
       POSTGRES_PORT: 5432
       POSTGRES_DB: ewcontrol
       POSTGRES_USER: ewcontrol
       POSTGRES_PASSWORD: ewcontrol_ci
+      INFLUXDB_URL: http://localhost:8086
+      INFLUXDB_TOKEN: ewcontrol-ci-admin-token
+      INFLUXDB_ORG: ewcontrol
+      INFLUXDB_BUCKET: signals_history
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

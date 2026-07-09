@@ -122,6 +122,9 @@ describe('SeedDemoEnvironmentUseCase (integration)', () => {
               }
               return real.create(data, ctx);
             },
+            findById: (id: string, ctx: TransactionContext) => real.findById(id, ctx),
+            findAllByMachineId: (machineId: string, ctx: TransactionContext) =>
+              real.findAllByMachineId(machineId, ctx),
           };
         },
       })

@@ -21,6 +21,7 @@ function createFakes() {
       machineId: 'machine-1',
       signalSource: { variableName: 'MotorTemperature' },
     }),
+    findAllByMachineId: vi.fn(),
   };
   const unitOfWork = {
     runInTransaction: vi.fn((work: (ctx: unknown) => Promise<unknown>) => work(FAKE_CTX)),

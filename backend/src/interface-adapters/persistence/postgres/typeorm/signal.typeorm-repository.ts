@@ -26,4 +26,8 @@ export class SignalTypeOrmRepository implements ISignalRepository {
   findById(id: string, ctx: TransactionContext): Promise<Signal | null> {
     return (ctx as EntityManager).getRepository(Signal).findOne({ where: { id } });
   }
+
+  findAllByMachineId(machineId: string, ctx: TransactionContext): Promise<Signal[]> {
+    return (ctx as EntityManager).getRepository(Signal).find({ where: { machineId } });
+  }
 }

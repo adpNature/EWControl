@@ -1,5 +1,6 @@
 import {
   Body,
+  ConflictException,
   Controller,
   HttpCode,
   HttpException,
@@ -10,6 +11,11 @@ import {
   Post,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { HistoryAlreadySeededError } from '../../../use-cases/history/errors/history-already-seeded.error';
+import {
+  SeedHistoryUseCase,
+  SeedHistoryResult,
+} from '../../../use-cases/history/seed-history.use-case';
 import { MachineNotFoundError } from '../../../use-cases/simulator-control/errors/machine-not-found.error';
 import { NotASimulatedMachineError } from '../../../use-cases/simulator-control/errors/not-a-simulated-machine.error';
 import { SignalNotFoundError } from '../../../use-cases/simulator-control/errors/signal-not-found.error';
@@ -17,6 +23,7 @@ import { ForceDisconnectSimulatorUseCase } from '../../../use-cases/simulator-co
 import { ForceSignalQualityUseCase } from '../../../use-cases/simulator-control/force-signal-quality.use-case';
 import { ReconnectSimulatorUseCase } from '../../../use-cases/simulator-control/reconnect-simulator.use-case';
 import { ForceQualityDto } from './force-quality.dto';
+import { SeedHistoryDto } from './seed-history.dto';
 
 /**
  * Endpoints de control del Simulador (docs/specs/03-simulador-forzar-fallo.md,
@@ -30,6 +37,7 @@ export class SimulatorController {
     private readonly forceDisconnectUseCase: ForceDisconnectSimulatorUseCase,
     private readonly reconnectUseCase: ReconnectSimulatorUseCase,
     private readonly forceSignalQualityUseCase: ForceSignalQualityUseCase,
+    private readonly seedHistoryUseCase: SeedHistoryUseCase,
   ) {}
 
   @Post('force-disconnect')
@@ -68,6 +76,19 @@ export class SimulatorController {
     return { machineId, ...dto };
   }
 
+  @Post('seed-history')
+  @HttpCode(HttpStatus.OK)
+  async seedHistory(
+    @Param('machineId') machineId: string,
+    @Body() dto: SeedHistoryDto,
+  ): Promise<SeedHistoryResult> {
+    try {
+      return await this.seedHistoryUseCase.execute({ machineId, force: dto.force ?? false });
+    } catch (error) {
+      throw this.toHttpException(error);
+    }
+  }
+
   private toHttpException(error: unknown): HttpException {
     if (error instanceof MachineNotFoundError) {
       return new NotFoundException({ code: 'MACHINE_NOT_FOUND', message: error.message });
@@ -80,6 +101,9 @@ export class SimulatorController {
         code: 'NOT_A_SIMULATED_MACHINE',
         message: error.message,
       });
+    }
+    if (error instanceof HistoryAlreadySeededError) {
+      return new ConflictException({ code: 'HISTORY_ALREADY_SEEDED', message: error.message });
     }
     if (error instanceof HttpException) {
       return error;

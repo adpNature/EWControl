@@ -33,6 +33,8 @@ function createFakes() {
   };
   const signalRepository = {
     create: vi.fn().mockResolvedValue({ id: 'signal-x' }),
+    findById: vi.fn(),
+    findAllByMachineId: vi.fn(),
   };
   const passwordHasher = {
     hash: vi.fn().mockResolvedValue(HASHED_PASSWORD),
