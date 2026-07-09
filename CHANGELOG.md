@@ -1,3 +1,13 @@
+# [1.3.0](https://github.com/adpNature/EWControl/compare/v1.2.0...v1.3.0) (2026-07-09)
+
+### Bug Fixes
+
+- agrega servicio InfluxDB a CI para spec 04 ([1d451b4](https://github.com/adpNature/EWControl/commit/1d451b4395738922790cb65bc7f81085fc42891a))
+
+### Features
+
+- implementa pre-poblado de histórico del simulador (spec 04) ([7389930](https://github.com/adpNature/EWControl/commit/7389930be81691b8d873af877e8de1ab53aa1a28))
+
 # [1.2.0](https://github.com/adpNature/EWControl/compare/v1.1.0...v1.2.0) (2026-07-08)
 
 ### Features
