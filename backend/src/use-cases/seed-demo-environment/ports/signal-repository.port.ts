@@ -18,4 +18,5 @@ export interface ISignalRepository {
     ctx: TransactionContext,
   ): Promise<Signal>;
   findById(id: string, ctx: TransactionContext): Promise<Signal | null>;
+  findAllByMachineId(machineId: string, ctx: TransactionContext): Promise<Signal[]>;
 }

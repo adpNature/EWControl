@@ -1,11 +1,18 @@
 import { Module } from '@nestjs/common';
 import { SimulationProviderRegistry } from '../interface-adapters/data-providers/simulation/simulation-provider.registry';
 import { NestEventEmitterPublisher } from '../interface-adapters/events/nest-event-emitter.publisher';
+import { InfluxDbHistoryRepository } from '../interface-adapters/persistence/influxdb/influxdb-history.repository';
 import { MachineConnectionTypeOrmRepository } from '../interface-adapters/persistence/postgres/typeorm/machine-connection.typeorm-repository';
 import { MachineTypeOrmRepository } from '../interface-adapters/persistence/postgres/typeorm/machine.typeorm-repository';
 import { SignalTypeOrmRepository } from '../interface-adapters/persistence/postgres/typeorm/signal.typeorm-repository';
 import { TypeOrmUnitOfWork } from '../interface-adapters/persistence/postgres/typeorm/typeorm-unit-of-work';
 import { SimulatorController } from '../interface-adapters/rest/simulator/simulator.controller';
+import { MathRandomSource } from '../interface-adapters/system/math-random-source';
+import { SystemClock } from '../interface-adapters/system/system-clock';
+import { CLOCK } from '../use-cases/history/ports/clock.port';
+import { HISTORY_WRITER } from '../use-cases/history/ports/history-writer.port';
+import { RANDOM_SOURCE } from '../use-cases/history/ports/random-source.port';
+import { SeedHistoryUseCase } from '../use-cases/history/seed-history.use-case';
 import { MACHINE_CONNECTION_REPOSITORY } from '../use-cases/seed-demo-environment/ports/machine-connection-repository.port';
 import { MACHINE_REPOSITORY } from '../use-cases/seed-demo-environment/ports/machine-repository.port';
 import { SIGNAL_REPOSITORY } from '../use-cases/seed-demo-environment/ports/signal-repository.port';
@@ -16,11 +23,13 @@ import { ForceDisconnectSimulatorUseCase } from '../use-cases/simulator-control/
 import { ForceSignalQualityUseCase } from '../use-cases/simulator-control/force-signal-quality.use-case';
 import { ReconnectSimulatorUseCase } from '../use-cases/simulator-control/reconnect-simulator.use-case';
 import { SimulatorMachineResolver } from '../use-cases/simulator-control/simulator-machine-resolver';
+import { INFLUXDB_CLIENT, createInfluxDbClient } from './database/influxdb.client';
 
 /**
- * Wiring de la spec 03-simulador-forzar-fallo.md: conecta los puertos de
- * `simulator-control` con sus implementaciones concretas (TypeORM, EventEmitter2,
- * el registry de `SimulationProvider`), igual que `seed.module.ts` para el seed.
+ * Wiring de las specs 03-simulador-forzar-fallo.md y 04-simulador-seed-historico.md:
+ * conecta los puertos de `simulator-control` y `history` con sus implementaciones
+ * concretas (TypeORM, InfluxDB, EventEmitter2, el registry de `SimulationProvider`),
+ * igual que `seed.module.ts` para el seed.
  */
 @Module({
   controllers: [SimulatorController],
@@ -28,6 +37,7 @@ import { SimulatorMachineResolver } from '../use-cases/simulator-control/simulat
     ForceDisconnectSimulatorUseCase,
     ReconnectSimulatorUseCase,
     ForceSignalQualityUseCase,
+    SeedHistoryUseCase,
     SimulatorMachineResolver,
     SimulationProviderRegistry,
     { provide: MACHINE_REPOSITORY, useClass: MachineTypeOrmRepository },
@@ -36,6 +46,10 @@ import { SimulatorMachineResolver } from '../use-cases/simulator-control/simulat
     { provide: UNIT_OF_WORK, useClass: TypeOrmUnitOfWork },
     { provide: SIMULATOR_RUNTIME, useExisting: SimulationProviderRegistry },
     { provide: EVENT_PUBLISHER, useClass: NestEventEmitterPublisher },
+    { provide: INFLUXDB_CLIENT, useFactory: createInfluxDbClient },
+    { provide: HISTORY_WRITER, useClass: InfluxDbHistoryRepository },
+    { provide: CLOCK, useClass: SystemClock },
+    { provide: RANDOM_SOURCE, useClass: MathRandomSource },
   ],
 })
 export class SimulatorModule {}
