@@ -1,0 +1,18 @@
+<div class="form-field">
+  <label class="form-label" [for]="id">{{ label }}</label>
+  <input
+    class="form-input"
+    [id]="id"
+    [type]="type"
+    [value]="value"
+    [disabled]="disabled"
+    [attr.autocomplete]="autocomplete ?? null"
+    [attr.aria-describedby]="errorMessage ? id + '-error' : null"
+    [attr.aria-invalid]="errorMessage ? true : null"
+    (input)="handleInput($event)"
+    (blur)="handleBlur()"
+  />
+  @if (errorMessage) {
+    <p class="form-error" [id]="id + '-error'" role="alert">{{ errorMessage }}</p>
+  }
+</div>

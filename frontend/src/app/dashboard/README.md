@@ -10,3 +10,8 @@ Feature de Dashboard dinámico y tiempo real (Documento 8, apartados 8.3-8.4).
 - `dashboard.routes.ts`.
 
 Se crea al implementar su spec (posterior a Auth y a la fundación backend).
+
+**Nota:** `pages/dashboard-page/dashboard-page.ts` ya existe, pero es únicamente
+el placeholder trivial de `docs/specs/05-auth-login.md` para demostrar el
+`authGuard`/logout end-to-end (ruta protegida con un botón de cerrar sesión) —
+se sustituye íntegramente cuando se implemente esta spec real de Dashboard.

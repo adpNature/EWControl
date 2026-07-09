@@ -27,4 +27,8 @@ export class User {
 
   @Column({ type: 'varchar' })
   role: UserRole;
+
+  /** Un User desactivado no puede login/refresh (docs/specs/05-auth-login.md). */
+  @Column({ default: true })
+  isActive: boolean;
 }

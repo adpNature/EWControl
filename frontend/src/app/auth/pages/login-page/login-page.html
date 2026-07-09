@@ -1,0 +1,30 @@
+<div class="login-page">
+  <div class="box login-box">
+    <h1 class="title-xl">Iniciar sesión</h1>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <app-input
+        formControlName="email"
+        label="Email"
+        type="email"
+        autocomplete="username"
+        [errorMessage]="emailError()"
+      />
+      <app-input
+        formControlName="password"
+        label="Contraseña"
+        type="password"
+        autocomplete="current-password"
+        [errorMessage]="passwordError()"
+      />
+
+      @if (formError()) {
+        <p class="form-error" role="alert">{{ formError() }}</p>
+      }
+
+      <button type="submit" class="btn-primary" [disabled]="submitting()">
+        {{ submitting() ? 'Entrando…' : 'Entrar' }}
+      </button>
+    </form>
+  </div>
+</div>
