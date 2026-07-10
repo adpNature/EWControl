@@ -1,3 +1,14 @@
+# [1.4.0](https://github.com/adpNature/EWControl/compare/v1.3.0...v1.4.0) (2026-07-10)
+
+### Bug Fixes
+
+- corrige fallos de CI en la spec de autenticación (secretos JWT y falso positivo de GitGuardian) ([77d65b5](https://github.com/adpNature/EWControl/commit/77d65b55f557f964646c303ea8936b442f915e42))
+- mueve secretos JWT de CI a GitHub Actions Secrets ([0b95945](https://github.com/adpNature/EWControl/commit/0b95945f38f92f79a054291abd920820c2cb7dac))
+
+### Features
+
+- implementa autenticación de usuario (spec 05) ([fa210b6](https://github.com/adpNature/EWControl/commit/fa210b65f0cf9cc922825e932326bb34cbd833a7))
+
 # [1.3.0](https://github.com/adpNature/EWControl/compare/v1.2.0...v1.3.0) (2026-07-09)
 
 ### Bug Fixes
