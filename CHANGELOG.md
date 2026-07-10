@@ -1,3 +1,9 @@
+# [1.5.0](https://github.com/adpNature/EWControl/compare/v1.4.0...v1.5.0) (2026-07-10)
+
+### Features
+
+- implementa gestión de Machines y Signals (spec 06) ([22868fc](https://github.com/adpNature/EWControl/commit/22868fccae0677183f07534cc90e35cbd89bcbb6))
+
 # [1.4.0](https://github.com/adpNature/EWControl/compare/v1.3.0...v1.4.0) (2026-07-10)
 
 ### Bug Fixes
