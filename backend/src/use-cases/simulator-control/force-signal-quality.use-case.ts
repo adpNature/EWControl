@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ForcedSignalQuality } from '../../entities/forced-signal-quality.enum';
+import { isFormulaSignalSource } from '../../entities/signal-source.vo';
 import {
   type ISignalRepository,
   SIGNAL_REPOSITORY,
@@ -36,6 +37,11 @@ export class ForceSignalQualityUseCase {
       this.signalRepository.findById(input.signalId, ctx),
     );
     if (!signal || signal.machineId !== input.machineId) {
+      throw new SignalNotFoundError(input.signalId, input.machineId);
+    }
+    // Una Signal FORMULA no tiene una Variable propia en el Simulador (docs/specs/06-gestion-machines-signals.md);
+    // no hay nada que degradar, así que se trata como si no existiera para esta operación.
+    if (isFormulaSignalSource(signal.signalSource)) {
       throw new SignalNotFoundError(input.signalId, input.machineId);
     }
 

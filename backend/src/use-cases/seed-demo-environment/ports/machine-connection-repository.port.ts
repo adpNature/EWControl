@@ -15,4 +15,9 @@ export interface IMachineConnectionRepository {
     providerType: ProviderType,
     ctx: TransactionContext,
   ): Promise<MachineConnection[]>;
+  replace(
+    machineId: string,
+    changes: { providerType: ProviderType; connectionConfig: ConnectionConfig },
+    ctx: TransactionContext,
+  ): Promise<MachineConnection>;
 }

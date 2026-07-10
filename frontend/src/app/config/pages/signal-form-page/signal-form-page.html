@@ -1,0 +1,38 @@
+<div class="box signal-form-page">
+  <h1 class="title-xl">{{ isEditMode ? 'Editar Signal' : 'Nueva Signal' }}</h1>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <app-input formControlName="name" label="Nombre" [errorMessage]="nameError()" />
+    <app-input formControlName="unit" label="Unidad" [errorMessage]="unitError()" />
+
+    <div class="form-field" role="radiogroup" aria-label="Tipo de Signal">
+      <label class="form-label">
+        <input type="radio" formControlName="signalType" value="DIRECT" />
+        Directa (DIRECT)
+      </label>
+      <label class="form-label">
+        <input type="radio" formControlName="signalType" value="FORMULA" />
+        Fórmula (FORMULA)
+      </label>
+    </div>
+
+    @if (!isFormula) {
+      <app-input formControlName="variableName" label="Variable" />
+    } @else {
+      <app-input formControlName="expression" label="Expresión" />
+      <app-input
+        formControlName="variables"
+        label="Variables (separadas por coma)"
+        [errorMessage]="variablesFieldError()"
+      />
+    }
+
+    @if (formError()) {
+      <p class="form-error" role="alert">{{ formError() }}</p>
+    }
+
+    <button type="submit" class="btn-primary" [disabled]="submitting()">
+      {{ submitting() ? 'Guardando…' : 'Guardar' }}
+    </button>
+  </form>
+</div>

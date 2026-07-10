@@ -1,0 +1,9 @@
+.machine-form-page {
+  max-width: 480px;
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+}

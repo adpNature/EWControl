@@ -14,4 +14,34 @@ export class MachineTypeOrmRepository implements IMachineRepository {
   findById(id: string, ctx: TransactionContext): Promise<Machine | null> {
     return (ctx as EntityManager).getRepository(Machine).findOne({ where: { id } });
   }
+
+  async list(
+    filter: { companyId: string | null; isActive: boolean },
+    pagination: { limit: number; offset: number },
+    ctx: TransactionContext,
+  ): Promise<{ data: Machine[]; total: number }> {
+    const repository = (ctx as EntityManager).getRepository(Machine);
+    const where = filter.companyId
+      ? { companyId: filter.companyId, isActive: filter.isActive }
+      : { isActive: filter.isActive };
+    const [data, total] = await repository.findAndCount({
+      where,
+      take: pagination.limit,
+      skip: pagination.offset,
+      order: { name: 'ASC' },
+    });
+    return { data, total };
+  }
+
+  async update(id: string, changes: { name: string }, ctx: TransactionContext): Promise<Machine> {
+    const repository = (ctx as EntityManager).getRepository(Machine);
+    await repository.update(id, changes);
+    return repository.findOneByOrFail({ id });
+  }
+
+  async softDeactivate(id: string, ctx: TransactionContext): Promise<Machine> {
+    const repository = (ctx as EntityManager).getRepository(Machine);
+    await repository.update(id, { isActive: false });
+    return repository.findOneByOrFail({ id });
+  }
 }

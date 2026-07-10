@@ -19,4 +19,8 @@ export class Machine {
 
   @Column()
   name: string;
+
+  /** Una Machine dada de baja desactiva en cascada todas sus Signals (Documento 3, apartado 3.2.3). */
+  @Column({ default: true })
+  isActive: boolean;
 }

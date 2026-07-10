@@ -6,4 +6,11 @@ export const MACHINE_REPOSITORY = Symbol('MachineRepository');
 export interface IMachineRepository {
   create(data: { companyId: string; name: string }, ctx: TransactionContext): Promise<Machine>;
   findById(id: string, ctx: TransactionContext): Promise<Machine | null>;
+  list(
+    filter: { companyId: string | null; isActive: boolean },
+    pagination: { limit: number; offset: number },
+    ctx: TransactionContext,
+  ): Promise<{ data: Machine[]; total: number }>;
+  update(id: string, changes: { name: string }, ctx: TransactionContext): Promise<Machine>;
+  softDeactivate(id: string, ctx: TransactionContext): Promise<Machine>;
 }

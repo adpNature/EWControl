@@ -19,4 +19,16 @@ export interface ISignalRepository {
   ): Promise<Signal>;
   findById(id: string, ctx: TransactionContext): Promise<Signal | null>;
   findAllByMachineId(machineId: string, ctx: TransactionContext): Promise<Signal[]>;
+  list(
+    filter: { machineId: string; isActive: boolean },
+    pagination: { limit: number; offset: number },
+    ctx: TransactionContext,
+  ): Promise<{ data: Signal[]; total: number }>;
+  update(
+    id: string,
+    changes: Partial<{ name: string; signalSource: SignalSource; unit: string }>,
+    ctx: TransactionContext,
+  ): Promise<Signal>;
+  softDeactivate(id: string, ctx: TransactionContext): Promise<Signal>;
+  deactivateAllByMachineId(machineId: string, ctx: TransactionContext): Promise<void>;
 }

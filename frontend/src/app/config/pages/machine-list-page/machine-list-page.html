@@ -1,0 +1,20 @@
+<div class="box machine-list-page">
+  <div class="machine-list-page__header">
+    <h1 class="title-xl">Machines</h1>
+    @if (canConfigure()) {
+      <a routerLink="new" class="btn-primary">Nueva Machine</a>
+    }
+  </div>
+
+  <app-table
+    [columns]="columns"
+    [rows]="machinesState.machines()"
+    [rowKey]="rowKey"
+    [actionsTemplate]="actions"
+    emptyMessage="No hay Machines todavía."
+  />
+
+  <ng-template #actions let-machine>
+    <a [routerLink]="[machine.id]">Ver</a>
+  </ng-template>
+</div>

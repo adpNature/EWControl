@@ -1,0 +1,32 @@
+<div class="toast-stack">
+  <div class="toast-stack__group" aria-live="polite">
+    @for (toast of politeToasts(); track toast.id) {
+      <div class="toast" [class]="'toast--' + toast.type">
+        <p class="toast__message">{{ toast.message }}</p>
+        <button
+          type="button"
+          class="toast__close"
+          aria-label="Cerrar notificación"
+          (click)="dismiss(toast.id)"
+        >
+          &times;
+        </button>
+      </div>
+    }
+  </div>
+  <div class="toast-stack__group" aria-live="assertive">
+    @for (toast of assertiveToasts(); track toast.id) {
+      <div class="toast" [class]="'toast--' + toast.type">
+        <p class="toast__message">{{ toast.message }}</p>
+        <button
+          type="button"
+          class="toast__close"
+          aria-label="Cerrar notificación"
+          (click)="dismiss(toast.id)"
+        >
+          &times;
+        </button>
+      </div>
+    }
+  </div>
+</div>

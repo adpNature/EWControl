@@ -34,4 +34,8 @@ export class Signal {
 
   @Column({ default: false })
   historyEnabled: boolean;
+
+  /** Se desactiva individualmente o en cascada al desactivarse su Machine (docs/specs/06-gestion-machines-signals.md). */
+  @Column({ default: true })
+  isActive: boolean;
 }

@@ -56,9 +56,19 @@ function createFakes() {
   const resolver = { resolve: vi.fn().mockResolvedValue(CONNECTION) };
   const machineRepository = {
     findById: vi.fn().mockResolvedValue({ id: MACHINE_ID, companyId: COMPANY_ID }),
+    create: vi.fn(),
+    list: vi.fn(),
+    update: vi.fn(),
+    softDeactivate: vi.fn(),
   };
   const signalRepository = {
     findAllByMachineId: vi.fn().mockResolvedValue(createSignals()),
+    create: vi.fn(),
+    findById: vi.fn(),
+    list: vi.fn(),
+    update: vi.fn(),
+    softDeactivate: vi.fn(),
+    deactivateAllByMachineId: vi.fn(),
   };
   const unitOfWork = {
     runInTransaction: vi.fn((work: (ctx: unknown) => Promise<unknown>) => work(FAKE_CTX)),

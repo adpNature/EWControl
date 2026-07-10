@@ -1,0 +1,39 @@
+// Excepción justificada a Flexbox (docs/12-convenciones-frontend.md, 12.7):
+// una tabla real de datos usa <table> semántica, no .table-flex.
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-md);
+  color: var(--text-color);
+
+  th,
+  td {
+    padding: var(--spacing-sm);
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  th {
+    font-weight: 500;
+    color: var(--text-muted-color);
+  }
+
+  &__sort-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
+    font-weight: 500;
+    color: var(--text-muted-color);
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+  }
+}
