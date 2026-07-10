@@ -1,0 +1,21 @@
+// Solo lo que no resuelve una clase global (docs/12-convenciones-frontend.md, 12.2):
+// centrado de página y ancho máximo del formulario.
+
+.login-page {
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-lg);
+}
+
+.login-box {
+  width: 100%;
+  max-width: 24rem;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}

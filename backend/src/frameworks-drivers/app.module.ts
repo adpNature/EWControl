@@ -3,12 +3,13 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
 import { ENTITIES } from '../entities';
+import { AuthModule } from './auth.module';
 import { SimulatorModule } from './simulator.module';
 import { postgresConnectionOptions } from './database/postgres.config';
 
 /**
  * Módulo raíz. Registra el arranque de los motores externos (PostgreSQL, logging);
- * los módulos de features (Auth, Machines, Signals...) se añaden aquí a medida que
+ * los módulos de features (Machines, Signals...) se añaden aquí a medida que
  * se implementan sus specs (docs/specs/), no por adelantado.
  */
 @Module({
@@ -18,6 +19,7 @@ import { postgresConnectionOptions } from './database/postgres.config';
       entities: ENTITIES,
     }),
     EventEmitterModule.forRoot(),
+    AuthModule,
     SimulatorModule,
     LoggerModule.forRoot({
       pinoHttp: {

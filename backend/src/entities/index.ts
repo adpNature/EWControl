@@ -1,6 +1,8 @@
+import { AuthAuditLog } from './auth-audit-log.entity';
 import { Company } from './company.entity';
 import { MachineConnection } from './machine-connection.entity';
 import { Machine } from './machine.entity';
+import { RefreshToken } from './refresh-token.entity';
 import { Signal } from './signal.entity';
 import { User } from './user.entity';
 
@@ -13,4 +15,12 @@ import { User } from './user.entity';
  * (postgres.datasource.ts) sí puede usar un glob porque `typeorm-ts-node-commonjs`
  * registra `ts-node` antes de ejecutarse.
  */
-export const ENTITIES = [Company, User, Machine, MachineConnection, Signal];
+export const ENTITIES = [
+  Company,
+  User,
+  Machine,
+  MachineConnection,
+  Signal,
+  RefreshToken,
+  AuthAuditLog,
+];

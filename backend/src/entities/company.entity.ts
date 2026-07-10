@@ -2,8 +2,6 @@ import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 /**
  * Aggregate Root del contexto organizativo (Documento 3, apartado 3.2.1).
- * Solo los campos que necesita la spec 01: campos de desactivación/auditoría
- * se añaden cuando la spec que los necesite exista.
  */
 @Entity('companies')
 export class Company {
@@ -12,4 +10,8 @@ export class Company {
 
   @Column()
   name: string;
+
+  /** Una Company dada de baja impide el login/refresh de todos sus Users (docs/specs/05-auth-login.md). */
+  @Column({ default: true })
+  isActive: boolean;
 }

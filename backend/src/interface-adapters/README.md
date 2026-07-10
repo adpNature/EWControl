@@ -11,8 +11,8 @@ Traduce entre el mundo exterior y los Use Cases:
 - `events/` — Event Publisher, envuelve `EventEmitter2` de NestJS (Documento 2, apartado 2.7).
 - `websocket/` — gateway WebSocket (`docs/11-api-rest.md`, sección WebSocket).
 - `email/` — Email Adapter (Documento 2, apartado 2.10).
-- `auth-guard/` — único punto de verificación del JWT (Documento 2, "Auth Guard"; `docs/06-seguridad-global.md`).
-- `security/` — hashing de contraseñas (`bcrypt-password-hasher.ts`, Documento 6 apartado 6.2).
+- `auth-guard/` — único punto de verificación del JWT (Documento 2, "Auth Guard"; `docs/06-seguridad-global.md`), implementado en `docs/specs/05-auth-login.md`.
+- `security/` — hashing de contraseñas (`bcrypt-password-hasher.ts`, Documento 6 apartado 6.2) y firma/verificación de tokens JWT (`jwt-token.service.ts`, `crypto-id-generator.ts`, `docs/specs/05-auth-login.md`).
 
 Regla de dependencia: puede depender de `entities/`, nunca al revés.
 

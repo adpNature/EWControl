@@ -70,7 +70,8 @@
             },
             "development": {
               "buildTarget": "frontend:build:development",
-              "poll": 1000
+              "poll": 1000,
+              "proxyConfig": "proxy.conf.mjs"
             }
           },
           "defaultConfiguration": "development"

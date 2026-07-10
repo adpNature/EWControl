@@ -64,6 +64,11 @@ jobs:
       INFLUXDB_TOKEN: ewcontrol-ci-admin-token
       INFLUXDB_ORG: ewcontrol
       INFLUXDB_BUCKET: signals_history
+      # Valores CI-only, sin uso fuera de este workflow — definidos como GitHub
+      # Actions Secrets (Settings > Secrets and variables > Actions) en vez de
+      # en claro aquí, para no disparar escáneres de secretos como GitGuardian.
+      JWT_ACCESS_SECRET: ${{ secrets.CI_JWT_ACCESS_SECRET }}
+      JWT_REFRESH_SECRET: ${{ secrets.CI_JWT_REFRESH_SECRET }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
