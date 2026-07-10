@@ -30,4 +30,14 @@ export class MachineConnectionTypeOrmRepository implements IMachineConnectionRep
       .getRepository(MachineConnection)
       .find({ where: { providerType } });
   }
+
+  async replace(
+    machineId: string,
+    changes: { providerType: ProviderType; connectionConfig: ConnectionConfig },
+    ctx: TransactionContext,
+  ): Promise<MachineConnection> {
+    const repository = (ctx as EntityManager).getRepository(MachineConnection);
+    await repository.update({ machineId }, changes);
+    return repository.findOneByOrFail({ machineId });
+  }
 }

@@ -10,6 +10,11 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./dashboard/pages/dashboard-page/dashboard-page').then((m) => m.DashboardPage),
   },
+  {
+    path: 'config',
+    canActivate: [authGuard],
+    loadChildren: () => import('./config/config.routes').then((m) => m.configRoutes),
+  },
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
   { path: '**', redirectTo: 'dashboard' },
 ];

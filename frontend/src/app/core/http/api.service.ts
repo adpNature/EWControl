@@ -19,10 +19,38 @@ const API_BASE_URL = '/api/v1';
 export class ApiService {
   private readonly http = inject(HttpClient);
 
+  get<T>(path: string, params?: Record<string, string | number>): Observable<T> {
+    return this.request(
+      this.http.get<T>(`${API_BASE_URL}${path}`, { withCredentials: true, params }),
+    );
+  }
+
   post<T>(path: string, body: unknown): Observable<T> {
-    return this.http
-      .post<T>(`${API_BASE_URL}${path}`, body, { withCredentials: true })
-      .pipe(catchError((error: HttpErrorResponse) => throwError(() => toApiError(error))));
+    return this.request(
+      this.http.post<T>(`${API_BASE_URL}${path}`, body, { withCredentials: true }),
+    );
+  }
+
+  patch<T>(path: string, body: unknown): Observable<T> {
+    return this.request(
+      this.http.patch<T>(`${API_BASE_URL}${path}`, body, { withCredentials: true }),
+    );
+  }
+
+  put<T>(path: string, body: unknown): Observable<T> {
+    return this.request(
+      this.http.put<T>(`${API_BASE_URL}${path}`, body, { withCredentials: true }),
+    );
+  }
+
+  delete<T>(path: string): Observable<T> {
+    return this.request(this.http.delete<T>(`${API_BASE_URL}${path}`, { withCredentials: true }));
+  }
+
+  private request<T>(source: Observable<T>): Observable<T> {
+    return source.pipe(
+      catchError((error: HttpErrorResponse) => throwError(() => toApiError(error))),
+    );
   }
 }
 

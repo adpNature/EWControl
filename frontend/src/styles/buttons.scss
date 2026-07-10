@@ -32,3 +32,66 @@
     cursor: not-allowed;
   }
 }
+
+// Acción secundaria de un diálogo/formulario (ej. "Cancelar") — mismo tamaño
+// y forma que .btn-primary, sin el color de marca.
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  color: var(--text-color);
+  background: var(--background-color);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-color);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+// Acción destructiva (ej. confirmar borrado de una Machine/Signal, docs/specs/06-gestion-machines-signals.md).
+.btn-danger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border: none;
+  border-radius: var(--border-radius-sm);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  color: var(--background-color);
+  background: var(--danger-color);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    opacity: 0.9;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--danger-color);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}

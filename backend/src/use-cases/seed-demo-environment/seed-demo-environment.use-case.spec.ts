@@ -27,14 +27,25 @@ function createFakes() {
   };
   const machineRepository = {
     create: vi.fn().mockResolvedValue({ id: 'machine-1', name: SEED_MACHINE_NAME }),
+    findById: vi.fn(),
+    list: vi.fn(),
+    update: vi.fn(),
+    softDeactivate: vi.fn(),
   };
   const machineConnectionRepository = {
     create: vi.fn().mockResolvedValue({ id: 'connection-1' }),
+    findByMachineId: vi.fn(),
+    findAllByProviderType: vi.fn(),
+    replace: vi.fn(),
   };
   const signalRepository = {
     create: vi.fn().mockResolvedValue({ id: 'signal-x' }),
     findById: vi.fn(),
     findAllByMachineId: vi.fn(),
+    list: vi.fn(),
+    update: vi.fn(),
+    softDeactivate: vi.fn(),
+    deactivateAllByMachineId: vi.fn(),
   };
   const passwordHasher = {
     hash: vi.fn().mockResolvedValue(HASHED_PASSWORD),

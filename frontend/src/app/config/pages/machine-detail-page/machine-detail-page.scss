@@ -1,0 +1,13 @@
+.machine-detail-page__header,
+.machine-detail-page__signals-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.machine-detail-page__actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}

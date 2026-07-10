@@ -12,3 +12,7 @@ export type ConnectionConfig = {
   seedProfile: string;
   signals: SimulatorSignalSeed[];
 };
+
+export function listSeedVariableNames(config: ConnectionConfig): string[] {
+  return config.signals.map((signal) => signal.variableName);
+}

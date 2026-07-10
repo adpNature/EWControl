@@ -25,6 +25,7 @@ function createFakes(
         connectionConfig: c.connectionConfig,
       })),
     ),
+    replace: vi.fn(),
   };
   const unitOfWork = {
     runInTransaction: vi.fn((work: (ctx: unknown) => Promise<unknown>) => work(Symbol('ctx'))),

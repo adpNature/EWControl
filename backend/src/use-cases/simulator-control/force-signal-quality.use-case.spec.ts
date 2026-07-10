@@ -22,6 +22,10 @@ function createFakes() {
       signalSource: { variableName: 'MotorTemperature' },
     }),
     findAllByMachineId: vi.fn(),
+    list: vi.fn(),
+    update: vi.fn(),
+    softDeactivate: vi.fn(),
+    deactivateAllByMachineId: vi.fn(),
   };
   const unitOfWork = {
     runInTransaction: vi.fn((work: (ctx: unknown) => Promise<unknown>) => work(FAKE_CTX)),
@@ -80,6 +84,26 @@ describe('ForceSignalQualityUseCase', () => {
       id: 'signal-1',
       machineId: 'other-machine',
       signalSource: { variableName: 'MotorTemperature' },
+    });
+    const useCase = createUseCase(fakes);
+
+    await expect(
+      useCase.execute({
+        machineId: 'machine-1',
+        signalId: 'signal-1',
+        quality: ForcedSignalQuality.Bad,
+        durationTicks: 10,
+      }),
+    ).rejects.toBeInstanceOf(SignalNotFoundError);
+    expect(fakes.simulatorRuntime.forceSignalQuality).not.toHaveBeenCalled();
+  });
+
+  it('lanza SignalNotFoundError si la Signal es FORMULA (sin Variable propia)', async () => {
+    const fakes = createFakes();
+    fakes.signalRepository.findById.mockResolvedValue({
+      id: 'signal-1',
+      machineId: 'machine-1',
+      signalSource: { expression: 'a - b', variables: ['a', 'b'] },
     });
     const useCase = createUseCase(fakes);
 

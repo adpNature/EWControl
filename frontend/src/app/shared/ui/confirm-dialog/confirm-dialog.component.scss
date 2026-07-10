@@ -1,0 +1,27 @@
+// Overlay justificado (docs/12-convenciones-frontend.md, 12.4): un backdrop
+// modal no puede maquetarse con el flujo Flexbox normal de la página.
+
+.confirm-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 40%);
+}
+
+.confirm-dialog {
+  max-width: 420px;
+  width: 90%;
+
+  &:focus-visible {
+    outline: none;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-sm);
+  }
+}

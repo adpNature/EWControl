@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ISignalTickGenerator } from '../../interface-adapters/data-providers/simulation/signal-tick-generator';
 import { createSignalTickGenerator } from '../../interface-adapters/data-providers/simulation/signal-tick-generator';
 import { SignalType } from '../../entities/signal-type.enum';
+import { isFormulaSignalSource } from '../../entities/signal-source.vo';
 import {
   type IMachineRepository,
   MACHINE_REPOSITORY,
@@ -90,8 +91,12 @@ export class SeedHistoryUseCase {
       if (signal.signalType !== SignalType.DIRECT || !signal.historyEnabled) {
         continue;
       }
+      if (isFormulaSignalSource(signal.signalSource)) {
+        continue;
+      }
+      const variableName = signal.signalSource.variableName;
       const seed = connection.connectionConfig.signals.find(
-        (candidate) => candidate.variableName === signal.signalSource.variableName,
+        (candidate) => candidate.variableName === variableName,
       );
       if (!seed) {
         continue;

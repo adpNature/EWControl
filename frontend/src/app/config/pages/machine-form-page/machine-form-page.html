@@ -1,0 +1,15 @@
+<div class="box machine-form-page">
+  <h1 class="title-xl">{{ isEditMode ? 'Editar Machine' : 'Nueva Machine' }}</h1>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <app-input formControlName="name" label="Nombre" [errorMessage]="nameError()" />
+
+    @if (formError()) {
+      <p class="form-error" role="alert">{{ formError() }}</p>
+    }
+
+    <button type="submit" class="btn-primary" [disabled]="submitting()">
+      {{ submitting() ? 'Guardando…' : 'Guardar' }}
+    </button>
+  </form>
+</div>

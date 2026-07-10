@@ -10,6 +10,9 @@ function createFakes() {
   const machineRepository = {
     create: vi.fn(),
     findById: vi.fn().mockResolvedValue({ id: 'machine-1', companyId: 'company-1', name: 'Demo' }),
+    list: vi.fn(),
+    update: vi.fn(),
+    softDeactivate: vi.fn(),
   };
   const machineConnectionRepository = {
     create: vi.fn(),
@@ -20,6 +23,7 @@ function createFakes() {
       connectionConfig: { seedProfile: 'x', signals: [] },
     }),
     findAllByProviderType: vi.fn(),
+    replace: vi.fn(),
   };
   const unitOfWork = {
     runInTransaction: vi.fn((work: (ctx: unknown) => Promise<unknown>) => work(FAKE_CTX)),

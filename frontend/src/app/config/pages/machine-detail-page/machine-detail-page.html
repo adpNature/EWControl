@@ -1,0 +1,53 @@
+<div class="box machine-detail-page">
+  @if (machine(); as m) {
+    <div class="machine-detail-page__header">
+      <h1 class="title-xl">{{ m.name }}</h1>
+      @if (canConfigure()) {
+        <div class="machine-detail-page__actions">
+          <a [routerLink]="['/config/machines', m.id, 'edit']" class="btn-secondary">Editar</a>
+          <button type="button" class="btn-danger" (click)="deleteMachineDialogOpen.set(true)">
+            Eliminar Machine
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  <div class="machine-detail-page__signals-header">
+    <h2 class="title-lg">Signals</h2>
+    @if (canConfigure()) {
+      <a [routerLink]="['/config/machines', machineId, 'signals', 'new']" class="btn-primary">
+        Nueva Signal
+      </a>
+    }
+  </div>
+
+  <app-table
+    [columns]="signalColumns"
+    [rows]="signalsState.signals()"
+    [rowKey]="signalRowKey"
+    [actionsTemplate]="signalActions"
+    emptyMessage="No hay Signals todavía."
+  />
+
+  <ng-template #signalActions let-signal>
+    <a [routerLink]="['/config/machines', machineId, 'signals', signal.id, 'edit']">Editar</a>
+    <button type="button" class="btn-danger" (click)="signalToDelete.set(signal)">Eliminar</button>
+  </ng-template>
+</div>
+
+<app-confirm-dialog
+  [open]="deleteMachineDialogOpen()"
+  title="Eliminar Machine"
+  message="Esta acción desactivará la Machine y todas sus Signals. ¿Continuar?"
+  (confirmed)="confirmDeleteMachine()"
+  (cancelled)="deleteMachineDialogOpen.set(false)"
+/>
+
+<app-confirm-dialog
+  [open]="signalToDelete() !== null"
+  title="Eliminar Signal"
+  [message]="'¿Eliminar la Signal ' + (signalToDelete()?.name ?? '') + '?'"
+  (confirmed)="confirmDeleteSignal()"
+  (cancelled)="signalToDelete.set(null)"
+/>
