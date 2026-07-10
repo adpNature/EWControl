@@ -7,6 +7,53 @@ on:
 jobs:
   e2e:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ewcontrol
+          POSTGRES_PASSWORD: ewcontrol_ci
+          POSTGRES_DB: ewcontrol
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ewcontrol -d ewcontrol"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      influxdb:
+        image: influxdb:2.7-alpine
+        env:
+          DOCKER_INFLUXDB_INIT_MODE: setup
+          DOCKER_INFLUXDB_INIT_USERNAME: ci
+          DOCKER_INFLUXDB_INIT_PASSWORD: ewcontrol_ci_local_only
+          DOCKER_INFLUXDB_INIT_ORG: ewcontrol
+          DOCKER_INFLUXDB_INIT_BUCKET: signals_history
+          DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ewcontrol-ci-admin-token
+        ports:
+          - 8086:8086
+        options: >-
+          --health-cmd "influx ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ewcontrol
+      POSTGRES_USER: ewcontrol
+      POSTGRES_PASSWORD: ewcontrol_ci
+      INFLUXDB_URL: http://localhost:8086
+      INFLUXDB_TOKEN: ewcontrol-ci-admin-token
+      INFLUXDB_ORG: ewcontrol
+      INFLUXDB_BUCKET: signals_history
+      JWT_ACCESS_SECRET: ewcontrol-ci-access-secret-local-only
+      JWT_REFRESH_SECRET: ewcontrol-ci-refresh-secret-local-only
+      PORT: 3000
+      # El proxy de Angular CLI (frontend/proxy.conf.mjs) resuelve por defecto el
+      # hostname `backend` de la red de docker compose; aquí Backend y Frontend
+      # corren nativos en el mismo runner, así que se apunta a localhost.
+      BACKEND_PROXY_TARGET: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -25,6 +72,33 @@ jobs:
       - name: Instalar navegadores de Playwright
         working-directory: frontend
         run: pnpm exec playwright install --with-deps
+
+      - name: Aplicar migraciones del Backend
+        working-directory: backend
+        run: pnpm run migration:run
+
+      - name: Sembrar entorno demo (Company/User/Machine)
+        working-directory: backend
+        run: pnpm run seed
+
+      - name: Compilar y arrancar el Backend en segundo plano
+        working-directory: backend
+        run: |
+          pnpm run build
+          nohup node dist/main > backend.log 2>&1 &
+
+      - name: Esperar a que el Backend responda
+        run: |
+          for i in $(seq 1 30); do
+            status=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/api/v1/auth/login -X POST -H 'Content-Type: application/json' -d '{}')
+            if [ "$status" != "000" ]; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "El Backend no respondió a tiempo"
+          cat backend/backend.log
+          exit 1
 
       - name: Ejecutar tests e2e
         working-directory: frontend

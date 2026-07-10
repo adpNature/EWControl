@@ -25,9 +25,10 @@ import {
   type IPasswordHasher,
   PASSWORD_HASHER,
 } from '../src/use-cases/seed-demo-environment/ports/password-hasher.port';
-
-const DEMO_EMAIL = 'demo@ewcontrol.local';
-const DEMO_PASSWORD = 'Demo1234!';
+import {
+  SEED_USER_EMAIL as DEMO_EMAIL,
+  SEED_USER_PASSWORD as DEMO_PASSWORD,
+} from '../src/use-cases/seed-demo-environment/seed-demo-environment.config';
 
 async function truncateAuthTables(dataSource: DataSource): Promise<void> {
   await dataSource.query(
