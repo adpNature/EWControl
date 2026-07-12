@@ -23,6 +23,13 @@ const { ioMock, fakeSocket, listeners } = vi.hoisted(() => {
 
 vi.mock('socket.io-client', () => ({ io: ioMock }));
 
+/**
+ * `effect()` se programa de forma asíncrona (microtarea/macrotarea según el
+ * entorno); `TestBed.tick()` la fuerza cuando ya está encolada, pero no
+ * garantiza que lo esté en el mismo tick síncrono en todos los entornos
+ * (difiere entre local y CI). `vi.waitFor` reintenta hasta que se cumple,
+ * en vez de depender de un único `tick()` síncrono.
+ */
 describe('RealtimeSocketService', () => {
   let accessTokenSignal: ReturnType<typeof signal<string | null>>;
 
@@ -45,21 +52,27 @@ describe('RealtimeSocketService', () => {
     expect(ioMock).not.toHaveBeenCalled();
   });
 
-  it('conecta al namespace api/v1/realtime cuando aparece un accessToken', () => {
+  it('conecta al namespace api/v1/realtime cuando aparece un accessToken', async () => {
     TestBed.inject(RealtimeSocketService);
     accessTokenSignal.set('token-1');
-    TestBed.tick();
 
-    expect(ioMock).toHaveBeenCalledWith(
-      '/api/v1/realtime',
-      expect.objectContaining({ auth: expect.any(Function) }),
-    );
+    await vi.waitFor(() => {
+      TestBed.tick();
+      expect(ioMock).toHaveBeenCalledWith(
+        '/api/v1/realtime',
+        expect.objectContaining({ auth: expect.any(Function) }),
+      );
+    });
   });
 
-  it('el callback auth relee siempre el token vigente', () => {
+  it('el callback auth relee siempre el token vigente', async () => {
     TestBed.inject(RealtimeSocketService);
     accessTokenSignal.set('token-1');
-    TestBed.tick();
+
+    await vi.waitFor(() => {
+      TestBed.tick();
+      expect(ioMock).toHaveBeenCalled();
+    });
 
     const authOption = ioMock.mock.calls[0][1].auth as unknown as IoAuthOption;
     const received: { token: string | null }[] = [];
@@ -70,21 +83,29 @@ describe('RealtimeSocketService', () => {
     expect(received).toEqual([{ token: 'token-1' }, { token: 'token-2' }]);
   });
 
-  it('desconecta cuando el accessToken desaparece (logout)', () => {
+  it('desconecta cuando el accessToken desaparece (logout)', async () => {
     TestBed.inject(RealtimeSocketService);
     accessTokenSignal.set('token-1');
-    TestBed.tick();
+    await vi.waitFor(() => {
+      TestBed.tick();
+      expect(ioMock).toHaveBeenCalled();
+    });
 
     accessTokenSignal.set(null);
-    TestBed.tick();
 
-    expect(fakeSocket.disconnect).toHaveBeenCalled();
+    await vi.waitFor(() => {
+      TestBed.tick();
+      expect(fakeSocket.disconnect).toHaveBeenCalled();
+    });
   });
 
   it('signalUpdates$ emite lo que recibe el socket subyacente en "SignalUpdated"', async () => {
     const service = TestBed.inject(RealtimeSocketService);
     accessTokenSignal.set('token-1');
-    TestBed.tick();
+    await vi.waitFor(() => {
+      TestBed.tick();
+      expect(listeners.get('SignalUpdated')).toBeDefined();
+    });
 
     const event = {
       signalId: 'signal-1',
