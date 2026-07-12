@@ -1,4 +1,4 @@
-import { signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 import { AuthStateService } from '../../auth/use-cases/auth.state';
@@ -24,12 +24,18 @@ const { ioMock, fakeSocket, listeners } = vi.hoisted(() => {
 vi.mock('socket.io-client', () => ({ io: ioMock }));
 
 /**
- * `effect()` se programa de forma asíncrona (microtarea/macrotarea según el
- * entorno); `TestBed.tick()` la fuerza cuando ya está encolada, pero no
- * garantiza que lo esté en el mismo tick síncrono en todos los entornos
- * (difiere entre local y CI). `vi.waitFor` reintenta hasta que se cumple,
- * en vez de depender de un único `tick()` síncrono.
+ * `effect()` solo se garantiza flushed dentro de un ciclo de detección de
+ * cambios real (`ComponentFixture.detectChanges()`); inyectar el servicio
+ * "a pelo" con `TestBed.inject()` y forzar `TestBed.tick()` sin ningún
+ * componente en pantalla resultó frágil entre entornos (funcionaba en local,
+ * nunca en CI). Un host trivial reproduce cómo lo consume la app real
+ * (los widgets lo inyectan dentro de un componente).
  */
+@Component({ selector: 'app-test-host', standalone: true, template: '' })
+class TestHostComponent {
+  readonly service = inject(RealtimeSocketService);
+}
+
 describe('RealtimeSocketService', () => {
   let accessTokenSignal: ReturnType<typeof signal<string | null>>;
 
@@ -45,34 +51,34 @@ describe('RealtimeSocketService', () => {
     });
   });
 
+  function createHost() {
+    const fixture = TestBed.createComponent(TestHostComponent);
+    fixture.detectChanges();
+    return fixture;
+  }
+
   it('no conecta mientras no hay accessToken', () => {
-    TestBed.inject(RealtimeSocketService);
-    TestBed.tick();
+    createHost();
 
     expect(ioMock).not.toHaveBeenCalled();
   });
 
-  it('conecta al namespace api/v1/realtime cuando aparece un accessToken', async () => {
-    TestBed.inject(RealtimeSocketService);
-    accessTokenSignal.set('token-1');
+  it('conecta al namespace api/v1/realtime cuando aparece un accessToken', () => {
+    createHost();
 
-    await vi.waitFor(() => {
-      TestBed.tick();
-      expect(ioMock).toHaveBeenCalledWith(
-        '/api/v1/realtime',
-        expect.objectContaining({ auth: expect.any(Function) }),
-      );
-    });
+    accessTokenSignal.set('token-1');
+    TestBed.tick();
+
+    expect(ioMock).toHaveBeenCalledWith(
+      '/api/v1/realtime',
+      expect.objectContaining({ auth: expect.any(Function) }),
+    );
   });
 
-  it('el callback auth relee siempre el token vigente', async () => {
-    TestBed.inject(RealtimeSocketService);
+  it('el callback auth relee siempre el token vigente', () => {
+    createHost();
     accessTokenSignal.set('token-1');
-
-    await vi.waitFor(() => {
-      TestBed.tick();
-      expect(ioMock).toHaveBeenCalled();
-    });
+    TestBed.tick();
 
     const authOption = ioMock.mock.calls[0][1].auth as unknown as IoAuthOption;
     const received: { token: string | null }[] = [];
@@ -83,29 +89,21 @@ describe('RealtimeSocketService', () => {
     expect(received).toEqual([{ token: 'token-1' }, { token: 'token-2' }]);
   });
 
-  it('desconecta cuando el accessToken desaparece (logout)', async () => {
-    TestBed.inject(RealtimeSocketService);
+  it('desconecta cuando el accessToken desaparece (logout)', () => {
+    createHost();
     accessTokenSignal.set('token-1');
-    await vi.waitFor(() => {
-      TestBed.tick();
-      expect(ioMock).toHaveBeenCalled();
-    });
+    TestBed.tick();
 
     accessTokenSignal.set(null);
+    TestBed.tick();
 
-    await vi.waitFor(() => {
-      TestBed.tick();
-      expect(fakeSocket.disconnect).toHaveBeenCalled();
-    });
+    expect(fakeSocket.disconnect).toHaveBeenCalled();
   });
 
   it('signalUpdates$ emite lo que recibe el socket subyacente en "SignalUpdated"', async () => {
-    const service = TestBed.inject(RealtimeSocketService);
+    const fixture = createHost();
     accessTokenSignal.set('token-1');
-    await vi.waitFor(() => {
-      TestBed.tick();
-      expect(listeners.get('SignalUpdated')).toBeDefined();
-    });
+    TestBed.tick();
 
     const event = {
       signalId: 'signal-1',
@@ -114,7 +112,7 @@ describe('RealtimeSocketService', () => {
       quality: 'GOOD' as const,
       timestamp: '2026-07-12T10:00:00Z',
     };
-    const promise = firstValueFrom(service.signalUpdates$);
+    const promise = firstValueFrom(fixture.componentInstance.service.signalUpdates$);
     listeners.get('SignalUpdated')?.(event);
 
     await expect(promise).resolves.toEqual(event);
