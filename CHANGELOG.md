@@ -1,3 +1,15 @@
+# [1.6.0](https://github.com/adpNature/EWControl/compare/v1.5.0...v1.6.0) (2026-07-12)
+
+### Bug Fixes
+
+- aisla specs de Vitest para evitar fugas de estado en CI ([059cecc](https://github.com/adpNature/EWControl/commit/059cecc7f19c070ddb486b6de8b5ea43429b6ef1))
+- estabiliza el test de RealtimeSocketService en CI ([0bb578e](https://github.com/adpNature/EWControl/commit/0bb578e616acaff17aadeb58b4afb82901049dc9))
+- estabiliza el test de RealtimeSocketService en CI ([4a8ae08](https://github.com/adpNature/EWControl/commit/4a8ae082311c503bb18fce24a888c5ea3fcb2cb6))
+
+### Features
+
+- implementa Dashboard en tiempo real (spec 07) ([0c04cbf](https://github.com/adpNature/EWControl/commit/0c04cbff33756a2c27ecaaa72a0888ac04f1d760))
+
 # [1.5.0](https://github.com/adpNature/EWControl/compare/v1.4.0...v1.5.0) (2026-07-10)
 
 ### Features
