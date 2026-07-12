@@ -1,0 +1,11 @@
+<div class="range-selector" role="group" aria-label="Rango temporal">
+  @for (preset of presets; track preset.value) {
+    <button
+      type="button"
+      class="range-selector__button"
+      [class.range-selector__button--active]="selected === preset.value"
+      [attr.aria-pressed]="selected === preset.value"
+      (click)="select(preset.value)"
+    >{{ preset.label }}</button>
+  }
+</div>

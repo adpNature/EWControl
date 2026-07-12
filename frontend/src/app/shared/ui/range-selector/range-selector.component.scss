@@ -1,0 +1,21 @@
+.range-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+
+  &__button {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    background: var(--background-color);
+    color: var(--text-color);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+
+    &--active {
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+      color: var(--background-color);
+    }
+  }
+}

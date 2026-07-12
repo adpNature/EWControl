@@ -2,16 +2,32 @@ import { Inject, Injectable } from '@nestjs/common';
 import { InfluxDB, Point } from '@influxdata/influxdb-client';
 import { influxdbConnectionOptions } from '../../../frameworks-drivers/config/influxdb.config';
 import { INFLUXDB_CLIENT } from '../../../frameworks-drivers/database/influxdb.client';
+import {
+  HistoryQueryParams,
+  HistoryQueryPoint,
+  IHistoryReader,
+} from '../../../use-cases/history/ports/history-reader.port';
 import { HistoryPoint, IHistoryWriter } from '../../../use-cases/history/ports/history-writer.port';
 
 const MEASUREMENT = 'signal_values';
 
+const AGGREGATE_WINDOW_BY_RESOLUTION: Record<
+  Exclude<HistoryQueryParams['resolution'], 'raw'>,
+  string
+> = {
+  minute: '1m',
+  hour: '1h',
+  day: '1d',
+  month: '1mo',
+};
+
 /**
- * Adaptador de `IHistoryWriter` sobre InfluxDB (docs/04-persistencia-de-datos.md §4.3):
- * un bucket, una measurement, tags `company_id`/`machine_id`/`signal_id`, field `value`.
+ * Adaptador de `IHistoryWriter`/`IHistoryReader` sobre InfluxDB
+ * (docs/04-persistencia-de-datos.md §4.3): un bucket, una measurement, tags
+ * `company_id`/`machine_id`/`signal_id`, field `value`.
  */
 @Injectable()
-export class InfluxDbHistoryRepository implements IHistoryWriter {
+export class InfluxDbHistoryRepository implements IHistoryWriter, IHistoryReader {
   constructor(@Inject(INFLUXDB_CLIENT) private readonly client: InfluxDB) {}
 
   async writeBatch(points: HistoryPoint[]): Promise<void> {
@@ -67,5 +83,21 @@ export class InfluxDbHistoryRepository implements IHistoryWriter {
       const body = await response.text().catch(() => '');
       throw new Error(`InfluxDB delete falló con status ${response.status}: ${body}`);
     }
+  }
+
+  async queryRange(params: HistoryQueryParams): Promise<HistoryQueryPoint[]> {
+    const { org, bucket } = influxdbConnectionOptions();
+    const queryApi = this.client.getQueryApi(org);
+    const aggregation =
+      params.resolution === 'raw'
+        ? ''
+        : `|> aggregateWindow(every: ${AGGREGATE_WINDOW_BY_RESOLUTION[params.resolution]}, fn: mean, createEmpty: false)`;
+    const flux = `from(bucket: "${bucket}")
+      |> range(start: ${params.from.toISOString()}, stop: ${params.to.toISOString()})
+      |> filter(fn: (r) => r._measurement == "${MEASUREMENT}" and r.signal_id == "${params.signalId}" and r._field == "value")
+      ${aggregation}
+      |> sort(columns: ["_time"])`;
+    const rows = await queryApi.collectRows<{ _time: string; _value: number }>(flux);
+    return rows.map((row) => ({ timestamp: new Date(row._time), value: row._value }));
   }
 }

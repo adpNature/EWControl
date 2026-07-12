@@ -206,9 +206,9 @@ Detalle completo de capas, componentes y flujo de datos en [docs/02-arquitectura
 | Fase 0 | Metodología y documentación base                                  | Completada |
 | Fase 1 | Fundación backend: Simulador de datos demo + catálogo de API REST | Completada |
 | Fase 2 | Feature vertical: Autenticación (Auth)                            | Completada |
-| Fase 3 | Feature vertical: Gestión de Machines y Signals                   | Pendiente  |
-| Fase 4 | Feature vertical: Dashboard en tiempo real                        | Pendiente  |
-| Fase 5 | Feature vertical: Históricos y Alarmas                            | Pendiente  |
+| Fase 3 | Feature vertical: Gestión de Machines y Signals                   | Completada |
+| Fase 4 | Feature vertical: Dashboard en tiempo real                        | Completada |
+| Fase 5 | Feature vertical: Históricos y Alarmas                            | En curso   |
 | Fase 6 | Integración OPC UA real                                           | Pendiente  |
 
 Cada fase a partir de la 2 se especifica en `docs/specs/` antes de implementarse (Documento 0).

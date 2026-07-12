@@ -6,6 +6,8 @@ import { SignalQuality } from '../../../entities/signal-quality.enum';
 import { SignalType } from '../../../entities/signal-type.enum';
 import { UserRole } from '../../../entities/user-role.enum';
 import { SignalValueNotAvailableError } from '../../../use-cases/dashboard/errors/signal-value-not-available.error';
+import { InvalidHistoryRangeError } from '../../../use-cases/history/errors/invalid-history-range.error';
+import { GetSignalHistoryUseCase } from '../../../use-cases/history/get-signal-history.use-case';
 import { CreateSignalUseCase } from '../../../use-cases/machine-management/create-signal.use-case';
 import { DeleteSignalUseCase } from '../../../use-cases/machine-management/delete-signal.use-case';
 import { FormulaReferencesUnknownVariableError } from '../../../use-cases/machine-management/errors/formula-references-unknown-variable.error';
@@ -33,6 +35,7 @@ describe('SignalController (HTTP)', () => {
   let updateSignalUseCase: { execute: ReturnType<typeof vi.fn> };
   let deleteSignalUseCase: { execute: ReturnType<typeof vi.fn> };
   let getSignalValueUseCase: { execute: ReturnType<typeof vi.fn> };
+  let getSignalHistoryUseCase: { execute: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     createSignalUseCase = {
@@ -55,6 +58,13 @@ describe('SignalController (HTTP)', () => {
         updatedAt: new Date('2026-07-12T10:00:00Z'),
       }),
     };
+    getSignalHistoryUseCase = {
+      execute: vi.fn().mockResolvedValue({
+        signalId: 'signal-1',
+        resolution: 'raw',
+        points: [{ timestamp: new Date('2026-07-12T09:30:00Z'), value: 24.8 }],
+      }),
+    };
 
     const moduleRef = await Test.createTestingModule({
       controllers: [SignalController],
@@ -65,6 +75,7 @@ describe('SignalController (HTTP)', () => {
         { provide: UpdateSignalUseCase, useValue: updateSignalUseCase },
         { provide: DeleteSignalUseCase, useValue: deleteSignalUseCase },
         { provide: GetSignalValueUseCase, useValue: getSignalValueUseCase },
+        { provide: GetSignalHistoryUseCase, useValue: getSignalHistoryUseCase },
       ],
     }).compile();
 
@@ -226,6 +237,81 @@ describe('SignalController (HTTP)', () => {
 
     expect(response.status).toBe(404);
     expect(response.body.code).toBe('SIGNAL_VALUE_NOT_AVAILABLE');
+  });
+
+  it('GET /:id/history responde 200 con los puntos del use-case, sin enviar resolution', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/machines/machine-1/signals/signal-1/history')
+      .query({ from: '2026-07-12T09:00:00Z', to: '2026-07-12T10:00:00Z' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.points).toHaveLength(1);
+    expect(getSignalHistoryUseCase.execute).toHaveBeenCalledWith({
+      machineId: 'machine-1',
+      signalId: 'signal-1',
+      from: new Date('2026-07-12T09:00:00Z'),
+      to: new Date('2026-07-12T10:00:00Z'),
+      resolution: undefined,
+      requester: { companyId: 'company-1', role: UserRole.AdminCliente },
+    });
+  });
+
+  it('GET /:id/history responde 200 respetando resolution cuando se indica explícitamente', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/machines/machine-1/signals/signal-1/history')
+      .query({ from: '2026-07-12T09:00:00Z', to: '2026-07-12T10:00:00Z', resolution: 'hour' });
+
+    expect(response.status).toBe(200);
+    expect(getSignalHistoryUseCase.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ resolution: 'hour' }),
+    );
+  });
+
+  it('GET /:id/history responde 400 si from/to no son ISO 8601', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/machines/machine-1/signals/signal-1/history')
+      .query({ from: 'not-a-date', to: '2026-07-12T10:00:00Z' });
+
+    expect(response.status).toBe(400);
+    expect(getSignalHistoryUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('GET /:id/history responde 400 si resolution no es una de las soportadas', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/machines/machine-1/signals/signal-1/history')
+      .query({ from: '2026-07-12T09:00:00Z', to: '2026-07-12T10:00:00Z', resolution: 'week' });
+
+    expect(response.status).toBe(400);
+    expect(getSignalHistoryUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('GET /:id/history responde 400 INVALID_RANGE si el use-case lo lanza', async () => {
+    getSignalHistoryUseCase.execute.mockRejectedValue(
+      new InvalidHistoryRangeError(
+        new Date('2026-07-12T10:00:00Z'),
+        new Date('2026-07-12T09:00:00Z'),
+      ),
+    );
+
+    const response = await request(app.getHttpServer())
+      .get('/machines/machine-1/signals/signal-1/history')
+      .query({ from: '2026-07-12T10:00:00Z', to: '2026-07-12T09:00:00Z' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('INVALID_RANGE');
+  });
+
+  it('GET /:id/history responde 404 SIGNAL_NOT_FOUND si el use-case lo lanza', async () => {
+    getSignalHistoryUseCase.execute.mockRejectedValue(
+      new SignalNotFoundError('signal-1', 'machine-1'),
+    );
+
+    const response = await request(app.getHttpServer())
+      .get('/machines/machine-1/signals/signal-1/history')
+      .query({ from: '2026-07-12T09:00:00Z', to: '2026-07-12T10:00:00Z' });
+
+    expect(response.status).toBe(404);
+    expect(response.body.code).toBe('SIGNAL_NOT_FOUND');
   });
 
   it('PATCH /:id responde 500 INTERNAL_ERROR ante un error no mapeado', async () => {

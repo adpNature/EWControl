@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -19,6 +20,11 @@ import { Signal } from '../../../entities/signal.entity';
 import type { CurrentUser } from '../../auth-guard/current-user';
 import { currentUser } from '../../auth-guard/current-user.decorator';
 import { SignalValueNotAvailableError } from '../../../use-cases/dashboard/errors/signal-value-not-available.error';
+import { InvalidHistoryRangeError } from '../../../use-cases/history/errors/invalid-history-range.error';
+import {
+  GetSignalHistoryResult,
+  GetSignalHistoryUseCase,
+} from '../../../use-cases/history/get-signal-history.use-case';
 import { CreateSignalUseCase } from '../../../use-cases/machine-management/create-signal.use-case';
 import { DeleteSignalUseCase } from '../../../use-cases/machine-management/delete-signal.use-case';
 import { FormulaReferencesUnknownVariableError } from '../../../use-cases/machine-management/errors/formula-references-unknown-variable.error';
@@ -34,6 +40,7 @@ import {
 import { UpdateSignalUseCase } from '../../../use-cases/machine-management/update-signal.use-case';
 import { PaginationQueryDto } from '../shared/pagination-query.dto';
 import { CreateSignalDto } from './create-signal.dto';
+import { HistoryQueryDto } from './history-query.dto';
 import { UpdateSignalDto } from './update-signal.dto';
 
 const DEFAULT_LIMIT = 20;
@@ -49,6 +56,7 @@ export class SignalController {
     private readonly updateSignalUseCase: UpdateSignalUseCase,
     private readonly deleteSignalUseCase: DeleteSignalUseCase,
     private readonly getSignalValueUseCase: GetSignalValueUseCase,
+    private readonly getSignalHistoryUseCase: GetSignalHistoryUseCase,
   ) {}
 
   @Post()
@@ -125,6 +133,27 @@ export class SignalController {
     }
   }
 
+  @Get(':id/history')
+  async getHistory(
+    @Param('machineId') machineId: string,
+    @Param('id') id: string,
+    @Query() query: HistoryQueryDto,
+    @currentUser() user: CurrentUser,
+  ): Promise<GetSignalHistoryResult> {
+    try {
+      return await this.getSignalHistoryUseCase.execute({
+        machineId,
+        signalId: id,
+        from: new Date(query.from),
+        to: new Date(query.to),
+        resolution: query.resolution,
+        requester: { companyId: user.companyId, role: user.role },
+      });
+    } catch (error) {
+      throw this.toHttpException(error);
+    }
+  }
+
   @Patch(':id')
   async update(
     @Param('machineId') machineId: string,
@@ -171,6 +200,9 @@ export class SignalController {
     }
     if (error instanceof SignalValueNotAvailableError) {
       return new NotFoundException({ code: 'SIGNAL_VALUE_NOT_AVAILABLE', message: error.message });
+    }
+    if (error instanceof InvalidHistoryRangeError) {
+      return new BadRequestException({ code: 'INVALID_RANGE', message: error.message });
     }
     if (error instanceof MachineInactiveError) {
       return new UnprocessableEntityException({
