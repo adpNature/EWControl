@@ -4,7 +4,7 @@ import { IngestSignalTickUseCase } from './ingest-signal-tick.use-case';
 
 const FAKE_CTX = Symbol('tx-ctx');
 const MACHINE = { id: 'machine-1', companyId: 'company-1', name: 'Demo', isActive: true };
-const SIGNAL = { id: 'signal-1', machineId: 'machine-1', isActive: true };
+const SIGNAL = { id: 'signal-1', machineId: 'machine-1', isActive: true, historyEnabled: true };
 const NOW = new Date('2026-07-12T10:00:05Z');
 const TICK_TIMESTAMP = new Date('2026-07-12T10:00:00Z');
 
@@ -32,7 +32,16 @@ function createFakes() {
     runInTransaction: vi.fn((work: (ctx: unknown) => Promise<unknown>) => work(FAKE_CTX)),
   };
   const clock = { now: vi.fn().mockReturnValue(NOW) };
-  return { machineRepository, signalRepository, realtimeCache, eventPublisher, unitOfWork, clock };
+  const historyWriter = { writeBatch: vi.fn(), hasDataInRange: vi.fn(), deleteRange: vi.fn() };
+  return {
+    machineRepository,
+    signalRepository,
+    realtimeCache,
+    eventPublisher,
+    unitOfWork,
+    clock,
+    historyWriter,
+  };
 }
 
 function createUseCase(fakes: ReturnType<typeof createFakes>) {
@@ -43,6 +52,7 @@ function createUseCase(fakes: ReturnType<typeof createFakes>) {
     fakes.eventPublisher,
     fakes.unitOfWork,
     fakes.clock,
+    fakes.historyWriter,
   );
 }
 
@@ -76,6 +86,53 @@ describe('IngestSignalTickUseCase', () => {
       quality: SignalQuality.Good,
       timestamp: TICK_TIMESTAMP,
     });
+    expect(fakes.historyWriter.writeBatch).toHaveBeenCalledWith([
+      {
+        companyId: 'company-1',
+        machineId: 'machine-1',
+        signalId: 'signal-1',
+        value: 24.8,
+        timestamp: TICK_TIMESTAMP,
+      },
+    ]);
+  });
+
+  it('no escribe en InfluxDB si la Signal tiene historyEnabled: false', async () => {
+    const fakes = createFakes();
+    fakes.signalRepository.findActiveDirectByMachineAndVariableName.mockResolvedValue({
+      ...SIGNAL,
+      historyEnabled: false,
+    });
+    const useCase = createUseCase(fakes);
+
+    await useCase.execute({
+      machineId: 'machine-1',
+      variableName: 'temperature',
+      value: 24.8,
+      quality: SignalQuality.Good,
+      timestamp: TICK_TIMESTAMP,
+    });
+
+    expect(fakes.realtimeCache.set).toHaveBeenCalled();
+    expect(fakes.historyWriter.writeBatch).not.toHaveBeenCalled();
+  });
+
+  it('no propaga el error si IHistoryWriter.writeBatch falla (tolerancia a fallos)', async () => {
+    const fakes = createFakes();
+    fakes.historyWriter.writeBatch.mockRejectedValue(new Error('InfluxDB no disponible'));
+    const useCase = createUseCase(fakes);
+
+    await expect(
+      useCase.execute({
+        machineId: 'machine-1',
+        variableName: 'temperature',
+        value: 24.8,
+        quality: SignalQuality.Good,
+        timestamp: TICK_TIMESTAMP,
+      }),
+    ).resolves.toBeUndefined();
+    expect(fakes.realtimeCache.set).toHaveBeenCalled();
+    expect(fakes.eventPublisher.publish).toHaveBeenCalled();
   });
 
   it('descarta el tick silenciosamente si la Machine no existe', async () => {

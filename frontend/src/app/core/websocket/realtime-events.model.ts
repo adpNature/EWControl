@@ -27,3 +27,15 @@ export interface SignalValue {
   timestamp: string;
   updatedAt: string;
 }
+
+/** docs/specs/08-historicos.md: punto agregado devuelto por `GET .../signals/:id/history`. */
+export interface SignalHistoryPoint {
+  timestamp: string;
+  value: number;
+}
+
+export interface SignalHistoryResponse {
+  signalId: string;
+  resolution: string;
+  points: SignalHistoryPoint[];
+}

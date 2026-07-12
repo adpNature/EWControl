@@ -12,6 +12,7 @@ import {
 } from '../seed-demo-environment/ports/signal-repository.port';
 import { type IUnitOfWork, UNIT_OF_WORK } from '../seed-demo-environment/ports/unit-of-work.port';
 import { CLOCK, type IClock } from '../history/ports/clock.port';
+import { HISTORY_WRITER, type IHistoryWriter } from '../history/ports/history-writer.port';
 import {
   EVENT_PUBLISHER,
   type IEventPublisher,
@@ -40,6 +41,7 @@ export class IngestSignalTickUseCase {
     @Inject(EVENT_PUBLISHER) private readonly eventPublisher: IEventPublisher,
     @Inject(UNIT_OF_WORK) private readonly unitOfWork: IUnitOfWork,
     @Inject(CLOCK) private readonly clock: IClock,
+    @Inject(HISTORY_WRITER) private readonly historyWriter: IHistoryWriter,
   ) {}
 
   async execute(input: IngestSignalTickInput): Promise<void> {
@@ -56,7 +58,11 @@ export class IngestSignalTickUseCase {
       if (!signal) {
         return null;
       }
-      return { signalId: signal.id, companyId: machine.companyId };
+      return {
+        signalId: signal.id,
+        companyId: machine.companyId,
+        historyEnabled: signal.historyEnabled,
+      };
     });
 
     if (!resolved) {
@@ -86,5 +92,22 @@ export class IngestSignalTickUseCase {
       quality,
       timestamp,
     });
+
+    if (resolved.historyEnabled && typeof value === 'number') {
+      try {
+        await this.historyWriter.writeBatch([
+          {
+            companyId: resolved.companyId,
+            machineId: input.machineId,
+            signalId: resolved.signalId,
+            value,
+            timestamp,
+          },
+        ]);
+      } catch {
+        // Descarte silencioso (docs/04-persistencia-de-datos.md §4.8, "Tolerancia
+        // a Fallos"): un fallo de InfluxDB no interrumpe el tiempo real.
+      }
+    }
   }
 }

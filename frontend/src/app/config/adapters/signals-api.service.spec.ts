@@ -85,4 +85,30 @@ describe('SignalsApiService', () => {
       expect.objectContaining({ signalId: 'signal-2', value: 24.8, quality: 'GOOD' }),
     );
   });
+
+  it('getHistory llama a GET /machines/:machineId/signals/:id/history sin enviar resolution (docs/specs/08)', () => {
+    const from = new Date('2026-07-12T09:00:00Z');
+    const to = new Date('2026-07-12T10:00:00Z');
+    let result: unknown;
+    service
+      .getHistory('machine-1', 'signal-2', { from, to })
+      .subscribe((value) => (result = value));
+
+    const req = httpMock.expectOne(
+      `/api/v1/machines/machine-1/signals/signal-2/history?from=${from.toISOString()}&to=${to.toISOString()}`,
+    );
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.has('resolution')).toBe(false);
+    req.flush({
+      signalId: 'signal-2',
+      resolution: 'raw',
+      points: [{ timestamp: '2026-07-12T09:30:00Z', value: 24.8 }],
+    });
+
+    expect(result).toEqual({
+      signalId: 'signal-2',
+      resolution: 'raw',
+      points: [{ timestamp: '2026-07-12T09:30:00Z', value: 24.8 }],
+    });
+  });
 });

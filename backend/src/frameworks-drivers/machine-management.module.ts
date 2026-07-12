@@ -7,6 +7,7 @@ import { MachineConnectionController } from '../interface-adapters/rest/machine-
 import { MachineController } from '../interface-adapters/rest/machine-management/machine.controller';
 import { SignalController } from '../interface-adapters/rest/machine-management/signal.controller';
 import { DashboardModule } from './dashboard.module';
+import { HistoryPersistenceModule } from './history-persistence.module';
 import { MACHINE_CONNECTION_REPOSITORY } from '../use-cases/seed-demo-environment/ports/machine-connection-repository.port';
 import { MACHINE_REPOSITORY } from '../use-cases/seed-demo-environment/ports/machine-repository.port';
 import { SIGNAL_REPOSITORY } from '../use-cases/seed-demo-environment/ports/signal-repository.port';
@@ -25,16 +26,19 @@ import { MachineAccessResolver } from '../use-cases/machine-management/machine-a
 import { ReplaceMachineConnectionUseCase } from '../use-cases/machine-management/replace-machine-connection.use-case';
 import { UpdateMachineUseCase } from '../use-cases/machine-management/update-machine.use-case';
 import { UpdateSignalUseCase } from '../use-cases/machine-management/update-signal.use-case';
+import { GetSignalHistoryUseCase } from '../use-cases/history/get-signal-history.use-case';
 
 /**
  * Wiring de docs/specs/06-gestion-machines-signals.md: conecta los use-cases de
  * `machine-management` con TypeORM, mismo estilo que `simulator.module.ts`.
  * No registra `APP_GUARD` — el `JwtAuthGuard` ya es global (`auth.module.ts`).
  * Importa `DashboardModule` únicamente por `REALTIME_CACHE`, que consume
- * `GetSignalValueUseCase` (docs/specs/07-dashboard-tiempo-real.md).
+ * `GetSignalValueUseCase` (docs/specs/07-dashboard-tiempo-real.md), y
+ * `HistoryPersistenceModule` por `HISTORY_READER`, que consume
+ * `GetSignalHistoryUseCase` (docs/specs/08-historicos.md).
  */
 @Module({
-  imports: [DashboardModule],
+  imports: [DashboardModule, HistoryPersistenceModule],
   controllers: [MachineController, MachineConnectionController, SignalController],
   providers: [
     MachineAccessResolver,
@@ -49,6 +53,7 @@ import { UpdateSignalUseCase } from '../use-cases/machine-management/update-sign
     ListSignalsUseCase,
     GetSignalUseCase,
     GetSignalValueUseCase,
+    GetSignalHistoryUseCase,
     UpdateSignalUseCase,
     DeleteSignalUseCase,
     { provide: MACHINE_REPOSITORY, useClass: MachineTypeOrmRepository },

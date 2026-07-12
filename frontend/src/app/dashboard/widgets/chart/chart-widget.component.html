@@ -1,5 +1,6 @@
 <div class="box widget">
   <p class="text-body widget__label">{{ signalRef?.name }}</p>
+  <app-range-selector (rangeChange)="onRangeChange($event)" />
   @if (points().length > 0) {
     <svg class="chart" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" [attr.aria-label]="config.yAxisLabel ?? signalRef?.name">
       <path [attr.d]="pathD" fill="none" stroke="var(--primary-color)" stroke-width="1.5" vector-effect="non-scaling-stroke" />

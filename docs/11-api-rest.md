@@ -149,15 +149,17 @@ Solo aplicables cuando `ProviderType = Simulator` (Documento 10). Devuelven `422
 
 ## Signal
 
-| Método | Ruta                                              | Descripción                                                                                                      |
-| ------ | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| GET    | `/api/v1/machines/:machineId/signals`             | Lista las Signals de una Machine.                                                                                |
-| GET    | `/api/v1/machines/:machineId/signals/:id`         | Detalle de una Signal.                                                                                           |
-| POST   | `/api/v1/machines/:machineId/signals`             | Crea una Signal (`SignalType`: `DIRECT` o `FORMULA`, Documento 3 apartado 3.2.5).                                |
-| PATCH  | `/api/v1/machines/:machineId/signals/:id`         | Actualiza una Signal.                                                                                            |
-| DELETE | `/api/v1/machines/:machineId/signals/:id`         | Elimina una Signal.                                                                                              |
-| GET    | `/api/v1/machines/:machineId/signals/:id/value`   | Valor actual desde la Realtime Cache (Documento 2, apartado 2.6).                                                |
-| GET    | `/api/v1/machines/:machineId/signals/:id/history` | Histórico. Query: `from`, `to` (ISO 8601), `resolution` (`raw`, `minute`, `hour`, `day`, `month` — Documento 4). |
+| Método | Ruta                                              | Descripción                                                                                                               |
+| ------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/v1/machines/:machineId/signals`             | Lista las Signals de una Machine.                                                                                         |
+| GET    | `/api/v1/machines/:machineId/signals/:id`         | Detalle de una Signal.                                                                                                    |
+| POST   | `/api/v1/machines/:machineId/signals`             | Crea una Signal (`SignalType`: `DIRECT` o `FORMULA`, Documento 3 apartado 3.2.5).                                         |
+| PATCH  | `/api/v1/machines/:machineId/signals/:id`         | Actualiza una Signal.                                                                                                     |
+| DELETE | `/api/v1/machines/:machineId/signals/:id`         | Elimina una Signal.                                                                                                       |
+| GET    | `/api/v1/machines/:machineId/signals/:id/value`   | Valor actual desde la Realtime Cache (Documento 2, apartado 2.6).                                                         |
+| GET    | `/api/v1/machines/:machineId/signals/:id/history` | Histórico. Query: `from`, `to` (ISO 8601), `resolution` opcional (`raw`, `minute`, `hour`, `day`, `month` — Documento 4). |
+
+Respuesta de `GET .../history` (spec 08, [08-historicos.md](specs/08-historicos.md)): `200` con `{ "signalId": string, "resolution": string, "points": [{ "timestamp": string, "value": number }] }`. Si se omite `resolution`, el Backend la infiere del span `to - from` (Documento 4 §4.3, Documento 8 §8.7: el Frontend nunca elige la resolución); si se indica explícitamente, se respeta tal cual. Sin datos en el rango (Signal `FORMULA`, sin histórico habilitado, o rango vacío) responde `200` con `points: []`, nunca un error.
 
 ---
 
