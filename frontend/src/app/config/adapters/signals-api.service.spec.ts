@@ -66,4 +66,23 @@ describe('SignalsApiService', () => {
     expect(req.request.method).toBe('DELETE');
     req.flush(null);
   });
+
+  it('getValue llama a GET /machines/:machineId/signals/:id/value (docs/specs/07)', () => {
+    let result: unknown;
+    service.getValue('machine-1', 'signal-2').subscribe((value) => (result = value));
+
+    const req = httpMock.expectOne('/api/v1/machines/machine-1/signals/signal-2/value');
+    expect(req.request.method).toBe('GET');
+    req.flush({
+      signalId: 'signal-2',
+      value: 24.8,
+      quality: 'GOOD',
+      timestamp: '2026-07-12T10:00:00Z',
+      updatedAt: '2026-07-12T10:00:00Z',
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({ signalId: 'signal-2', value: 24.8, quality: 'GOOD' }),
+    );
+  });
 });

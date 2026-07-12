@@ -6,6 +6,7 @@ import { TypeOrmUnitOfWork } from '../interface-adapters/persistence/postgres/ty
 import { MachineConnectionController } from '../interface-adapters/rest/machine-management/machine-connection.controller';
 import { MachineController } from '../interface-adapters/rest/machine-management/machine.controller';
 import { SignalController } from '../interface-adapters/rest/machine-management/signal.controller';
+import { DashboardModule } from './dashboard.module';
 import { MACHINE_CONNECTION_REPOSITORY } from '../use-cases/seed-demo-environment/ports/machine-connection-repository.port';
 import { MACHINE_REPOSITORY } from '../use-cases/seed-demo-environment/ports/machine-repository.port';
 import { SIGNAL_REPOSITORY } from '../use-cases/seed-demo-environment/ports/signal-repository.port';
@@ -17,6 +18,7 @@ import { DeleteSignalUseCase } from '../use-cases/machine-management/delete-sign
 import { GetMachineConnectionUseCase } from '../use-cases/machine-management/get-machine-connection.use-case';
 import { GetMachineUseCase } from '../use-cases/machine-management/get-machine.use-case';
 import { GetSignalUseCase } from '../use-cases/machine-management/get-signal.use-case';
+import { GetSignalValueUseCase } from '../use-cases/machine-management/get-signal-value.use-case';
 import { ListMachinesUseCase } from '../use-cases/machine-management/list-machines.use-case';
 import { ListSignalsUseCase } from '../use-cases/machine-management/list-signals.use-case';
 import { MachineAccessResolver } from '../use-cases/machine-management/machine-access.resolver';
@@ -28,8 +30,11 @@ import { UpdateSignalUseCase } from '../use-cases/machine-management/update-sign
  * Wiring de docs/specs/06-gestion-machines-signals.md: conecta los use-cases de
  * `machine-management` con TypeORM, mismo estilo que `simulator.module.ts`.
  * No registra `APP_GUARD` — el `JwtAuthGuard` ya es global (`auth.module.ts`).
+ * Importa `DashboardModule` únicamente por `REALTIME_CACHE`, que consume
+ * `GetSignalValueUseCase` (docs/specs/07-dashboard-tiempo-real.md).
  */
 @Module({
+  imports: [DashboardModule],
   controllers: [MachineController, MachineConnectionController, SignalController],
   providers: [
     MachineAccessResolver,
@@ -43,6 +48,7 @@ import { UpdateSignalUseCase } from '../use-cases/machine-management/update-sign
     CreateSignalUseCase,
     ListSignalsUseCase,
     GetSignalUseCase,
+    GetSignalValueUseCase,
     UpdateSignalUseCase,
     DeleteSignalUseCase,
     { provide: MACHINE_REPOSITORY, useClass: MachineTypeOrmRepository },

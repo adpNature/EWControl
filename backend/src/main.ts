@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import cookieParser from 'cookie-parser';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './frameworks-drivers/app.module';
@@ -13,6 +14,7 @@ async function bootstrap(): Promise<void> {
   app.useLogger(app.get(Logger));
   app.use(cookieParser());
   app.setGlobalPrefix('api/v1'); // docs/11-api-rest.md
+  app.useWebSocketAdapter(new IoAdapter(app)); // docs/specs/07-dashboard-tiempo-real.md
 
   app.useGlobalPipes(
     new ValidationPipe({

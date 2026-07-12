@@ -7,4 +7,12 @@ export default {
     target: process.env.BACKEND_PROXY_TARGET ?? 'http://backend:3000',
     changeOrigin: true,
   },
+  // Handshake WebSocket de Socket.IO (docs/specs/07-dashboard-tiempo-real.md): viaja
+  // siempre por el path HTTP por defecto `/socket.io`, no por `/api`, aunque el
+  // namespace lógico sea `api/v1/realtime`; `ws: true` habilita el upgrade en el proxy.
+  '/socket.io': {
+    target: process.env.BACKEND_PROXY_TARGET ?? 'http://backend:3000',
+    changeOrigin: true,
+    ws: true,
+  },
 };

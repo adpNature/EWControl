@@ -31,6 +31,21 @@ export class SignalTypeOrmRepository implements ISignalRepository {
     return (ctx as EntityManager).getRepository(Signal).find({ where: { machineId } });
   }
 
+  findActiveDirectByMachineAndVariableName(
+    machineId: string,
+    variableName: string,
+    ctx: TransactionContext,
+  ): Promise<Signal | null> {
+    return (ctx as EntityManager)
+      .getRepository(Signal)
+      .createQueryBuilder('signal')
+      .where('signal.machine_id = :machineId', { machineId })
+      .andWhere('signal.is_active = true')
+      .andWhere('signal.signal_type = :signalType', { signalType: SignalType.DIRECT })
+      .andWhere("signal.signal_source ->> 'variableName' = :variableName", { variableName })
+      .getOne();
+  }
+
   async list(
     filter: { machineId: string; isActive: boolean },
     pagination: { limit: number; offset: number },

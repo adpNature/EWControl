@@ -81,6 +81,7 @@
           "options": {
             "include": ["src/**/*.spec.ts"],
             "setupFiles": ["src/test-setup.ts"],
+            "runnerConfig": true,
             "coverage": true,
             "coverageInclude": [
               "src/app/**/entities/**/*.ts",

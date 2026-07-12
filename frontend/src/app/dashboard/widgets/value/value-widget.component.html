@@ -1,0 +1,12 @@
+<div class="box widget">
+  <p class="text-body widget__label">{{ config.label ?? signalRef?.name }}</p>
+  @if (current(); as value) {
+    <p class="widget__value">
+      {{ formattedValue() }}
+      <span class="text-muted">{{ signalRef?.unit }}</span>
+    </p>
+    <app-signal-quality-badge [quality]="value.quality" />
+  } @else {
+    <p class="text-muted">Sin datos disponibles</p>
+  }
+</div>

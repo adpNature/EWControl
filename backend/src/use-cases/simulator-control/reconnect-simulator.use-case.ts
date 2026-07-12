@@ -18,13 +18,17 @@ export class ReconnectSimulatorUseCase {
   ) {}
 
   async execute(machineId: string): Promise<void> {
-    await this.resolver.resolve(machineId);
+    const { machine } = await this.resolver.resolve(machineId);
 
     if (this.simulatorRuntime.isConnected(machineId)) {
       return;
     }
 
     await this.simulatorRuntime.connect(machineId);
-    this.eventPublisher.publish('MachineConnected', { machineId, timestamp: new Date() });
+    this.eventPublisher.publish('MachineConnected', {
+      machineId,
+      companyId: machine.companyId,
+      timestamp: new Date(),
+    });
   }
 }

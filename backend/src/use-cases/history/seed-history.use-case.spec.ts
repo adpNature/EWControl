@@ -53,7 +53,12 @@ function createSignals() {
 }
 
 function createFakes() {
-  const resolver = { resolve: vi.fn().mockResolvedValue(CONNECTION) };
+  const resolver = {
+    resolve: vi.fn().mockResolvedValue({
+      machine: { id: MACHINE_ID, companyId: COMPANY_ID },
+      connection: CONNECTION,
+    }),
+  };
   const machineRepository = {
     findById: vi.fn().mockResolvedValue({ id: MACHINE_ID, companyId: COMPANY_ID }),
     create: vi.fn(),

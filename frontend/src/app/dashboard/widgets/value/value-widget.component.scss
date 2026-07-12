@@ -1,0 +1,14 @@
+.widget {
+  min-width: 200px;
+
+  &__label {
+    font-weight: 500;
+  }
+
+  &__value {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--text-color);
+    margin: 0;
+  }
+}

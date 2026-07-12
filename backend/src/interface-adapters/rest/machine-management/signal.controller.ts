@@ -14,9 +14,11 @@ import {
   Query,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { RealtimeCacheEntry } from '../../../entities/realtime-cache';
 import { Signal } from '../../../entities/signal.entity';
 import type { CurrentUser } from '../../auth-guard/current-user';
 import { currentUser } from '../../auth-guard/current-user.decorator';
+import { SignalValueNotAvailableError } from '../../../use-cases/dashboard/errors/signal-value-not-available.error';
 import { CreateSignalUseCase } from '../../../use-cases/machine-management/create-signal.use-case';
 import { DeleteSignalUseCase } from '../../../use-cases/machine-management/delete-signal.use-case';
 import { FormulaReferencesUnknownVariableError } from '../../../use-cases/machine-management/errors/formula-references-unknown-variable.error';
@@ -24,6 +26,7 @@ import { MachineInactiveError } from '../../../use-cases/machine-management/erro
 import { MachineNotFoundError } from '../../../use-cases/machine-management/errors/machine-not-found.error';
 import { SignalNotFoundError } from '../../../use-cases/machine-management/errors/signal-not-found.error';
 import { GetSignalUseCase } from '../../../use-cases/machine-management/get-signal.use-case';
+import { GetSignalValueUseCase } from '../../../use-cases/machine-management/get-signal-value.use-case';
 import {
   ListSignalsResult,
   ListSignalsUseCase,
@@ -45,6 +48,7 @@ export class SignalController {
     private readonly getSignalUseCase: GetSignalUseCase,
     private readonly updateSignalUseCase: UpdateSignalUseCase,
     private readonly deleteSignalUseCase: DeleteSignalUseCase,
+    private readonly getSignalValueUseCase: GetSignalValueUseCase,
   ) {}
 
   @Post()
@@ -104,6 +108,23 @@ export class SignalController {
     }
   }
 
+  @Get(':id/value')
+  async getValue(
+    @Param('machineId') machineId: string,
+    @Param('id') id: string,
+    @currentUser() user: CurrentUser,
+  ): Promise<RealtimeCacheEntry> {
+    try {
+      return await this.getSignalValueUseCase.execute({
+        machineId,
+        signalId: id,
+        requester: { companyId: user.companyId, role: user.role },
+      });
+    } catch (error) {
+      throw this.toHttpException(error);
+    }
+  }
+
   @Patch(':id')
   async update(
     @Param('machineId') machineId: string,
@@ -147,6 +168,9 @@ export class SignalController {
     }
     if (error instanceof SignalNotFoundError) {
       return new NotFoundException({ code: 'SIGNAL_NOT_FOUND', message: error.message });
+    }
+    if (error instanceof SignalValueNotAvailableError) {
+      return new NotFoundException({ code: 'SIGNAL_VALUE_NOT_AVAILABLE', message: error.message });
     }
     if (error instanceof MachineInactiveError) {
       return new UnprocessableEntityException({

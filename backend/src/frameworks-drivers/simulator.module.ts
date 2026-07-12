@@ -9,6 +9,8 @@ import { TypeOrmUnitOfWork } from '../interface-adapters/persistence/postgres/ty
 import { SimulatorController } from '../interface-adapters/rest/simulator/simulator.controller';
 import { MathRandomSource } from '../interface-adapters/system/math-random-source';
 import { SystemClock } from '../interface-adapters/system/system-clock';
+import { DashboardModule } from './dashboard.module';
+import { IngestSignalTickUseCase } from '../use-cases/dashboard/ingest-signal-tick.use-case';
 import { CLOCK } from '../use-cases/history/ports/clock.port';
 import { HISTORY_WRITER } from '../use-cases/history/ports/history-writer.port';
 import { RANDOM_SOURCE } from '../use-cases/history/ports/random-source.port';
@@ -26,12 +28,15 @@ import { SimulatorMachineResolver } from '../use-cases/simulator-control/simulat
 import { INFLUXDB_CLIENT, createInfluxDbClient } from './database/influxdb.client';
 
 /**
- * Wiring de las specs 03-simulador-forzar-fallo.md y 04-simulador-seed-historico.md:
- * conecta los puertos de `simulator-control` y `history` con sus implementaciones
- * concretas (TypeORM, InfluxDB, EventEmitter2, el registry de `SimulationProvider`),
- * igual que `seed.module.ts` para el seed.
+ * Wiring de las specs 03-simulador-forzar-fallo.md, 04-simulador-seed-historico.md
+ * y 07-dashboard-tiempo-real.md: conecta los puertos de `simulator-control` y
+ * `history` con sus implementaciones concretas (TypeORM, InfluxDB, EventEmitter2,
+ * el registry de `SimulationProvider`), igual que `seed.module.ts` para el seed.
+ * Importa `DashboardModule` únicamente por el token compartido `REALTIME_CACHE`,
+ * que consume `IngestSignalTickUseCase` al procesar cada tick del Simulador.
  */
 @Module({
+  imports: [DashboardModule],
   controllers: [SimulatorController],
   providers: [
     ForceDisconnectSimulatorUseCase,
@@ -40,6 +45,7 @@ import { INFLUXDB_CLIENT, createInfluxDbClient } from './database/influxdb.clien
     SeedHistoryUseCase,
     SimulatorMachineResolver,
     SimulationProviderRegistry,
+    IngestSignalTickUseCase,
     { provide: MACHINE_REPOSITORY, useClass: MachineTypeOrmRepository },
     { provide: MACHINE_CONNECTION_REPOSITORY, useClass: MachineConnectionTypeOrmRepository },
     { provide: SIGNAL_REPOSITORY, useClass: SignalTypeOrmRepository },
