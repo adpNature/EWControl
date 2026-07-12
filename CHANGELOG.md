@@ -1,3 +1,9 @@
+# [1.7.0](https://github.com/adpNature/EWControl/compare/v1.6.0...v1.7.0) (2026-07-12)
+
+### Features
+
+- implementa históricos (spec 08) ([1619d25](https://github.com/adpNature/EWControl/commit/1619d25af7037952d056a27e139e475971ff6dc1))
+
 # [1.6.0](https://github.com/adpNature/EWControl/compare/v1.5.0...v1.6.0) (2026-07-12)
 
 ### Bug Fixes
