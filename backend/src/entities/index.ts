@@ -1,5 +1,7 @@
 import { AuthAuditLog } from './auth-audit-log.entity';
 import { Company } from './company.entity';
+import { Dashboard } from './dashboard.entity';
+import { DashboardWidget } from './dashboard-widget.entity';
 import { MachineConnection } from './machine-connection.entity';
 import { Machine } from './machine.entity';
 import { RefreshToken } from './refresh-token.entity';
@@ -23,4 +25,6 @@ export const ENTITIES = [
   Signal,
   RefreshToken,
   AuthAuditLog,
+  Dashboard,
+  DashboardWidget,
 ];

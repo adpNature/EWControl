@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ConnectionConfig } from '../../../entities/connection-config.vo';
 import { ForcedSignalQuality } from '../../../entities/forced-signal-quality.enum';
 import { ProviderType } from '../../../entities/provider-type.enum';
+import { SignalQuality } from '../../../entities/signal-quality.enum';
 import { DataQuality } from '../data-quality.enum';
 import { SimulationProviderRegistry } from './simulation-provider.registry';
 import { SimulationProvider } from './simulation-provider';
@@ -30,7 +31,16 @@ function createFakes(
   const unitOfWork = {
     runInTransaction: vi.fn((work: (ctx: unknown) => Promise<unknown>) => work(Symbol('ctx'))),
   };
-  return { machineConnectionRepository, unitOfWork };
+  const ingestSignalTick = { execute: vi.fn().mockResolvedValue(undefined) };
+  return { machineConnectionRepository, unitOfWork, ingestSignalTick };
+}
+
+function createRegistry(fakes: ReturnType<typeof createFakes>) {
+  return new SimulationProviderRegistry(
+    fakes.machineConnectionRepository,
+    fakes.unitOfWork,
+    fakes.ingestSignalTick as never,
+  );
 }
 
 describe('SimulationProviderRegistry', () => {
@@ -47,10 +57,7 @@ describe('SimulationProviderRegistry', () => {
       { machineId: 'machine-1', connectionConfig: CONFIG },
       { machineId: 'machine-2', connectionConfig: CONFIG },
     ]);
-    const registry = new SimulationProviderRegistry(
-      fakes.machineConnectionRepository,
-      fakes.unitOfWork,
-    );
+    const registry = createRegistry(fakes);
 
     await registry.onModuleInit();
 
@@ -64,10 +71,7 @@ describe('SimulationProviderRegistry', () => {
 
   it('no registra nada si no hay MachineConnections Simulator', async () => {
     const fakes = createFakes([]);
-    const registry = new SimulationProviderRegistry(
-      fakes.machineConnectionRepository,
-      fakes.unitOfWork,
-    );
+    const registry = createRegistry(fakes);
 
     await registry.onModuleInit();
 
@@ -76,10 +80,7 @@ describe('SimulationProviderRegistry', () => {
 
   it('forceSignalQuality delega en el provider correcto con la calidad mapeada', async () => {
     const fakes = createFakes([{ machineId: 'machine-1', connectionConfig: CONFIG }]);
-    const registry = new SimulationProviderRegistry(
-      fakes.machineConnectionRepository,
-      fakes.unitOfWork,
-    );
+    const registry = createRegistry(fakes);
     await registry.onModuleInit();
     const spy = vi.spyOn(SimulationProvider.prototype, 'forceQuality');
 
@@ -91,10 +92,7 @@ describe('SimulationProviderRegistry', () => {
 
   it('connect/disconnect delegan en el provider correcto', async () => {
     const fakes = createFakes([{ machineId: 'machine-1', connectionConfig: CONFIG }]);
-    const registry = new SimulationProviderRegistry(
-      fakes.machineConnectionRepository,
-      fakes.unitOfWork,
-    );
+    const registry = createRegistry(fakes);
     await registry.onModuleInit();
 
     await registry.disconnect('machine-1');
@@ -106,10 +104,7 @@ describe('SimulationProviderRegistry', () => {
 
   it('forceSignalQuality mapea ForcedSignalQuality.Uncertain a DataQuality.Uncertain', async () => {
     const fakes = createFakes([{ machineId: 'machine-1', connectionConfig: CONFIG }]);
-    const registry = new SimulationProviderRegistry(
-      fakes.machineConnectionRepository,
-      fakes.unitOfWork,
-    );
+    const registry = createRegistry(fakes);
     await registry.onModuleInit();
     const spy = vi.spyOn(SimulationProvider.prototype, 'forceQuality');
 
@@ -121,12 +116,38 @@ describe('SimulationProviderRegistry', () => {
 
   it('lanza si se pide un machineId sin provider registrado', async () => {
     const fakes = createFakes([{ machineId: 'machine-1', connectionConfig: CONFIG }]);
-    const registry = new SimulationProviderRegistry(
-      fakes.machineConnectionRepository,
-      fakes.unitOfWork,
-    );
+    const registry = createRegistry(fakes);
     await registry.onModuleInit();
 
     expect(() => registry.isConnected('unknown-machine')).toThrow();
+  });
+
+  it('se suscribe a cada provider y reenvía sus ticks a IngestSignalTickUseCase (docs/specs/07)', async () => {
+    const fakes = createFakes([{ machineId: 'machine-1', connectionConfig: CONFIG }]);
+    const registry = createRegistry(fakes);
+    await registry.onModuleInit();
+
+    vi.advanceTimersByTime(1000);
+    await Promise.resolve();
+
+    expect(fakes.ingestSignalTick.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        machineId: 'machine-1',
+        variableName: 'WindingSpeed',
+        quality: SignalQuality.Good,
+      }),
+    );
+  });
+
+  it('un fallo de IngestSignalTickUseCase no detiene el intervalo del provider', async () => {
+    const fakes = createFakes([{ machineId: 'machine-1', connectionConfig: CONFIG }]);
+    fakes.ingestSignalTick.execute.mockRejectedValue(new Error('boom'));
+    const registry = createRegistry(fakes);
+    await registry.onModuleInit();
+
+    expect(() => vi.advanceTimersByTime(2000)).not.toThrow();
+    await Promise.resolve();
+
+    expect(registry.isConnected('machine-1')).toBe(true);
   });
 });

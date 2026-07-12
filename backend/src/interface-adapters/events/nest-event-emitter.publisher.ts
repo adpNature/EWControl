@@ -4,6 +4,7 @@ import {
   IEventPublisher,
   MachineConnectedPayload,
   MachineDisconnectedPayload,
+  SignalUpdatedPayload,
 } from '../../use-cases/simulator-control/ports/event-publisher.port';
 
 /**
@@ -16,9 +17,10 @@ export class NestEventEmitterPublisher implements IEventPublisher {
 
   publish(eventName: 'MachineConnected', payload: MachineConnectedPayload): void;
   publish(eventName: 'MachineDisconnected', payload: MachineDisconnectedPayload): void;
+  publish(eventName: 'SignalUpdated', payload: SignalUpdatedPayload): void;
   publish(
-    eventName: 'MachineConnected' | 'MachineDisconnected',
-    payload: MachineConnectedPayload | MachineDisconnectedPayload,
+    eventName: 'MachineConnected' | 'MachineDisconnected' | 'SignalUpdated',
+    payload: MachineConnectedPayload | MachineDisconnectedPayload | SignalUpdatedPayload,
   ): void {
     this.emitter.emit(eventName, payload);
   }

@@ -8,6 +8,7 @@
  * `machine.controller.spec.ts` / `signal.controller.spec.ts`, no aquí.
  */
 import { INestApplicationContext } from '@nestjs/common';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { getDataSourceToken } from '@nestjs/typeorm';
 import { Test } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
@@ -17,6 +18,14 @@ import { SignalType } from '../src/entities/signal-type.enum';
 import { UserRole } from '../src/entities/user-role.enum';
 import { MachineManagementModule } from '../src/frameworks-drivers/machine-management.module';
 import { SeedModule } from '../src/frameworks-drivers/seed.module';
+import {
+  ISignalRepository,
+  SIGNAL_REPOSITORY,
+} from '../src/use-cases/seed-demo-environment/ports/signal-repository.port';
+import {
+  IUnitOfWork,
+  UNIT_OF_WORK,
+} from '../src/use-cases/seed-demo-environment/ports/unit-of-work.port';
 import { CreateMachineUseCase } from '../src/use-cases/machine-management/create-machine.use-case';
 import { CreateSignalUseCase } from '../src/use-cases/machine-management/create-signal.use-case';
 import { DeleteMachineUseCase } from '../src/use-cases/machine-management/delete-machine.use-case';
@@ -78,10 +87,12 @@ describe('Machine/Signal management (integration)', () => {
   let getMachineConnectionUseCase: GetMachineConnectionUseCase;
   let replaceMachineConnectionUseCase: ReplaceMachineConnectionUseCase;
   let createSignalUseCase: CreateSignalUseCase;
+  let signalRepository: ISignalRepository;
+  let unitOfWork: IUnitOfWork;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [SeedModule, MachineManagementModule],
+      imports: [SeedModule, MachineManagementModule, EventEmitterModule.forRoot()],
     }).compile();
     app = moduleRef.createNestApplication();
     await app.init();
@@ -94,6 +105,8 @@ describe('Machine/Signal management (integration)', () => {
     getMachineConnectionUseCase = app.get(GetMachineConnectionUseCase);
     replaceMachineConnectionUseCase = app.get(ReplaceMachineConnectionUseCase);
     createSignalUseCase = app.get(CreateSignalUseCase);
+    signalRepository = app.get(SIGNAL_REPOSITORY);
+    unitOfWork = app.get(UNIT_OF_WORK);
   });
 
   beforeEach(async () => {
@@ -275,5 +288,42 @@ describe('Machine/Signal management (integration)', () => {
         unit: '°C',
       }),
     ).rejects.toBeInstanceOf(MachineInactiveError);
+  });
+
+  it('findActiveDirectByMachineAndVariableName resuelve solo la Signal DIRECT activa que expone esa variable (docs/specs/07)', async () => {
+    const companyId = await insertCompany(dataSource);
+    const machineId = await insertMachine(dataSource, companyId);
+    await insertMachineConnection(dataSource, machineId, {
+      seedProfile: 'demo',
+      signals: [{ variableName: 'temperature', min: 0, max: 100, stepMax: 1 }],
+    });
+    const requester = { companyId, role: UserRole.AdminCliente };
+    const directSignal = await createSignalUseCase.execute({
+      machineId,
+      requester,
+      name: 'Temperatura',
+      signalType: SignalType.DIRECT,
+      signalSource: { variableName: 'temperature' },
+      unit: '°C',
+    });
+    await createSignalUseCase.execute({
+      machineId,
+      requester,
+      name: 'Doble temperatura',
+      signalType: SignalType.FORMULA,
+      signalSource: { expression: 'temperature * 2', variables: ['temperature'] },
+      unit: '°C',
+    });
+
+    const found = await unitOfWork.runInTransaction((ctx) =>
+      signalRepository.findActiveDirectByMachineAndVariableName(machineId, 'temperature', ctx),
+    );
+
+    expect(found?.id).toBe(directSignal.id);
+
+    const notFound = await unitOfWork.runInTransaction((ctx) =>
+      signalRepository.findActiveDirectByMachineAndVariableName(machineId, 'pressure', ctx),
+    );
+    expect(notFound).toBeNull();
   });
 });

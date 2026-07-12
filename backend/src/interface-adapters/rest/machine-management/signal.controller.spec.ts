@@ -2,14 +2,17 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { SignalQuality } from '../../../entities/signal-quality.enum';
 import { SignalType } from '../../../entities/signal-type.enum';
 import { UserRole } from '../../../entities/user-role.enum';
+import { SignalValueNotAvailableError } from '../../../use-cases/dashboard/errors/signal-value-not-available.error';
 import { CreateSignalUseCase } from '../../../use-cases/machine-management/create-signal.use-case';
 import { DeleteSignalUseCase } from '../../../use-cases/machine-management/delete-signal.use-case';
 import { FormulaReferencesUnknownVariableError } from '../../../use-cases/machine-management/errors/formula-references-unknown-variable.error';
 import { MachineNotFoundError } from '../../../use-cases/machine-management/errors/machine-not-found.error';
 import { SignalNotFoundError } from '../../../use-cases/machine-management/errors/signal-not-found.error';
 import { GetSignalUseCase } from '../../../use-cases/machine-management/get-signal.use-case';
+import { GetSignalValueUseCase } from '../../../use-cases/machine-management/get-signal-value.use-case';
 import { ListSignalsUseCase } from '../../../use-cases/machine-management/list-signals.use-case';
 import { UpdateSignalUseCase } from '../../../use-cases/machine-management/update-signal.use-case';
 import { HttpExceptionFilter } from '../http-exception.filter';
@@ -29,6 +32,7 @@ describe('SignalController (HTTP)', () => {
   let getSignalUseCase: { execute: ReturnType<typeof vi.fn> };
   let updateSignalUseCase: { execute: ReturnType<typeof vi.fn> };
   let deleteSignalUseCase: { execute: ReturnType<typeof vi.fn> };
+  let getSignalValueUseCase: { execute: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     createSignalUseCase = {
@@ -40,6 +44,17 @@ describe('SignalController (HTTP)', () => {
     getSignalUseCase = { execute: vi.fn().mockResolvedValue({ id: 'signal-1' }) };
     updateSignalUseCase = { execute: vi.fn().mockResolvedValue({ id: 'signal-1', name: 'New' }) };
     deleteSignalUseCase = { execute: vi.fn().mockResolvedValue(undefined) };
+    getSignalValueUseCase = {
+      execute: vi.fn().mockResolvedValue({
+        signalId: 'signal-1',
+        machineId: 'machine-1',
+        companyId: 'company-1',
+        value: 24.8,
+        quality: SignalQuality.Good,
+        timestamp: new Date('2026-07-12T10:00:00Z'),
+        updatedAt: new Date('2026-07-12T10:00:00Z'),
+      }),
+    };
 
     const moduleRef = await Test.createTestingModule({
       controllers: [SignalController],
@@ -49,6 +64,7 @@ describe('SignalController (HTTP)', () => {
         { provide: GetSignalUseCase, useValue: getSignalUseCase },
         { provide: UpdateSignalUseCase, useValue: updateSignalUseCase },
         { provide: DeleteSignalUseCase, useValue: deleteSignalUseCase },
+        { provide: GetSignalValueUseCase, useValue: getSignalValueUseCase },
       ],
     }).compile();
 
@@ -185,6 +201,31 @@ describe('SignalController (HTTP)', () => {
       signalId: 'signal-1',
       requester: { companyId: 'company-1', role: UserRole.AdminCliente },
     });
+  });
+
+  it('GET /:id/value responde 200 con la entrada de la Realtime Cache (docs/specs/07, criterio 2)', async () => {
+    const response = await request(app.getHttpServer()).get(
+      '/machines/machine-1/signals/signal-1/value',
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body.value).toBe(24.8);
+    expect(getSignalValueUseCase.execute).toHaveBeenCalledWith({
+      machineId: 'machine-1',
+      signalId: 'signal-1',
+      requester: { companyId: 'company-1', role: UserRole.AdminCliente },
+    });
+  });
+
+  it('GET /:id/value responde 404 SIGNAL_VALUE_NOT_AVAILABLE si no hay entrada en la Realtime Cache', async () => {
+    getSignalValueUseCase.execute.mockRejectedValue(new SignalValueNotAvailableError('signal-1'));
+
+    const response = await request(app.getHttpServer()).get(
+      '/machines/machine-1/signals/signal-1/value',
+    );
+
+    expect(response.status).toBe(404);
+    expect(response.body.code).toBe('SIGNAL_VALUE_NOT_AVAILABLE');
   });
 
   it('PATCH /:id responde 500 INTERNAL_ERROR ante un error no mapeado', async () => {

@@ -1,0 +1,21 @@
+.widget {
+  min-width: 240px;
+
+  &__label {
+    font-weight: 500;
+  }
+
+  &__value {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--text-color);
+    margin: 0;
+  }
+}
+
+.chart {
+  width: 100%;
+  height: 80px;
+  background: var(--background-color);
+  border-radius: var(--border-radius-md);
+}

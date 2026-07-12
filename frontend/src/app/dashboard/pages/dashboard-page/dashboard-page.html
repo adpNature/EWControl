@@ -1,4 +1,137 @@
-<div class="box">
-  <p class="text-body">Sesión activa: {{ currentUser()?.email }}</p>
-  <button type="button" class="btn-primary" (click)="logout()">Cerrar sesión</button>
+<div class="dashboard-page">
+  <header class="dashboard-page__header">
+    <p class="text-body">Sesión activa: {{ currentUser()?.email }}</p>
+    <button type="button" class="btn-secondary" (click)="logout()">Cerrar sesión</button>
+  </header>
+
+  @if (dashboardState.activeDashboard(); as dashboard) {
+    <div class="dashboard-page__toolbar">
+      <h1 class="title-xl">{{ dashboard.name }}</h1>
+      <button type="button" class="btn-primary" (click)="toggleAddWidgetForm()">
+        {{ showAddWidgetForm() ? 'Cancelar' : 'Añadir widget' }}
+      </button>
+    </div>
+
+    @if (showAddWidgetForm()) {
+      <form
+        class="box add-widget-form"
+        [formGroup]="addWidgetForm"
+        (ngSubmit)="submitAddWidget()"
+        novalidate
+      >
+        <div class="form-field">
+          <label class="form-label" for="widget-type">Tipo de widget</label>
+          <select
+            id="widget-type"
+            class="form-input"
+            [formControl]="addWidgetForm.controls.widgetType"
+          >
+            @for (type of widgetTypes; track type) {
+              <option [value]="type">{{ type }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="widget-machine">Machine</label>
+          <select
+            id="widget-machine"
+            class="form-input"
+            [formControl]="addWidgetForm.controls.machineId"
+            (change)="onMachineChange($any($event.target).value)"
+          >
+            <option value="">Selecciona una Machine</option>
+            @for (machine of machines(); track machine.id) {
+              <option [value]="machine.id">{{ machine.name }}</option>
+            }
+          </select>
+        </div>
+
+        @if (signalsOfSelectedMachine().length > 0) {
+          <div class="form-field">
+            <span class="form-label">Signals</span>
+            @for (signal of signalsOfSelectedMachine(); track signal.id) {
+              <label class="add-widget-form__signal">
+                <input
+                  type="checkbox"
+                  [checked]="isSignalSelected(signal.id)"
+                  (change)="toggleSignal(signal.id, $any($event.target).checked)"
+                />
+                {{ signal.name }}
+              </label>
+            }
+          </div>
+        }
+
+        @if (addWidgetForm.controls.widgetType.value === 'GAUGE') {
+          <div class="add-widget-form__gauge-range">
+            <div class="form-field">
+              <label class="form-label" for="gauge-min">Mínimo</label>
+              <input
+                id="gauge-min"
+                type="number"
+                class="form-input"
+                [formControl]="addWidgetForm.controls.gaugeMin"
+              />
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="gauge-max">Máximo</label>
+              <input
+                id="gauge-max"
+                type="number"
+                class="form-input"
+                [formControl]="addWidgetForm.controls.gaugeMax"
+              />
+            </div>
+          </div>
+        }
+
+        @if (addWidgetError()) {
+          <p class="form-error" role="alert">{{ addWidgetError() }}</p>
+        }
+
+        <button type="submit" class="btn-primary">Crear widget</button>
+      </form>
+    }
+
+    <div class="dashboard-page__grid">
+      @for (widget of dashboard.widgets; track widget.id) {
+        @switch (widget.widgetType) {
+          @case ('VALUE') {
+            <app-value-widget [widget]="widget" />
+          }
+          @case ('GAUGE') {
+            <app-gauge-widget [widget]="widget" />
+          }
+          @case ('CHART') {
+            <app-chart-widget [widget]="widget" />
+          }
+          @case ('TABLE') {
+            <app-table-widget [widget]="widget" />
+          }
+          @case ('ALARM_LIST') {
+            <app-alarm-list-widget [widget]="widget" />
+          }
+        }
+      } @empty {
+        <p class="text-muted">Este Dashboard todavía no tiene widgets.</p>
+      }
+    </div>
+  } @else {
+    <div class="box">
+      <p class="text-body">Todavía no tienes ningún Dashboard.</p>
+      <form
+        class="dashboard-page__create-form"
+        [formGroup]="newDashboardForm"
+        (ngSubmit)="createDashboard()"
+        novalidate
+      >
+        <div class="form-field">
+          <label class="form-label" for="new-dashboard-name">Nombre del Dashboard</label>
+          <input id="new-dashboard-name" type="text" class="form-input" formControlName="name" />
+        </div>
+        <button type="submit" class="btn-primary">Crear Dashboard</button>
+      </form>
+    </div>
+  }
 </div>

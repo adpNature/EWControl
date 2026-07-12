@@ -202,7 +202,7 @@ El reconocimiento manual de alarmas (ACK) es evolución futura del modelo (Docum
 
 ## WebSocket
 
-Canal: `wss://.../api/v1/realtime`. El cliente autentica el handshake enviando el `accessToken` JWT (mismo token que en REST) como query param `?token=` o cabecera `Sec-WebSocket-Protocol`; una conexión sin token válido se rechaza al conectar.
+Canal: `wss://.../api/v1/realtime` (namespace de Socket.IO, [07-dashboard-tiempo-real.md](specs/07-dashboard-tiempo-real.md)). El cliente autentica el handshake enviando el `accessToken` JWT (mismo token que en REST) en el objeto `auth` del handshake de Socket.IO (`io(url, { auth: { token } })`), con fallback a query param `?token=`; una conexión sin token válido se rechaza al conectar.
 
 Tras conectar, el cliente recibe únicamente eventos de Machines/Signals de su propia Company (mismo aislamiento multiempresa que en REST).
 

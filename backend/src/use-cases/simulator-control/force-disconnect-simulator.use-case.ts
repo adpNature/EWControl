@@ -17,13 +17,17 @@ export class ForceDisconnectSimulatorUseCase {
   ) {}
 
   async execute(machineId: string): Promise<void> {
-    await this.resolver.resolve(machineId);
+    const { machine } = await this.resolver.resolve(machineId);
 
     if (!this.simulatorRuntime.isConnected(machineId)) {
       return;
     }
 
     await this.simulatorRuntime.disconnect(machineId);
-    this.eventPublisher.publish('MachineDisconnected', { machineId, timestamp: new Date() });
+    this.eventPublisher.publish('MachineDisconnected', {
+      machineId,
+      companyId: machine.companyId,
+      timestamp: new Date(),
+    });
   }
 }

@@ -3,7 +3,9 @@ import { NotASimulatedMachineError } from './errors/not-a-simulated-machine.erro
 import { ReconnectSimulatorUseCase } from './reconnect-simulator.use-case';
 
 function createFakes() {
-  const resolver = { resolve: vi.fn().mockResolvedValue({}) };
+  const resolver = {
+    resolve: vi.fn().mockResolvedValue({ machine: { id: 'machine-1', companyId: 'company-1' } }),
+  };
   const simulatorRuntime = {
     isConnected: vi.fn().mockReturnValue(false),
     connect: vi.fn().mockResolvedValue(undefined),
@@ -32,7 +34,7 @@ describe('ReconnectSimulatorUseCase', () => {
     expect(fakes.simulatorRuntime.connect).toHaveBeenCalledWith('machine-1');
     expect(fakes.eventPublisher.publish).toHaveBeenCalledWith(
       'MachineConnected',
-      expect.objectContaining({ machineId: 'machine-1' }),
+      expect.objectContaining({ machineId: 'machine-1', companyId: 'company-1' }),
     );
   });
 

@@ -40,13 +40,14 @@ function createResolver(fakes: ReturnType<typeof createFakes>) {
 }
 
 describe('SimulatorMachineResolver', () => {
-  it('resuelve la MachineConnection cuando la Machine existe y es Simulator', async () => {
+  it('resuelve la Machine y su MachineConnection cuando existe y es Simulator', async () => {
     const fakes = createFakes();
     const resolver = createResolver(fakes);
 
-    const connection = await resolver.resolve('machine-1');
+    const { machine, connection } = await resolver.resolve('machine-1');
 
     expect(connection.providerType).toBe(ProviderType.Simulator);
+    expect(machine.companyId).toBe('company-1');
   });
 
   it('lanza MachineNotFoundError si la Machine no existe', async () => {

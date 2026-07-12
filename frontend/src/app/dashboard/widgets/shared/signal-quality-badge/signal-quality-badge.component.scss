@@ -1,0 +1,27 @@
+.quality-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--spacing-sm);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+
+  &--good {
+    background: var(--success-background);
+    color: var(--success-color);
+  }
+
+  &--bad {
+    background: var(--danger-background);
+    color: var(--danger-color);
+  }
+
+  &--uncertain {
+    background: var(--warning-background);
+    color: var(--warning-color);
+  }
+
+  &--offline {
+    background: var(--border-color);
+    color: var(--text-muted-color);
+  }
+}

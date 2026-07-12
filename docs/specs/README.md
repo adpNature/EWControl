@@ -58,11 +58,12 @@ Si una spec no tiene parte de frontend (por ejemplo, funcionalidad de fundación
 
 ## Índice
 
-| Spec                                                               | Feature                                                  | Backend | Frontend       |
-| ------------------------------------------------------------------ | -------------------------------------------------------- | ------- | -------------- |
-| [01-fundacion-entorno-demo.md](01-fundacion-entorno-demo.md)       | Creación de Company/User/Machine/Signals demo (seed)     | Sí      | No (fundación) |
-| [02-simulador-generar-lectura.md](02-simulador-generar-lectura.md) | Generación periódica de lecturas simuladas               | Sí      | No (fundación) |
-| [03-simulador-forzar-fallo.md](03-simulador-forzar-fallo.md)       | Forzar desconexión/calidad degradada en una máquina demo | Sí      | No (fundación) |
-| [04-simulador-seed-historico.md](04-simulador-seed-historico.md)   | Pre-poblado de histórico al provisionar una máquina demo | Sí      | No (fundación) |
-| [05-auth-login.md](05-auth-login.md)                               | Autenticación de usuario (login)                         | Sí      | Sí             |
-| [06-gestion-machines-signals.md](06-gestion-machines-signals.md)   | Gestión de Machines y Signals (CRUD)                     | Sí      | Sí             |
+| Spec                                                               | Feature                                                             | Backend | Frontend       |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------- | ------- | -------------- |
+| [01-fundacion-entorno-demo.md](01-fundacion-entorno-demo.md)       | Creación de Company/User/Machine/Signals demo (seed)                | Sí      | No (fundación) |
+| [02-simulador-generar-lectura.md](02-simulador-generar-lectura.md) | Generación periódica de lecturas simuladas                          | Sí      | No (fundación) |
+| [03-simulador-forzar-fallo.md](03-simulador-forzar-fallo.md)       | Forzar desconexión/calidad degradada en una máquina demo            | Sí      | No (fundación) |
+| [04-simulador-seed-historico.md](04-simulador-seed-historico.md)   | Pre-poblado de histórico al provisionar una máquina demo            | Sí      | No (fundación) |
+| [05-auth-login.md](05-auth-login.md)                               | Autenticación de usuario (login)                                    | Sí      | Sí             |
+| [06-gestion-machines-signals.md](06-gestion-machines-signals.md)   | Gestión de Machines y Signals (CRUD)                                | Sí      | Sí             |
+| [07-dashboard-tiempo-real.md](07-dashboard-tiempo-real.md)         | Dashboard en tiempo real (Signal Engine, Realtime Cache, WebSocket) | Sí      | Sí             |

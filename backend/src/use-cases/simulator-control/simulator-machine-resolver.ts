@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { Machine } from '../../entities/machine.entity';
 import { MachineConnection } from '../../entities/machine-connection.entity';
 import { ProviderType } from '../../entities/provider-type.enum';
 import {
@@ -27,7 +28,7 @@ export class SimulatorMachineResolver {
     @Inject(UNIT_OF_WORK) private readonly unitOfWork: IUnitOfWork,
   ) {}
 
-  resolve(machineId: string): Promise<MachineConnection> {
+  resolve(machineId: string): Promise<{ machine: Machine; connection: MachineConnection }> {
     return this.unitOfWork.runInTransaction(async (ctx) => {
       const machine = await this.machineRepository.findById(machineId, ctx);
       if (!machine) {
@@ -39,7 +40,7 @@ export class SimulatorMachineResolver {
         throw new NotASimulatedMachineError(machineId);
       }
 
-      return connection;
+      return { machine, connection };
     });
   }
 }

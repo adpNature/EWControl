@@ -19,6 +19,12 @@ export interface ISignalRepository {
   ): Promise<Signal>;
   findById(id: string, ctx: TransactionContext): Promise<Signal | null>;
   findAllByMachineId(machineId: string, ctx: TransactionContext): Promise<Signal[]>;
+  /** Usado por el Signal Engine (docs/specs/07-dashboard-tiempo-real.md) para resolver a qué Signal DIRECT corresponde un tick. */
+  findActiveDirectByMachineAndVariableName(
+    machineId: string,
+    variableName: string,
+    ctx: TransactionContext,
+  ): Promise<Signal | null>;
   list(
     filter: { machineId: string; isActive: boolean },
     pagination: { limit: number; offset: number },

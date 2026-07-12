@@ -60,7 +60,7 @@ export class SeedHistoryUseCase {
   ) {}
 
   async execute(input: SeedHistoryInput): Promise<SeedHistoryResult> {
-    const connection = await this.resolver.resolve(input.machineId);
+    const { connection } = await this.resolver.resolve(input.machineId);
 
     const { companyId, signals } = await this.unitOfWork.runInTransaction(async (ctx) => {
       const machine = await this.machineRepository.findById(input.machineId, ctx);

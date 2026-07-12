@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../core/http/api.service';
 import { PaginatedResponse } from '../../core/http/paginated-response.model';
+import { SignalValue } from '../../core/websocket/realtime-events.model';
 import { CreateSignalRequest, Signal, UpdateSignalRequest } from '../entities/signal.model';
 
 /** Interface Adapter: llamadas HTTP de docs/11-api-rest.md, sección "Signal". */
@@ -30,5 +31,10 @@ export class SignalsApiService {
 
   remove(machineId: string, id: string): Observable<void> {
     return this.api.delete<void>(`/machines/${machineId}/signals/${id}`);
+  }
+
+  /** docs/specs/07-dashboard-tiempo-real.md: valor actual desde la Realtime Cache. */
+  getValue(machineId: string, id: string): Observable<SignalValue> {
+    return this.api.get<SignalValue>(`/machines/${machineId}/signals/${id}/value`);
   }
 }
