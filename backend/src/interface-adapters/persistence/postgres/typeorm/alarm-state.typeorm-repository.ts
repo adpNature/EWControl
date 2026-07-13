@@ -3,6 +3,8 @@ import { EntityManager } from 'typeorm';
 import { AlarmState } from '../../../../entities/alarm-state.entity';
 import { AlarmPriority } from '../../../../entities/alarm-priority.enum';
 import { AlarmStateType } from '../../../../entities/alarm-state-type.enum';
+import { Machine } from '../../../../entities/machine.entity';
+import { Signal } from '../../../../entities/signal.entity';
 import { IAlarmStateRepository } from '../../../../use-cases/alarms/ports/alarm-state-repository.port';
 import { TransactionContext } from '../../../../use-cases/seed-demo-environment/ports/transaction-context';
 
@@ -68,8 +70,8 @@ export class AlarmStateTypeOrmRepository implements IAlarmStateRepository {
     const query = (ctx as EntityManager)
       .getRepository(AlarmState)
       .createQueryBuilder('alarm_state')
-      .innerJoin('signals', 'signal', 'signal.id = alarm_state.signal_id')
-      .innerJoin('machines', 'machine', 'machine.id = signal.machine_id');
+      .innerJoin(Signal, 'signal', 'signal.id = alarm_state.signal_id')
+      .innerJoin(Machine, 'machine', 'machine.id = signal.machine_id');
 
     if (filter.companyId !== null) {
       query.andWhere('machine.company_id = :companyId', { companyId: filter.companyId });
@@ -85,7 +87,7 @@ export class AlarmStateTypeOrmRepository implements IAlarmStateRepository {
     }
 
     const [data, total] = await query
-      .orderBy('alarm_state.activated_at', 'DESC')
+      .orderBy('alarm_state.activatedAt', 'DESC')
       .take(pagination.limit)
       .skip(pagination.offset)
       .getManyAndCount();

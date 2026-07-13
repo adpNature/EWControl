@@ -13,6 +13,7 @@ import { getDataSourceToken } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { AlarmPriority } from '../src/entities/alarm-priority.enum';
+import { AlarmStateType } from '../src/entities/alarm-state-type.enum';
 import { SignalQuality } from '../src/entities/signal-quality.enum';
 import { SignalType } from '../src/entities/signal-type.enum';
 import { UserRole } from '../src/entities/user-role.enum';
@@ -21,6 +22,7 @@ import { MachineManagementModule } from '../src/frameworks-drivers/machine-manag
 import { SeedModule } from '../src/frameworks-drivers/seed.module';
 import { SimulatorModule } from '../src/frameworks-drivers/simulator.module';
 import { CreateAlarmDefinitionUseCase } from '../src/use-cases/alarms/create-alarm-definition.use-case';
+import { ListAlarmStatesUseCase } from '../src/use-cases/alarms/list-alarm-states.use-case';
 import { IngestSignalTickUseCase } from '../src/use-cases/dashboard/ingest-signal-tick.use-case';
 import { CreateMachineUseCase } from '../src/use-cases/machine-management/create-machine.use-case';
 import { CreateSignalUseCase } from '../src/use-cases/machine-management/create-signal.use-case';
@@ -74,6 +76,7 @@ describe('Alarmas (integration)', () => {
   let createMachineUseCase: CreateMachineUseCase;
   let createSignalUseCase: CreateSignalUseCase;
   let createAlarmDefinitionUseCase: CreateAlarmDefinitionUseCase;
+  let listAlarmStatesUseCase: ListAlarmStatesUseCase;
   let ingestSignalTick: IngestSignalTickUseCase;
 
   beforeAll(async () => {
@@ -93,6 +96,7 @@ describe('Alarmas (integration)', () => {
     createMachineUseCase = app.get(CreateMachineUseCase);
     createSignalUseCase = app.get(CreateSignalUseCase);
     createAlarmDefinitionUseCase = app.get(CreateAlarmDefinitionUseCase);
+    listAlarmStatesUseCase = app.get(ListAlarmStatesUseCase);
     ingestSignalTick = app.get(IngestSignalTickUseCase);
   });
 
@@ -197,5 +201,35 @@ describe('Alarmas (integration)', () => {
       [alarmDefinition.id],
     );
     expect(rows).toHaveLength(1);
+  });
+
+  it('ListAlarmStatesUseCase filtra por status/machineId/priority acotado a la Company (GET /alarm-states)', async () => {
+    const companyId = await insertCompany(dataSource);
+    const { machine, requester, alarmDefinition } = await createFixture(companyId);
+    await ingestSignalTick.execute({
+      machineId: machine.id,
+      variableName: 'temperature',
+      value: 84,
+      quality: SignalQuality.Good,
+      timestamp: new Date('2026-07-13T10:00:00Z'),
+    });
+    await waitForAlarmState(
+      dataSource,
+      alarmDefinition.id,
+      (rows) => rows.length === 1 && rows[0].status === 'ACTIVE',
+    );
+
+    const result = await listAlarmStatesUseCase.execute({
+      requester,
+      filter: {
+        status: AlarmStateType.Active,
+        machineId: machine.id,
+        priority: AlarmPriority.High,
+      },
+      pagination: { limit: 20, offset: 0 },
+    });
+
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0].alarmDefinitionId).toBe(alarmDefinition.id);
   });
 });
