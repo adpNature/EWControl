@@ -2,6 +2,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { render, screen } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
 import { of, throwError } from 'rxjs';
+import { AlarmDefinitionsState } from '../../../alarms/use-cases/alarm-definitions.state';
 import { SignalsApiService } from '../../adapters/signals-api.service';
 import { SignalsState } from '../../use-cases/signals.state';
 import { SignalFormPage } from './signal-form-page';
@@ -23,11 +24,21 @@ function activatedRouteStub(signalId: string | null) {
 describe('SignalFormPage', () => {
   let signalsApi: { get: ReturnType<typeof vi.fn> };
   let signalsState: { create: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
+  let alarmDefinitionsState: {
+    load: ReturnType<typeof vi.fn>;
+    deactivate: ReturnType<typeof vi.fn>;
+    definitions: ReturnType<typeof vi.fn>;
+  };
   let router: { navigate: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     signalsApi = { get: vi.fn() };
     signalsState = { create: vi.fn(), update: vi.fn() };
+    alarmDefinitionsState = {
+      load: vi.fn().mockReturnValue(of([])),
+      deactivate: vi.fn(),
+      definitions: vi.fn().mockReturnValue([]),
+    };
     router = { navigate: vi.fn() };
   });
 
@@ -36,6 +47,7 @@ describe('SignalFormPage', () => {
       providers: [
         { provide: SignalsApiService, useValue: signalsApi },
         { provide: SignalsState, useValue: signalsState },
+        { provide: AlarmDefinitionsState, useValue: alarmDefinitionsState },
         { provide: Router, useValue: router },
         { provide: ActivatedRoute, useValue: activatedRouteStub(signalId) },
       ],
@@ -118,6 +130,44 @@ describe('SignalFormPage', () => {
     expect(await screen.findByLabelText('Nombre')).toHaveValue('Temperatura');
     expect(screen.getByLabelText('Variable')).toHaveValue('temperature');
     expect(screen.getByRole('radio', { name: /Directa/ })).toBeDisabled();
+  });
+
+  it('en creación no muestra la sección de reglas de alarma (la Signal aún no existe)', async () => {
+    await renderPage();
+
+    expect(screen.queryByText('Reglas de alarma')).not.toBeInTheDocument();
+  });
+
+  it('en edición muestra las reglas de alarma existentes y el enlace para añadir una nueva', async () => {
+    signalsApi.get.mockReturnValue(
+      of({
+        id: 'signal-1',
+        machineId: 'machine-1',
+        name: 'Temperatura',
+        signalType: 'DIRECT',
+        signalSource: { variableName: 'temperature' },
+        unit: '°C',
+        historyEnabled: false,
+      }),
+    );
+    alarmDefinitionsState.definitions.mockReturnValue([
+      {
+        id: 'def-1',
+        signalId: 'signal-1',
+        operator: '>',
+        threshold: 80,
+        priority: 'HIGH',
+        notifyByEmail: true,
+        showOnDashboard: true,
+        isActive: true,
+      },
+    ]);
+
+    await renderPage('signal-1');
+
+    expect(await screen.findByText('Reglas de alarma')).toBeInTheDocument();
+    expect(screen.getByText('Añadir regla')).toBeInTheDocument();
+    expect(alarmDefinitionsState.load).toHaveBeenCalledWith('signal-1');
   });
 
   it('un 422 FORMULA_REFERENCES_UNKNOWN_VARIABLE asocia el error al campo variables sin perder el formulario', async () => {
