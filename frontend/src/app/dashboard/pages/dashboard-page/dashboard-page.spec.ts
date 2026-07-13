@@ -138,7 +138,7 @@ describe('DashboardPage', () => {
     });
 
     expect(screen.getByText('Planta 1')).toBeInTheDocument();
-    expect(screen.getByText('Las alarmas estarán disponibles próximamente.')).toBeInTheDocument();
+    expect(screen.getByText('Sin alarmas activas.')).toBeInTheDocument();
   });
 
   it('Añadir widget: elige Machine y Signal, y llama a addWidget() sin recargar la página', async () => {
