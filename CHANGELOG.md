@@ -1,3 +1,9 @@
+## [1.7.1](https://github.com/adpNature/EWControl/compare/v1.7.0...v1.7.1) (2026-07-13)
+
+### Bug Fixes
+
+- **ci:** usa Variables en vez de Secrets para el JWT de test ([2a18f85](https://github.com/adpNature/EWControl/commit/2a18f85bd054bed33868909b1f2b2e1db57e322e))
+
 # [1.7.0](https://github.com/adpNature/EWControl/compare/v1.6.0...v1.7.0) (2026-07-12)
 
 ### Features
