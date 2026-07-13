@@ -1,0 +1,24 @@
+<div class="box alarm-detail-page">
+  @if (alarmState(); as detail) {
+    <h1 class="title-xl">Alarma</h1>
+
+    <dl class="alarm-detail-page__summary">
+      <dt>Estado</dt>
+      <dd>{{ detail.status }}</dd>
+      <dt>Prioridad</dt>
+      <dd>{{ detail.priority }}</dd>
+      <dt>Signal</dt>
+      <dd>{{ detail.signalId }}</dd>
+    </dl>
+
+    <h2 class="title-lg">Histórico de activaciones</h2>
+    <app-table
+      [columns]="historyColumns"
+      [rows]="detail.history"
+      [rowKey]="historyRowKey"
+      emptyMessage="Sin activaciones registradas."
+    />
+  } @else if (notFound()) {
+    <p class="form-error" role="alert">Esta alarma ya no existe o no tienes acceso a ella.</p>
+  }
+</div>

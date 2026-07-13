@@ -123,4 +123,41 @@ describe('RealtimeSocketService', () => {
 
     await expect(promise).resolves.toEqual(event);
   });
+
+  it('alarmTriggered$ emite lo que recibe el socket subyacente en "AlarmTriggered" (docs/specs/09-alarmas.md)', async () => {
+    const { host, appRef } = await createHost();
+    accessTokenSignal.set('token-1');
+    TestBed.tick();
+    await appRef.whenStable();
+
+    const event = {
+      alarmStateId: 'state-1',
+      alarmDefinitionId: 'def-1',
+      signalId: 'signal-1',
+      priority: 'HIGH' as const,
+      timestamp: '2026-07-12T10:00:00Z',
+    };
+    const promise = firstValueFrom(host.service.alarmTriggered$);
+    listeners.get('AlarmTriggered')?.(event);
+
+    await expect(promise).resolves.toEqual(event);
+  });
+
+  it('alarmCleared$ emite lo que recibe el socket subyacente en "AlarmCleared" (docs/specs/09-alarmas.md)', async () => {
+    const { host, appRef } = await createHost();
+    accessTokenSignal.set('token-1');
+    TestBed.tick();
+    await appRef.whenStable();
+
+    const event = {
+      alarmStateId: 'state-1',
+      alarmDefinitionId: 'def-1',
+      signalId: 'signal-1',
+      timestamp: '2026-07-12T10:00:00Z',
+    };
+    const promise = firstValueFrom(host.service.alarmCleared$);
+    listeners.get('AlarmCleared')?.(event);
+
+    await expect(promise).resolves.toEqual(event);
+  });
 });

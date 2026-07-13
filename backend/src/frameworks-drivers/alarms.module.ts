@@ -8,11 +8,15 @@ import { SignalTypeOrmRepository } from '../interface-adapters/persistence/postg
 import { TypeOrmUnitOfWork } from '../interface-adapters/persistence/postgres/typeorm/typeorm-unit-of-work';
 import { AlarmDefinitionController } from '../interface-adapters/rest/alarms/alarm-definition.controller';
 import { AlarmDefinitionMutationController } from '../interface-adapters/rest/alarms/alarm-definition-mutation.controller';
+import { AlarmStateController } from '../interface-adapters/rest/alarms/alarm-state.controller';
 import { AlarmDefinitionAccessResolver } from '../use-cases/alarms/alarm-definition-access.resolver';
+import { AlarmStateAccessResolver } from '../use-cases/alarms/alarm-state-access.resolver';
 import { CreateAlarmDefinitionUseCase } from '../use-cases/alarms/create-alarm-definition.use-case';
 import { DeactivateAlarmDefinitionUseCase } from '../use-cases/alarms/deactivate-alarm-definition.use-case';
 import { EvaluateAlarmRulesUseCase } from '../use-cases/alarms/evaluate-alarm-rules.use-case';
+import { GetAlarmStateUseCase } from '../use-cases/alarms/get-alarm-state.use-case';
 import { ListAlarmDefinitionsUseCase } from '../use-cases/alarms/list-alarm-definitions.use-case';
+import { ListAlarmStatesUseCase } from '../use-cases/alarms/list-alarm-states.use-case';
 import { ALARM_DEFINITION_REPOSITORY } from '../use-cases/alarms/ports/alarm-definition-repository.port';
 import { ALARM_STATE_REPOSITORY } from '../use-cases/alarms/ports/alarm-state-repository.port';
 import { SignalAccessResolver } from '../use-cases/alarms/signal-access.resolver';
@@ -24,19 +28,22 @@ import { EVENT_PUBLISHER } from '../use-cases/simulator-control/ports/event-publ
 
 /**
  * Wiring de docs/specs/09-alarmas.md, mismo estilo que `machine-management.module.ts`.
- * Crece en slices sucesivos de la misma spec: la lectura de `AlarmState` y el
- * Notification Service se añaden a este mismo módulo, no a módulos separados.
+ * Crece en slices sucesivos de la misma spec: el Notification Service se añade
+ * a este mismo módulo, no a uno separado.
  */
 @Module({
-  controllers: [AlarmDefinitionController, AlarmDefinitionMutationController],
+  controllers: [AlarmDefinitionController, AlarmDefinitionMutationController, AlarmStateController],
   providers: [
     SignalAccessResolver,
     AlarmDefinitionAccessResolver,
+    AlarmStateAccessResolver,
     CreateAlarmDefinitionUseCase,
     ListAlarmDefinitionsUseCase,
     UpdateAlarmDefinitionUseCase,
     DeactivateAlarmDefinitionUseCase,
     EvaluateAlarmRulesUseCase,
+    GetAlarmStateUseCase,
+    ListAlarmStatesUseCase,
     AlarmEvaluationListener,
     { provide: ALARM_DEFINITION_REPOSITORY, useClass: AlarmDefinitionTypeOrmRepository },
     { provide: ALARM_STATE_REPOSITORY, useClass: AlarmStateTypeOrmRepository },

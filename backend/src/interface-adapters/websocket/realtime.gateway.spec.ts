@@ -131,5 +131,41 @@ describe('RealtimeGateway', () => {
         timestamp,
       });
     });
+
+    it('reemite AlarmTriggered/AlarmCleared a la sala de la Company del payload (docs/specs/09-alarmas.md)', () => {
+      const { gateway, server } = createGateway(createTokenService());
+      const timestamp = new Date('2026-07-12T10:00:00Z');
+
+      gateway.relayAlarmTriggered({
+        alarmStateId: 'state-1',
+        alarmDefinitionId: 'def-1',
+        signalId: 'signal-1',
+        companyId: 'company-1',
+        priority: 'HIGH' as never,
+        timestamp,
+      });
+      gateway.relayAlarmCleared({
+        alarmStateId: 'state-1',
+        alarmDefinitionId: 'def-1',
+        signalId: 'signal-1',
+        companyId: 'company-1',
+        timestamp,
+      });
+
+      expect(server.to).toHaveBeenCalledWith('company:company-1');
+      expect(server.emit).toHaveBeenCalledWith('AlarmTriggered', {
+        alarmStateId: 'state-1',
+        alarmDefinitionId: 'def-1',
+        signalId: 'signal-1',
+        priority: 'HIGH',
+        timestamp,
+      });
+      expect(server.emit).toHaveBeenCalledWith('AlarmCleared', {
+        alarmStateId: 'state-1',
+        alarmDefinitionId: 'def-1',
+        signalId: 'signal-1',
+        timestamp,
+      });
+    });
   });
 });
