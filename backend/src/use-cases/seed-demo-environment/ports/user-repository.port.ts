@@ -9,4 +9,10 @@ export interface IUserRepository {
     data: { companyId: string; email: string; passwordHash: string; role: UserRole },
     ctx: TransactionContext,
   ): Promise<User>;
+  /** docs/specs/09-alarmas.md: destinatarios del email de notificación de una alarma. */
+  findActiveByCompanyAndRole(
+    companyId: string,
+    role: UserRole,
+    ctx: TransactionContext,
+  ): Promise<User[]>;
 }

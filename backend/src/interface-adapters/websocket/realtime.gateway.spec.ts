@@ -142,6 +142,7 @@ describe('RealtimeGateway', () => {
         signalId: 'signal-1',
         companyId: 'company-1',
         priority: 'HIGH' as never,
+        value: 84,
         timestamp,
       });
       gateway.relayAlarmCleared({

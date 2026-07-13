@@ -30,6 +30,16 @@ services:
       retries: 10
     networks: [ewcontrol]
 
+  mailpit:
+    # Captura de correo de desarrollo/test para el Notification Service
+    # (docs/specs/09-alarmas.md): UI web en 8025, SMTP en 1025. La imagen trae
+    # su propio HEALTHCHECK incorporado, sin necesidad de definir uno aquí.
+    image: axllent/mailpit
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    networks: [ewcontrol]
+
   backend:
     build:
       context: .
@@ -49,6 +59,8 @@ services:
       postgres:
         condition: service_healthy
       influxdb:
+        condition: service_healthy
+      mailpit:
         condition: service_healthy
     networks: [ewcontrol]
 

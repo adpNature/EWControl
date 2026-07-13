@@ -54,6 +54,13 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      # Captura de correo para el test de integración del Notification Service
+      # (docs/specs/09-alarmas.md); la imagen trae su propio healthcheck.
+      mailpit:
+        image: axllent/mailpit
+        ports:
+          - 1025:1025
+          - 8025:8025
     env:
       POSTGRES_HOST: localhost
       POSTGRES_PORT: 5432
@@ -64,6 +71,9 @@ jobs:
       INFLUXDB_TOKEN: ewcontrol-ci-admin-token
       INFLUXDB_ORG: ewcontrol
       INFLUXDB_BUCKET: signals_history
+      SMTP_HOST: localhost
+      SMTP_PORT: 1025
+      SMTP_FROM: alerts@ewcontrol.local
       # Valores CI-only, sin uso fuera de este workflow — definidos como GitHub
       # Actions Variables (Settings > Secrets and variables > Actions > Variables),
       # no Secrets: los Secrets no se pasan a runs de pull_request abiertos por

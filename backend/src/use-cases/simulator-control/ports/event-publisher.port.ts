@@ -19,13 +19,19 @@ export type SignalUpdatedPayload = {
   quality: SignalQuality;
   timestamp: Date;
 };
-/** docs/specs/09-alarmas.md, docs/11-api-rest.md sección "Eventos WebSocket". */
+/**
+ * docs/specs/09-alarmas.md, docs/11-api-rest.md sección "Eventos WebSocket".
+ * `value` es de uso interno (Notification Service, contenido del email —
+ * Documento 2, apartado 2.10): el Gateway lo omite deliberadamente al
+ * reemitir por WebSocket, cuyo contrato ya está catalogado sin ese campo.
+ */
 export type AlarmTriggeredPayload = {
   alarmStateId: string;
   alarmDefinitionId: string;
   signalId: string;
   companyId: string;
   priority: AlarmPriority;
+  value: number | boolean | string;
   timestamp: Date;
 };
 export type AlarmClearedPayload = {

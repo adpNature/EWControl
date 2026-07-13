@@ -44,6 +44,7 @@ describe('NestEventEmitterPublisher', () => {
       signalId: 'signal-1',
       companyId: 'company-1',
       priority: 'HIGH' as const,
+      value: 84,
       timestamp: new Date('2026-01-01T00:00:00Z'),
     };
 

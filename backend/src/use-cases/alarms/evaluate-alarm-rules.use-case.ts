@@ -94,6 +94,7 @@ export class EvaluateAlarmRulesUseCase {
               signalId: input.signalId,
               companyId: input.companyId,
               priority: definition.priority,
+              value: input.value,
               timestamp: input.timestamp,
             },
           });

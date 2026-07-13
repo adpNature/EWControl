@@ -69,6 +69,7 @@ describe('EvaluateAlarmRulesUseCase', () => {
       signalId: 'signal-1',
       companyId: 'company-1',
       priority: 'HIGH',
+      value: 84,
       timestamp: BASE_INPUT.timestamp,
     });
   });

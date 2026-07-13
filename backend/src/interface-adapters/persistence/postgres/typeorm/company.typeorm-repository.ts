@@ -10,6 +10,10 @@ export class CompanyTypeOrmRepository implements ICompanyRepository {
     return (ctx as EntityManager).getRepository(Company).findOne({ where: { name } });
   }
 
+  findById(id: string, ctx: TransactionContext): Promise<Company | null> {
+    return (ctx as EntityManager).getRepository(Company).findOne({ where: { id } });
+  }
+
   create(data: { name: string }, ctx: TransactionContext): Promise<Company> {
     const repository = (ctx as EntityManager).getRepository(Company);
     return repository.save(repository.create(data));
