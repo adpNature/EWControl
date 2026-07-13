@@ -56,7 +56,7 @@ jobs:
       # corren nativos en el mismo runner, así que se apunta a localhost.
       BACKEND_PROXY_TARGET: http://localhost:3000
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with:
