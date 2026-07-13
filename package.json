@@ -14,7 +14,7 @@
     "lint-staged": "^17.0.8",
     "prettier": "^3.0.0",
     "@commitlint/cli": "^19.0.0",
-    "@commitlint/config-conventional": "^19.0.0",
+    "@commitlint/config-conventional": "^21.2.0",
     "semantic-release": "^24.0.0",
     "@semantic-release/changelog": "^6.0.0",
     "@semantic-release/git": "^10.0.0"
