@@ -201,17 +201,22 @@ Detalle completo de capas, componentes y flujo de datos en [docs/02-arquitectura
 
 ## Roadmap
 
-| Fase   | Contenido                                                         | Estado     |
-| ------ | ----------------------------------------------------------------- | ---------- |
-| Fase 0 | Metodología y documentación base                                  | Completada |
-| Fase 1 | Fundación backend: Simulador de datos demo + catálogo de API REST | Completada |
-| Fase 2 | Feature vertical: Autenticación (Auth)                            | Completada |
-| Fase 3 | Feature vertical: Gestión de Machines y Signals                   | Completada |
-| Fase 4 | Feature vertical: Dashboard en tiempo real                        | Completada |
-| Fase 5 | Feature vertical: Históricos y Alarmas                            | En curso   |
-| Fase 6 | Integración OPC UA real                                           | Pendiente  |
+| Fase    | Contenido                                                                     | Estado     |
+| ------- | ----------------------------------------------------------------------------- | ---------- |
+| Fase 0  | Metodología y documentación base                                              | Completada |
+| Fase 1  | Fundación backend: Simulador de datos demo + catálogo de API REST             | Completada |
+| Fase 2  | Feature vertical: Autenticación (Auth)                                        | Completada |
+| Fase 3  | Feature vertical: Gestión de Machines y Signals                               | Completada |
+| Fase 4  | Feature vertical: Dashboard en tiempo real                                    | Completada |
+| Fase 5  | Feature vertical: Históricos y Alarmas                                        | En curso   |
+| Fase 6  | Feature vertical: Gestión de Companies y Users (SuperAdmin)                   | Pendiente  |
+| Fase 7  | Feature vertical: Reconocimiento manual de alarmas (ACK)                      | Pendiente  |
+| Fase 8  | Feature vertical: Motor de fórmulas del Signal Engine (Signals `FORMULA`)     | Pendiente  |
+| Fase 9  | Feature vertical: Históricos — pantalla independiente y comparativas          | Pendiente  |
+| Fase 10 | Observabilidad técnica (health checks, métricas, alerting de infraestructura) | Pendiente  |
+| Fase 11 | Integración OPC UA real                                                       | Pendiente  |
 
-Cada fase a partir de la 2 se especifica en `docs/specs/` antes de implementarse (Documento 0).
+Cada fase a partir de la 2 se especifica en `docs/specs/` antes de implementarse (Documento 0). La Fase 10 es la única puramente backend/infraestructura, sin feature vertical Back+Front asociada.
 
 ---
 
