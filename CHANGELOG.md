@@ -1,3 +1,9 @@
+## [1.7.2](https://github.com/adpNature/EWControl/compare/v1.7.1...v1.7.2) (2026-07-13)
+
+### Bug Fixes
+
+- **frontend:** restaura la entrada de ws@8.21.0 en pnpm-lock.yaml ([90c220c](https://github.com/adpNature/EWControl/commit/90c220ceae0ede1f3cdc3ff946323691641ee073))
+
 ## [1.7.1](https://github.com/adpNature/EWControl/compare/v1.7.0...v1.7.1) (2026-07-13)
 
 ### Bug Fixes
