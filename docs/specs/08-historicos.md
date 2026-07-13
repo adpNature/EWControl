@@ -20,7 +20,7 @@ La infraestructura de InfluxDB ya existe, cableada por la spec 04 ([04-simulador
 
 1. Se cierra exactamente lo diferido por spec 07: persistencia continua a InfluxDB + endpoint de consulta + el widget `CHART` real. No se crea una pantalla "Históricos" independiente (`frontend/src/app/history/`, hoy solo un `README.md` placeholder) ni ninguna comparativa multi-Signal o multi-Machine: eso queda para una spec futura de esa feature.
 2. Evaluar Signals `FORMULA` sigue fuera de alcance (Signal Engine futuro, ya diferido por spec 07); una Signal `FORMULA` nunca genera puntos de histórico porque nunca recibe ticks del Signal Engine.
-3. Alarmas (`AlarmDefinition`/`AlarmState`, Fase 6) siguen sin implementarse.
+3. Alarmas (`AlarmDefinition`/`AlarmState`, Fase 5) siguen sin implementarse.
 
 ## Actor(es)
 
