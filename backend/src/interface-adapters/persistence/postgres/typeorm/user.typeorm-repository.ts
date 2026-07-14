@@ -29,6 +29,48 @@ export class UserTypeOrmRepository implements IUserRepository, IAuthUserReposito
       .find({ where: { companyId, role, isActive: true } });
   }
 
+  findById(id: string, ctx: TransactionContext): Promise<User | null> {
+    return (ctx as EntityManager).getRepository(User).findOne({ where: { id } });
+  }
+
+  findByEmail(email: string, ctx: TransactionContext): Promise<User | null> {
+    return (ctx as EntityManager).getRepository(User).findOne({ where: { email } });
+  }
+
+  async list(
+    filter: { companyId: string | null; isActive: boolean },
+    pagination: { limit: number; offset: number },
+    ctx: TransactionContext,
+  ): Promise<{ data: User[]; total: number }> {
+    const repository = (ctx as EntityManager).getRepository(User);
+    const where = filter.companyId
+      ? { companyId: filter.companyId, isActive: filter.isActive }
+      : { isActive: filter.isActive };
+    const [data, total] = await repository.findAndCount({
+      where,
+      take: pagination.limit,
+      skip: pagination.offset,
+      order: { email: 'ASC' },
+    });
+    return { data, total };
+  }
+
+  async update(
+    id: string,
+    changes: { email?: string; role?: UserRole },
+    ctx: TransactionContext,
+  ): Promise<User> {
+    const repository = (ctx as EntityManager).getRepository(User);
+    await repository.update(id, changes);
+    return repository.findOneByOrFail({ id });
+  }
+
+  async deactivate(id: string, ctx: TransactionContext): Promise<User> {
+    const repository = (ctx as EntityManager).getRepository(User);
+    await repository.update(id, { isActive: false });
+    return repository.findOneByOrFail({ id });
+  }
+
   async findByEmailWithCompany(
     email: string,
     ctx: TransactionContext,

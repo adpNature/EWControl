@@ -9,6 +9,7 @@ import { CompanyManagementModule } from './company-management.module';
 import { DashboardModule } from './dashboard.module';
 import { MachineManagementModule } from './machine-management.module';
 import { SimulatorModule } from './simulator.module';
+import { UserManagementModule } from './user-management.module';
 import { postgresConnectionOptions } from './database/postgres.config';
 
 /**
@@ -26,6 +27,7 @@ import { postgresConnectionOptions } from './database/postgres.config';
     AuthModule,
     SimulatorModule,
     CompanyManagementModule,
+    UserManagementModule,
     MachineManagementModule,
     DashboardModule,
     AlarmsModule,

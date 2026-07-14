@@ -1,0 +1,26 @@
+<div class="box user-form-page">
+  <h1 class="title-xl">{{ isEditMode ? 'Editar User' : 'Nuevo User' }}</h1>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <app-input formControlName="email" label="Email" type="email" [errorMessage]="emailError()" />
+
+    @if (!isEditMode) {
+      <app-input
+        formControlName="password"
+        label="Contraseña"
+        type="password"
+        [errorMessage]="passwordError()"
+      />
+    }
+
+    <app-select formControlName="role" label="Rol" [options]="roleOptions()" />
+
+    @if (formError()) {
+      <p class="form-error" role="alert">{{ formError() }}</p>
+    }
+
+    <button type="submit" class="btn-primary" [disabled]="submitting()">
+      {{ submitting() ? 'Guardando…' : 'Guardar' }}
+    </button>
+  </form>
+</div>

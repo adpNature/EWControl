@@ -1,4 +1,4 @@
-import { canConfigure, canManageCompanies } from './config-permissions';
+import { canConfigure, canManageCompanies, canManageUsers } from './config-permissions';
 
 describe('canConfigure', () => {
   it('permite AdminCliente', () => {
@@ -25,5 +25,19 @@ describe('canManageCompanies', () => {
 
   it('deniega si no hay rol', () => {
     expect(canManageCompanies(undefined)).toBe(false);
+  });
+});
+
+describe('canManageUsers', () => {
+  it('permite AdminCliente', () => {
+    expect(canManageUsers('AdminCliente')).toBe(true);
+  });
+
+  it('permite SuperAdmin', () => {
+    expect(canManageUsers('SuperAdmin')).toBe(true);
+  });
+
+  it('deniega si no hay rol', () => {
+    expect(canManageUsers(undefined)).toBe(false);
   });
 });

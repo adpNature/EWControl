@@ -26,6 +26,21 @@ export const configRoutes: Routes = [
       import('./pages/company-form-page/company-form-page').then((m) => m.CompanyFormPage),
   },
   {
+    path: 'users',
+    loadComponent: () =>
+      import('./pages/user-list-page/user-list-page').then((m) => m.UserListPage),
+  },
+  {
+    path: 'users/new',
+    loadComponent: () =>
+      import('./pages/user-form-page/user-form-page').then((m) => m.UserFormPage),
+  },
+  {
+    path: 'users/:userId/edit',
+    loadComponent: () =>
+      import('./pages/user-form-page/user-form-page').then((m) => m.UserFormPage),
+  },
+  {
     path: 'machines',
     loadComponent: () =>
       import('./pages/machine-list-page/machine-list-page').then((m) => m.MachineListPage),
