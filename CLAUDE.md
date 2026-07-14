@@ -84,6 +84,7 @@ Run a single Vitest test file: `pnpm vitest run path/to/file.spec.ts` (or `pnpm 
 Full local environment: `docker compose up -d` (PostgreSQL, InfluxDB, backend, frontend). On Windows, hot-reload relies on polling — `backend/tsconfig.json` (`watchOptions`) and `frontend/angular.json` (`serve.development.poll: 1000`) intentionally force it because filesystem events don't reliably reach containers over the bind mount; don't remove these as "redundant".
 
 Demo login (after seed): `demo@ewcontrol.local` / `Demo1234!`, role `AdminCliente`.
+Demo SuperAdmin login (after seed): `superadmin@ewcontrol.local` / `SuperAdmin1234!`, role `SuperAdmin`, same demo Company.
 
 ## Frontend conventions (full detail: `docs/12-convenciones-frontend.md`)
 

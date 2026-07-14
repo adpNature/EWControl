@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtAuthGuard } from '../interface-adapters/auth-guard/jwt-auth.guard';
+import { RolesGuard } from '../interface-adapters/auth-guard/roles.guard';
 import { TypeOrmUnitOfWork } from '../interface-adapters/persistence/postgres/typeorm/typeorm-unit-of-work';
 import { UserTypeOrmRepository } from '../interface-adapters/persistence/postgres/typeorm/user.typeorm-repository';
 import { RefreshTokenTypeOrmRepository } from '../interface-adapters/persistence/postgres/typeorm/refresh-token.typeorm-repository';
@@ -27,7 +28,10 @@ import { UNIT_OF_WORK } from '../use-cases/seed-demo-environment/ports/unit-of-w
  * Wiring de docs/specs/05-auth-login.md: conecta los puertos de `use-cases/auth`
  * con sus implementaciones concretas y registra `JwtAuthGuard` como guard global
  * (`APP_GUARD`), protegiendo automáticamente cualquier endpoint que no marque
- * `@Public()` — incluye `SimulatorController` sin modificarlo.
+ * `@Public()` — incluye `SimulatorController` sin modificarlo. También registra
+ * `RolesGuard` (docs/specs/10-gestion-companies-users.md) justo después: Nest
+ * ejecuta los `APP_GUARD` en orden de registro, y `RolesGuard` necesita que
+ * `JwtAuthGuard` ya haya poblado `request.user`.
  */
 @Module({
   imports: [JwtModule.register({})], // sin secreto por defecto: cada sign/verify pasa el suyo (JwtTokenService)
@@ -37,6 +41,7 @@ import { UNIT_OF_WORK } from '../use-cases/seed-demo-environment/ports/unit-of-w
     RefreshUseCase,
     LogoutUseCase,
     JwtAuthGuard,
+    RolesGuard,
     { provide: AUTH_USER_REPOSITORY, useClass: UserTypeOrmRepository },
     { provide: REFRESH_TOKEN_REPOSITORY, useClass: RefreshTokenTypeOrmRepository },
     { provide: AUTH_AUDIT_REPOSITORY, useClass: AuthAuditLogTypeOrmRepository },
@@ -46,6 +51,7 @@ import { UNIT_OF_WORK } from '../use-cases/seed-demo-environment/ports/unit-of-w
     { provide: UNIT_OF_WORK, useClass: TypeOrmUnitOfWork },
     { provide: CLOCK, useClass: SystemClock },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })
 export class AuthModule {}
