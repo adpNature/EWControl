@@ -6,6 +6,7 @@ import { Dashboard } from './dashboard.entity';
 import { DashboardWidget } from './dashboard-widget.entity';
 import { MachineConnection } from './machine-connection.entity';
 import { Machine } from './machine.entity';
+import { PasswordResetToken } from './password-reset-token.entity';
 import { RefreshToken } from './refresh-token.entity';
 import { Signal } from './signal.entity';
 import { User } from './user.entity';
@@ -26,6 +27,7 @@ export const ENTITIES = [
   MachineConnection,
   Signal,
   RefreshToken,
+  PasswordResetToken,
   AuthAuditLog,
   Dashboard,
   DashboardWidget,

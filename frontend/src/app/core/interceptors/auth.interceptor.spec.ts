@@ -69,6 +69,17 @@ describe('authInterceptor', () => {
     expect(error).toBeTruthy();
   });
 
+  it('un 401 en /auth/forgot-password se propaga sin disparar refresh', () => {
+    let error: unknown;
+    http.post('/api/v1/auth/forgot-password', {}).subscribe({ error: (e) => (error = e) });
+
+    const req = httpMock.expectOne('/api/v1/auth/forgot-password');
+    req.flush({ code: 'BAD_REQUEST' }, { status: 401, statusText: 'Unauthorized' });
+
+    expect(authState.refresh).not.toHaveBeenCalled();
+    expect(error).toBeTruthy();
+  });
+
   it('un 401 en /auth/refresh se propaga sin volver a llamar a refresh (evita un loop)', () => {
     let error: unknown;
     http.post('/api/v1/auth/refresh', {}).subscribe({ error: (e) => (error = e) });

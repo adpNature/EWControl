@@ -27,4 +27,22 @@ describe('AuthApiService', () => {
     expect(req.request.body).toEqual({ currentPassword: 'actual', newPassword: 'nueva' });
     req.flush({});
   });
+
+  it('forgotPassword llama a POST /auth/forgot-password con el email', () => {
+    service.forgotPassword('demo@ewcontrol.local').subscribe();
+
+    const req = httpMock.expectOne('/api/v1/auth/forgot-password');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ email: 'demo@ewcontrol.local' });
+    req.flush({});
+  });
+
+  it('resetPassword llama a POST /auth/reset-password con el token y la nueva contraseña', () => {
+    service.resetPassword('token-1', 'Nueva1234!').subscribe();
+
+    const req = httpMock.expectOne('/api/v1/auth/reset-password');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ token: 'token-1', newPassword: 'Nueva1234!' });
+    req.flush({});
+  });
 });
