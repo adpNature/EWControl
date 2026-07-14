@@ -29,6 +29,7 @@ import { EmailAlreadyExistsError } from '../../../use-cases/user-management/erro
 import { UserNotFoundError } from '../../../use-cases/user-management/errors/user-not-found.error';
 import { GetUserUseCase } from '../../../use-cases/user-management/get-user.use-case';
 import { ListUsersUseCase } from '../../../use-cases/user-management/list-users.use-case';
+import { ReactivateUserUseCase } from '../../../use-cases/user-management/reactivate-user.use-case';
 import { UpdateUserUseCase } from '../../../use-cases/user-management/update-user.use-case';
 import { ChangePasswordDto } from './change-password.dto';
 import { CreateUserDto } from './create-user.dto';
@@ -54,6 +55,7 @@ export class UserController {
     private readonly getUserUseCase: GetUserUseCase,
     private readonly updateUserUseCase: UpdateUserUseCase,
     private readonly deactivateUserUseCase: DeactivateUserUseCase,
+    private readonly reactivateUserUseCase: ReactivateUserUseCase,
     private readonly changePasswordUseCase: ChangePasswordUseCase,
   ) {}
 
@@ -147,6 +149,23 @@ export class UserController {
         requesterId: user.id,
         requester: { companyId: user.companyId, role: user.role },
       });
+    } catch (error) {
+      throw this.toHttpException(error);
+    }
+  }
+
+  @Post(':id/reactivate')
+  @HttpCode(HttpStatus.OK)
+  async reactivate(
+    @Param('id') id: string,
+    @currentUser() user: CurrentUser,
+  ): Promise<UserResponse> {
+    try {
+      const reactivated = await this.reactivateUserUseCase.execute({
+        userId: id,
+        requester: { companyId: user.companyId, role: user.role },
+      });
+      return toUserResponse(reactivated);
     } catch (error) {
       throw this.toHttpException(error);
     }

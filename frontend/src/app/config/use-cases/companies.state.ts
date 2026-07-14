@@ -60,4 +60,26 @@ export class CompaniesState {
         ),
       );
   }
+
+  reactivate(id: string): Observable<Company> {
+    return this.companiesApi
+      .reactivate(id)
+      .pipe(
+        tap((reactivated) =>
+          this.companiesSignal.update((current) =>
+            current.map((company) => (company.id === id ? reactivated : company)),
+          ),
+        ),
+      );
+  }
+
+  purge(id: string): Observable<void> {
+    return this.companiesApi
+      .purge(id)
+      .pipe(
+        tap(() =>
+          this.companiesSignal.update((current) => current.filter((company) => company.id !== id)),
+        ),
+      );
+  }
 }

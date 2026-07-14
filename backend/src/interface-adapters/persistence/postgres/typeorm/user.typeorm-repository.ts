@@ -38,14 +38,12 @@ export class UserTypeOrmRepository implements IUserRepository, IAuthUserReposito
   }
 
   async list(
-    filter: { companyId: string | null; isActive: boolean },
+    filter: { companyId: string | null },
     pagination: { limit: number; offset: number },
     ctx: TransactionContext,
   ): Promise<{ data: User[]; total: number }> {
     const repository = (ctx as EntityManager).getRepository(User);
-    const where = filter.companyId
-      ? { companyId: filter.companyId, isActive: filter.isActive }
-      : { isActive: filter.isActive };
+    const where = filter.companyId ? { companyId: filter.companyId } : {};
     const [data, total] = await repository.findAndCount({
       where,
       take: pagination.limit,
@@ -69,6 +67,16 @@ export class UserTypeOrmRepository implements IUserRepository, IAuthUserReposito
     const repository = (ctx as EntityManager).getRepository(User);
     await repository.update(id, { isActive: false });
     return repository.findOneByOrFail({ id });
+  }
+
+  async reactivate(id: string, ctx: TransactionContext): Promise<User> {
+    const repository = (ctx as EntityManager).getRepository(User);
+    await repository.update(id, { isActive: true });
+    return repository.findOneByOrFail({ id });
+  }
+
+  async deleteAllByCompanyId(companyId: string, ctx: TransactionContext): Promise<void> {
+    await (ctx as EntityManager).getRepository(User).delete({ companyId });
   }
 
   async findByEmailWithCompany(

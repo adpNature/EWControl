@@ -21,6 +21,8 @@ function createFakes() {
     list: vi.fn(),
     update: vi.fn(),
     deactivate: vi.fn(),
+    reactivate: vi.fn(),
+    deleteAllByCompanyId: vi.fn(),
   };
   return { userRepository };
 }

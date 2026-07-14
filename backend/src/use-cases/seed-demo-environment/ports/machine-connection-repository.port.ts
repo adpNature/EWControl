@@ -20,4 +20,6 @@ export interface IMachineConnectionRepository {
     changes: { providerType: ProviderType; connectionConfig: ConnectionConfig },
     ctx: TransactionContext,
   ): Promise<MachineConnection>;
+  /** Borrado físico (docs/specs/10-gestion-companies-users.md, "purge" de Company). */
+  deleteByMachineId(machineId: string, ctx: TransactionContext): Promise<void>;
 }

@@ -36,4 +36,8 @@ export class UsersApiService {
   remove(id: string): Observable<void> {
     return this.api.delete<void>(`/users/${id}`);
   }
+
+  reactivate(id: string): Observable<ManagedUser> {
+    return this.api.post<ManagedUser>(`/users/${id}/reactivate`, {});
+  }
 }

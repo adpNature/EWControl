@@ -9,8 +9,20 @@ import { UsersState } from '../../use-cases/users.state';
 import { UserListPage } from './user-list-page';
 
 const USERS = [
-  { id: 'user-1', companyId: 'company-1', email: 'demo@ewcontrol.local', role: 'AdminCliente' },
-  { id: 'user-2', companyId: 'company-1', email: 'otro@ewcontrol.local', role: 'AdminCliente' },
+  {
+    id: 'user-1',
+    companyId: 'company-1',
+    email: 'demo@ewcontrol.local',
+    role: 'AdminCliente',
+    isActive: true,
+  },
+  {
+    id: 'user-2',
+    companyId: 'company-1',
+    email: 'otro@ewcontrol.local',
+    role: 'AdminCliente',
+    isActive: true,
+  },
 ];
 
 async function renderPage(currentUserId: string, role: 'AdminCliente' | 'SuperAdmin') {
@@ -18,6 +30,7 @@ async function renderPage(currentUserId: string, role: 'AdminCliente' | 'SuperAd
     users: () => USERS,
     load: vi.fn().mockReturnValue(of(USERS)),
     remove: vi.fn().mockReturnValue(of(undefined)),
+    reactivate: vi.fn().mockReturnValue(of(USERS[1])),
   };
   const companiesState = { companies: () => [], load: vi.fn().mockReturnValue(of([])) };
   const selectedCompanyState = { selectedCompanyId: () => null, select: vi.fn(), clear: vi.fn() };
@@ -74,5 +87,47 @@ describe('UserListPage', () => {
     );
 
     expect(usersState.remove).toHaveBeenCalledWith('user-2');
+  });
+
+  it('muestra la columna Estado con Activo/Inactivo', async () => {
+    await renderPage('user-1', 'AdminCliente');
+
+    expect(screen.getAllByText('Activo')).toHaveLength(2);
+  });
+
+  it('muestra "Reactivar" en vez de "Dar de baja" para un User inactivo, y lo reactiva sin diálogo', async () => {
+    const inactiveUsers = [
+      { ...USERS[0], isActive: false },
+      { ...USERS[1], isActive: true },
+    ];
+    const usersState = {
+      users: () => inactiveUsers,
+      load: vi.fn().mockReturnValue(of(inactiveUsers)),
+      remove: vi.fn().mockReturnValue(of(undefined)),
+      reactivate: vi.fn().mockReturnValue(of(inactiveUsers[0])),
+    };
+    const companiesState = { companies: () => [], load: vi.fn().mockReturnValue(of([])) };
+    const selectedCompanyState = {
+      selectedCompanyId: () => null,
+      select: vi.fn(),
+      clear: vi.fn(),
+    };
+    const authState = { currentUser: () => ({ id: 'someone-else', role: 'AdminCliente' }) };
+
+    await render(UserListPage, {
+      providers: [
+        { provide: UsersState, useValue: usersState },
+        { provide: CompaniesState, useValue: companiesState },
+        { provide: SelectedCompanyState, useValue: selectedCompanyState },
+        { provide: AuthStateService, useValue: authState },
+        provideRouter([]),
+      ],
+    });
+
+    expect(screen.getAllByRole('button', { name: 'Dar de baja' })).toHaveLength(1);
+    await userEvent.click(screen.getByRole('button', { name: 'Reactivar' }));
+
+    expect(usersState.reactivate).toHaveBeenCalledWith('user-1');
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   });
 });

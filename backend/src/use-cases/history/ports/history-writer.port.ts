@@ -19,4 +19,10 @@ export interface IHistoryWriter {
   writeBatch(points: HistoryPoint[]): Promise<void>;
   hasDataInRange(machineId: string, from: Date, to: Date): Promise<boolean>;
   deleteRange(machineId: string, from: Date, to: Date): Promise<void>;
+  /**
+   * docs/specs/10-gestion-companies-users.md, borrado físico de Company:
+   * elimina todo el histórico de esa Company (todas sus Machines/Signals)
+   * hasta `until`, mismo mecanismo que `deleteRange` pero por `company_id`.
+   */
+  deleteAllForCompany(companyId: string, until: Date): Promise<void>;
 }

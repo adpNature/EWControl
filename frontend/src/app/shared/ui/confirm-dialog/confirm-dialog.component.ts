@@ -32,19 +32,34 @@ export class ConfirmDialogComponent implements OnChanges {
   @Input() confirmLabel = 'Eliminar';
   @Input() cancelLabel = 'Cancelar';
   @Input() danger = true;
+  /** Si se indica, exige teclear este texto exacto para habilitar el botón de confirmar (borrados irreversibles, docs/specs/10-gestion-companies-users.md). */
+  @Input() confirmText?: string;
 
   @Output() confirmed = new EventEmitter<void>();
   @Output() cancelled = new EventEmitter<void>();
 
   @ViewChild('dialog') private readonly dialogRef?: ElementRef<HTMLElement>;
 
-  readonly titleId = `confirm-dialog-title-${nextDialogId}`;
-  readonly messageId = `confirm-dialog-message-${nextDialogId++}`;
+  private readonly dialogId = nextDialogId++;
+  readonly titleId = `confirm-dialog-title-${this.dialogId}`;
+  readonly messageId = `confirm-dialog-message-${this.dialogId}`;
+  readonly confirmInputId = `confirm-dialog-confirm-input-${this.dialogId}`;
+
+  typedValue = '';
+
+  get isConfirmDisabled(): boolean {
+    return this.confirmText !== undefined && this.typedValue !== this.confirmText;
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['open']?.currentValue) {
+      this.typedValue = '';
       queueMicrotask(() => this.dialogRef?.nativeElement.focus());
     }
+  }
+
+  onTypedValueInput(value: string): void {
+    this.typedValue = value;
   }
 
   @HostListener('document:keydown.escape')

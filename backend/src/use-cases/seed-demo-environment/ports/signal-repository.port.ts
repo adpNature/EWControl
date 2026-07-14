@@ -37,4 +37,6 @@ export interface ISignalRepository {
   ): Promise<Signal>;
   softDeactivate(id: string, ctx: TransactionContext): Promise<Signal>;
   deactivateAllByMachineId(machineId: string, ctx: TransactionContext): Promise<void>;
+  /** Borrado físico (docs/specs/10-gestion-companies-users.md, "purge" de Company). */
+  deleteAllByMachineId(machineId: string, ctx: TransactionContext): Promise<void>;
 }

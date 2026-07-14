@@ -17,9 +17,10 @@ export type ListUsersInput = {
 export type ListUsersResult = { data: User[]; total: number; limit: number; offset: number };
 
 /**
- * docs/specs/10-gestion-companies-users.md, flujo principal backend: solo
- * Users activos de la Company del requester. Un SuperAdmin ve todas las
- * Companies por defecto, o puede acotar a una concreta vía `companyId`.
+ * docs/specs/10-gestion-companies-users.md, flujo principal backend: todos
+ * los Users (activos e inactivos) de la Company del requester, para poder
+ * reactivar los dados de baja. Un SuperAdmin ve todas las Companies por
+ * defecto, o puede acotar a una concreta vía `companyId`.
  */
 @Injectable()
 export class ListUsersUseCase {
@@ -34,7 +35,7 @@ export class ListUsersUseCase {
         ? (input.companyId ?? null)
         : input.requester.companyId;
     const { data, total } = await this.unitOfWork.runInTransaction((ctx) =>
-      this.userRepository.list({ companyId, isActive: true }, input.pagination, ctx),
+      this.userRepository.list({ companyId }, input.pagination, ctx),
     );
     return { data, total, limit: input.pagination.limit, offset: input.pagination.offset };
   }

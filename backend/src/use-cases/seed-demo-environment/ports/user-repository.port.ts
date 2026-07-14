@@ -19,8 +19,13 @@ export interface IUserRepository {
   findById(id: string, ctx: TransactionContext): Promise<User | null>;
   /** El email de User es único en toda la plataforma, no solo por Company. */
   findByEmail(email: string, ctx: TransactionContext): Promise<User | null>;
+  /**
+   * docs/specs/10-gestion-companies-users.md: lista TODOS los Users (activos
+   * e inactivos), a diferencia del filtro previo — necesario para poder
+   * verlos y reactivarlos.
+   */
   list(
-    filter: { companyId: string | null; isActive: boolean },
+    filter: { companyId: string | null },
     pagination: { limit: number; offset: number },
     ctx: TransactionContext,
   ): Promise<{ data: User[]; total: number }>;
@@ -30,4 +35,7 @@ export interface IUserRepository {
     ctx: TransactionContext,
   ): Promise<User>;
   deactivate(id: string, ctx: TransactionContext): Promise<User>;
+  reactivate(id: string, ctx: TransactionContext): Promise<User>;
+  /** Borrado físico (docs/specs/10-gestion-companies-users.md, "purge" de Company). */
+  deleteAllByCompanyId(companyId: string, ctx: TransactionContext): Promise<void>;
 }

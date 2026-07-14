@@ -12,6 +12,8 @@ function createFakes() {
     list: vi.fn(),
     update: vi.fn(),
     deactivate: vi.fn().mockResolvedValue({ id: 'company-1', name: 'ACME', isActive: false }),
+    reactivate: vi.fn(),
+    delete: vi.fn(),
   };
   const unitOfWork = {
     runInTransaction: vi.fn((work: (ctx: unknown) => Promise<unknown>) => work(FAKE_CTX)),

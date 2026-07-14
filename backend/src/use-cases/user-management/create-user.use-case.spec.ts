@@ -17,6 +17,8 @@ function createFakes() {
     list: vi.fn(),
     update: vi.fn(),
     deactivate: vi.fn(),
+    reactivate: vi.fn(),
+    deleteAllByCompanyId: vi.fn(),
   };
   const passwordHasher = {
     hash: vi.fn().mockResolvedValue(HASHED_PASSWORD),

@@ -28,4 +28,12 @@ export class CompaniesApiService {
   remove(id: string): Observable<void> {
     return this.api.delete<void>(`/companies/${id}`);
   }
+
+  reactivate(id: string): Observable<Company> {
+    return this.api.post<Company>(`/companies/${id}/reactivate`, {});
+  }
+
+  purge(id: string): Observable<void> {
+    return this.api.delete<void>(`/companies/${id}/purge`);
+  }
 }

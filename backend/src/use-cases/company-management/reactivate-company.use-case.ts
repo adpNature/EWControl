@@ -1,0 +1,33 @@
+import { Inject, Injectable } from '@nestjs/common';
+import { Company } from '../../entities/company.entity';
+import {
+  type ICompanyRepository,
+  COMPANY_REPOSITORY,
+} from '../seed-demo-environment/ports/company-repository.port';
+import { type IUnitOfWork, UNIT_OF_WORK } from '../seed-demo-environment/ports/unit-of-work.port';
+import { CompanyNotFoundError } from './errors/company-not-found.error';
+
+export type ReactivateCompanyInput = { companyId: string };
+
+/**
+ * docs/specs/10-gestion-companies-users.md, flujo principal backend:
+ * reactiva una Company dada de baja, restaurando el acceso a sus Users.
+ * Idempotente: no falla si la Company ya estaba activa.
+ */
+@Injectable()
+export class ReactivateCompanyUseCase {
+  constructor(
+    @Inject(COMPANY_REPOSITORY) private readonly companyRepository: ICompanyRepository,
+    @Inject(UNIT_OF_WORK) private readonly unitOfWork: IUnitOfWork,
+  ) {}
+
+  execute(input: ReactivateCompanyInput): Promise<Company> {
+    return this.unitOfWork.runInTransaction(async (ctx) => {
+      const company = await this.companyRepository.findById(input.companyId, ctx);
+      if (!company) {
+        throw new CompanyNotFoundError(input.companyId);
+      }
+      return this.companyRepository.reactivate(company.id, ctx);
+    });
+  }
+}

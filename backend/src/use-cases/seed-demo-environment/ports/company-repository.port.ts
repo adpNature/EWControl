@@ -11,8 +11,7 @@ export interface ICompanyRepository {
   /**
    * docs/specs/10-gestion-companies-users.md, flujo principal backend: lista
    * TODAS las Companies (activas e inactivas), a diferencia de Machine/Signal
-   * — no hay reactivación de una Company dada de baja todavía, así que ocultar
-   * las inactivas dejaría al SuperAdmin sin forma de verlas.
+   * — necesario para que el SuperAdmin pueda ver y reactivar las dadas de baja.
    */
   list(
     pagination: { limit: number; offset: number },
@@ -20,4 +19,7 @@ export interface ICompanyRepository {
   ): Promise<{ data: Company[]; total: number }>;
   update(id: string, changes: { name: string }, ctx: TransactionContext): Promise<Company>;
   deactivate(id: string, ctx: TransactionContext): Promise<Company>;
+  reactivate(id: string, ctx: TransactionContext): Promise<Company>;
+  /** Borrado físico (docs/specs/10-gestion-companies-users.md, "purge"); requiere haber borrado antes sus Users/Machines. */
+  delete(id: string, ctx: TransactionContext): Promise<void>;
 }

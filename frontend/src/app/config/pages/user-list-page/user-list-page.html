@@ -20,7 +20,9 @@
 
   <ng-template #actions let-user>
     <a [routerLink]="[user.id, 'edit']">Editar</a>
-    @if (isSelf(user)) {
+    @if (!user.isActive) {
+      <button type="button" class="btn-primary" (click)="reactivate(user)">Reactivar</button>
+    } @else if (isSelf(user)) {
       <button type="button" class="btn-danger" disabled title="No puedes darte de baja a ti mismo.">
         Dar de baja
       </button>

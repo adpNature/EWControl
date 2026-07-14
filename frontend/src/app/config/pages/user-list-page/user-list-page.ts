@@ -15,6 +15,7 @@ import { UsersState } from '../../use-cases/users.state';
 const COLUMNS: TableColumn<ManagedUser>[] = [
   { key: 'email', header: 'Email' },
   { key: 'role', header: 'Rol' },
+  { key: 'isActive', header: 'Estado', cell: (user) => (user.isActive ? 'Activo' : 'Inactivo') },
 ];
 
 /**
@@ -87,6 +88,14 @@ export class UserListPage implements OnInit {
       next: () => this.toastService.show({ type: 'success', message: 'User dado de baja.' }),
       error: () =>
         this.toastService.show({ type: 'danger', message: 'No se ha podido dar de baja al User.' }),
+    });
+  }
+
+  reactivate(user: ManagedUser): void {
+    this.usersState.reactivate(user.id).subscribe({
+      next: () => this.toastService.show({ type: 'success', message: 'User reactivado.' }),
+      error: () =>
+        this.toastService.show({ type: 'danger', message: 'No se ha podido reactivar al User.' }),
     });
   }
 

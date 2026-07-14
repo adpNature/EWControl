@@ -13,6 +13,7 @@ import { EmailAlreadyExistsError } from '../../../use-cases/user-management/erro
 import { UserNotFoundError } from '../../../use-cases/user-management/errors/user-not-found.error';
 import { GetUserUseCase } from '../../../use-cases/user-management/get-user.use-case';
 import { ListUsersUseCase } from '../../../use-cases/user-management/list-users.use-case';
+import { ReactivateUserUseCase } from '../../../use-cases/user-management/reactivate-user.use-case';
 import { UpdateUserUseCase } from '../../../use-cases/user-management/update-user.use-case';
 import { HttpExceptionFilter } from '../http-exception.filter';
 import { UserController } from './user.controller';
@@ -31,6 +32,7 @@ describe('UserController (HTTP)', () => {
   let getUserUseCase: { execute: ReturnType<typeof vi.fn> };
   let updateUserUseCase: { execute: ReturnType<typeof vi.fn> };
   let deactivateUserUseCase: { execute: ReturnType<typeof vi.fn> };
+  let reactivateUserUseCase: { execute: ReturnType<typeof vi.fn> };
   let changePasswordUseCase: { execute: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
@@ -66,6 +68,16 @@ describe('UserController (HTTP)', () => {
       execute: vi.fn().mockResolvedValue({ id: 'user-2', email: 'new@x.com' }),
     };
     deactivateUserUseCase = { execute: vi.fn().mockResolvedValue(undefined) };
+    reactivateUserUseCase = {
+      execute: vi.fn().mockResolvedValue({
+        id: 'user-2',
+        companyId: 'company-1',
+        email: 'nuevo@ewcontrol.local',
+        passwordHash: '$2b$10$secret',
+        role: UserRole.AdminCliente,
+        isActive: true,
+      }),
+    };
     changePasswordUseCase = { execute: vi.fn().mockResolvedValue(undefined) };
 
     const moduleRef = await Test.createTestingModule({
@@ -76,6 +88,7 @@ describe('UserController (HTTP)', () => {
         { provide: GetUserUseCase, useValue: getUserUseCase },
         { provide: UpdateUserUseCase, useValue: updateUserUseCase },
         { provide: DeactivateUserUseCase, useValue: deactivateUserUseCase },
+        { provide: ReactivateUserUseCase, useValue: reactivateUserUseCase },
         { provide: ChangePasswordUseCase, useValue: changePasswordUseCase },
       ],
     }).compile();
@@ -208,6 +221,26 @@ describe('UserController (HTTP)', () => {
       requesterId: 'user-1',
       requester: { companyId: 'company-1', role: UserRole.AdminCliente },
     });
+  });
+
+  it('POST /:id/reactivate reactiva el User y nunca devuelve passwordHash', async () => {
+    const response = await request(app.getHttpServer()).post('/users/user-2/reactivate');
+
+    expect(response.status).toBe(200);
+    expect(reactivateUserUseCase.execute).toHaveBeenCalledWith({
+      userId: 'user-2',
+      requester: { companyId: 'company-1', role: UserRole.AdminCliente },
+    });
+    expect(response.body).not.toHaveProperty('passwordHash');
+  });
+
+  it('POST /:id/reactivate responde 404 USER_NOT_FOUND si el use-case lo lanza', async () => {
+    reactivateUserUseCase.execute.mockRejectedValue(new UserNotFoundError('missing'));
+
+    const response = await request(app.getHttpServer()).post('/users/missing/reactivate');
+
+    expect(response.status).toBe(404);
+    expect(response.body.code).toBe('USER_NOT_FOUND');
   });
 
   it('PATCH /me/password cambia la contraseña del propio requester', async () => {

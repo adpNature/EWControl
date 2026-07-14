@@ -62,6 +62,22 @@ export class InfluxDbHistoryRepository implements IHistoryWriter, IHistoryReader
   }
 
   async deleteRange(machineId: string, from: Date, to: Date): Promise<void> {
+    await this.deleteByPredicate(
+      `_measurement="${MEASUREMENT}" AND machine_id="${machineId}"`,
+      from,
+      to,
+    );
+  }
+
+  async deleteAllForCompany(companyId: string, until: Date): Promise<void> {
+    await this.deleteByPredicate(
+      `_measurement="${MEASUREMENT}" AND company_id="${companyId}"`,
+      new Date(0),
+      until,
+    );
+  }
+
+  private async deleteByPredicate(predicate: string, from: Date, to: Date): Promise<void> {
     const { url, token, org, bucket } = influxdbConnectionOptions();
     const headers = new Headers();
     headers.set('Authorization', `Token ${token}`);
@@ -72,11 +88,7 @@ export class InfluxDbHistoryRepository implements IHistoryWriter, IHistoryReader
       {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          start: from.toISOString(),
-          stop: to.toISOString(),
-          predicate: `_measurement="${MEASUREMENT}" AND machine_id="${machineId}"`,
-        }),
+        body: JSON.stringify({ start: from.toISOString(), stop: to.toISOString(), predicate }),
       },
     );
     if (!response.ok) {

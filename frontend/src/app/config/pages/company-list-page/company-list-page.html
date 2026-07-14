@@ -20,7 +20,12 @@
       <button type="button" class="btn-danger" (click)="companyToDeactivate.set(company)">
         Dar de baja
       </button>
+    } @else {
+      <button type="button" class="btn-primary" (click)="reactivate(company)">Reactivar</button>
     }
+    <button type="button" class="btn-danger" (click)="companyToPurge.set(company)">
+      Eliminar permanentemente
+    </button>
   </ng-template>
 </div>
 
@@ -35,4 +40,18 @@
   confirmLabel="Dar de baja"
   (confirmed)="confirmDeactivate()"
   (cancelled)="companyToDeactivate.set(null)"
+/>
+
+<app-confirm-dialog
+  [open]="companyToPurge() !== null"
+  title="Eliminar Company permanentemente"
+  [message]="
+    'Esto eliminará permanentemente la Company ' +
+    (companyToPurge()?.name ?? '') +
+    ', sus Users, Machines, Signals y Dashboards. Esta acción no se puede deshacer.'
+  "
+  confirmLabel="Eliminar permanentemente"
+  [confirmText]="companyToPurge()?.name"
+  (confirmed)="confirmPurge()"
+  (cancelled)="companyToPurge.set(null)"
 />

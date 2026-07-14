@@ -12,6 +12,7 @@ import { CreateUserUseCase } from '../use-cases/user-management/create-user.use-
 import { DeactivateUserUseCase } from '../use-cases/user-management/deactivate-user.use-case';
 import { GetUserUseCase } from '../use-cases/user-management/get-user.use-case';
 import { ListUsersUseCase } from '../use-cases/user-management/list-users.use-case';
+import { ReactivateUserUseCase } from '../use-cases/user-management/reactivate-user.use-case';
 import { UpdateUserUseCase } from '../use-cases/user-management/update-user.use-case';
 import { UserAccessResolver } from '../use-cases/user-management/user-access.resolver';
 import { AuthModule } from './auth.module';
@@ -35,6 +36,7 @@ import { AuthModule } from './auth.module';
     GetUserUseCase,
     UpdateUserUseCase,
     DeactivateUserUseCase,
+    ReactivateUserUseCase,
     { provide: USER_REPOSITORY, useClass: UserTypeOrmRepository },
     { provide: REFRESH_TOKEN_REPOSITORY, useClass: RefreshTokenTypeOrmRepository },
     { provide: PASSWORD_HASHER, useClass: BcryptPasswordHasher },

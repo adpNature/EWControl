@@ -14,10 +14,19 @@ describe('CompaniesState', () => {
     create: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
     remove: ReturnType<typeof vi.fn>;
+    reactivate: ReturnType<typeof vi.fn>;
+    purge: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
-    companiesApi = { list: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() };
+    companiesApi = {
+      list: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      remove: vi.fn(),
+      reactivate: vi.fn(),
+      purge: vi.fn(),
+    };
     TestBed.configureTestingModule({
       providers: [{ provide: CompaniesApiService, useValue: companiesApi }],
     });
@@ -85,6 +94,38 @@ describe('CompaniesState', () => {
 
     await new Promise((resolve, reject) =>
       service.remove('company-1').subscribe({ next: resolve, error: reject }),
+    );
+
+    expect(service.companies()).toEqual([COMPANY_2]);
+  });
+
+  it('reactivate() reemplaza la Company reactivada en el signal', async () => {
+    companiesApi.list.mockReturnValue(
+      of({ data: [{ ...COMPANY_1, isActive: false }], total: 1, limit: 20, offset: 0 }),
+    );
+    await new Promise((resolve, reject) =>
+      service.load().subscribe({ next: resolve, error: reject }),
+    );
+    companiesApi.reactivate.mockReturnValue(of(COMPANY_1));
+
+    await new Promise((resolve, reject) =>
+      service.reactivate('company-1').subscribe({ next: resolve, error: reject }),
+    );
+
+    expect(service.companies()).toEqual([COMPANY_1]);
+  });
+
+  it('purge() retira la Company del signal', async () => {
+    companiesApi.list.mockReturnValue(
+      of({ data: [COMPANY_1, COMPANY_2], total: 2, limit: 20, offset: 0 }),
+    );
+    await new Promise((resolve, reject) =>
+      service.load().subscribe({ next: resolve, error: reject }),
+    );
+    companiesApi.purge.mockReturnValue(of(undefined));
+
+    await new Promise((resolve, reject) =>
+      service.purge('company-1').subscribe({ next: resolve, error: reject }),
     );
 
     expect(service.companies()).toEqual([COMPANY_2]);

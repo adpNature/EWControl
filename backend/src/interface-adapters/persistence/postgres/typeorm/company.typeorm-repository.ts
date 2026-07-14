@@ -43,4 +43,14 @@ export class CompanyTypeOrmRepository implements ICompanyRepository {
     await repository.update(id, { isActive: false });
     return repository.findOneByOrFail({ id });
   }
+
+  async reactivate(id: string, ctx: TransactionContext): Promise<Company> {
+    const repository = (ctx as EntityManager).getRepository(Company);
+    await repository.update(id, { isActive: true });
+    return repository.findOneByOrFail({ id });
+  }
+
+  async delete(id: string, ctx: TransactionContext): Promise<void> {
+    await (ctx as EntityManager).getRepository(Company).delete(id);
+  }
 }

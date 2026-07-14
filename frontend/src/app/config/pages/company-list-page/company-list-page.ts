@@ -33,6 +33,7 @@ export class CompanyListPage implements OnInit {
   readonly columns = COLUMNS;
   readonly rowKey = (company: Company): string => company.id;
   readonly companyToDeactivate = signal<Company | null>(null);
+  readonly companyToPurge = signal<Company | null>(null);
 
   ngOnInit(): void {
     this.companiesState.load().subscribe();
@@ -54,6 +55,34 @@ export class CompanyListPage implements OnInit {
         this.toastService.show({
           type: 'danger',
           message: 'No se ha podido dar de baja la Company.',
+        }),
+    });
+  }
+
+  reactivate(company: Company): void {
+    this.companiesState.reactivate(company.id).subscribe({
+      next: () => this.toastService.show({ type: 'success', message: 'Company reactivada.' }),
+      error: () =>
+        this.toastService.show({
+          type: 'danger',
+          message: 'No se ha podido reactivar la Company.',
+        }),
+    });
+  }
+
+  confirmPurge(): void {
+    const company = this.companyToPurge();
+    this.companyToPurge.set(null);
+    if (!company) {
+      return;
+    }
+    this.companiesState.purge(company.id).subscribe({
+      next: () =>
+        this.toastService.show({ type: 'success', message: 'Company eliminada permanentemente.' }),
+      error: () =>
+        this.toastService.show({
+          type: 'danger',
+          message: 'No se ha podido eliminar la Company.',
         }),
     });
   }

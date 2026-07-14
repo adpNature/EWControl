@@ -71,4 +71,12 @@ describe('UsersApiService', () => {
     expect(req.request.method).toBe('DELETE');
     req.flush(null);
   });
+
+  it('reactivate llama a POST /users/:id/reactivate', () => {
+    service.reactivate('user-1').subscribe();
+
+    const req = httpMock.expectOne('/api/v1/users/user-1/reactivate');
+    expect(req.request.method).toBe('POST');
+    req.flush({});
+  });
 });

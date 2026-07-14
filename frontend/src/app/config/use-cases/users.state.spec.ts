@@ -26,10 +26,17 @@ describe('UsersState', () => {
     create: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
     remove: ReturnType<typeof vi.fn>;
+    reactivate: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
-    usersApi = { list: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() };
+    usersApi = {
+      list: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      remove: vi.fn(),
+      reactivate: vi.fn(),
+    };
     TestBed.configureTestingModule({
       providers: [{ provide: UsersApiService, useValue: usersApi }],
     });
@@ -108,5 +115,21 @@ describe('UsersState', () => {
     );
 
     expect(service.users()).toEqual([USER_2]);
+  });
+
+  it('reactivate() reemplaza el User reactivado en el signal', async () => {
+    usersApi.list.mockReturnValue(
+      of({ data: [{ ...USER_1, isActive: false }], total: 1, limit: 20, offset: 0 }),
+    );
+    await new Promise((resolve, reject) =>
+      service.load().subscribe({ next: resolve, error: reject }),
+    );
+    usersApi.reactivate.mockReturnValue(of(USER_1));
+
+    await new Promise((resolve, reject) =>
+      service.reactivate('user-1').subscribe({ next: resolve, error: reject }),
+    );
+
+    expect(service.users()).toEqual([USER_1]);
   });
 });

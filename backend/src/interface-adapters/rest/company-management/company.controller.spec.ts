@@ -6,9 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { UserRole } from '../../../entities/user-role.enum';
 import { CreateCompanyUseCase } from '../../../use-cases/company-management/create-company.use-case';
 import { DeactivateCompanyUseCase } from '../../../use-cases/company-management/deactivate-company.use-case';
+import { DeleteCompanyPermanentlyUseCase } from '../../../use-cases/company-management/delete-company-permanently.use-case';
 import { CompanyNotFoundError } from '../../../use-cases/company-management/errors/company-not-found.error';
 import { GetCompanyUseCase } from '../../../use-cases/company-management/get-company.use-case';
 import { ListCompaniesUseCase } from '../../../use-cases/company-management/list-companies.use-case';
+import { ReactivateCompanyUseCase } from '../../../use-cases/company-management/reactivate-company.use-case';
 import { UpdateCompanyUseCase } from '../../../use-cases/company-management/update-company.use-case';
 import { RolesGuard } from '../../auth-guard/roles.guard';
 import { HttpExceptionFilter } from '../http-exception.filter';
@@ -36,6 +38,8 @@ describe('CompanyController (HTTP)', () => {
   let getCompanyUseCase: { execute: ReturnType<typeof vi.fn> };
   let updateCompanyUseCase: { execute: ReturnType<typeof vi.fn> };
   let deactivateCompanyUseCase: { execute: ReturnType<typeof vi.fn> };
+  let reactivateCompanyUseCase: { execute: ReturnType<typeof vi.fn> };
+  let deleteCompanyPermanentlyUseCase: { execute: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     currentUser = SUPER_ADMIN;
@@ -52,6 +56,8 @@ describe('CompanyController (HTTP)', () => {
       execute: vi.fn().mockResolvedValue({ id: 'company-1', name: 'ACME Corp', isActive: true }),
     };
     deactivateCompanyUseCase = { execute: vi.fn().mockResolvedValue(undefined) };
+    reactivateCompanyUseCase = { execute: vi.fn().mockResolvedValue(undefined) };
+    deleteCompanyPermanentlyUseCase = { execute: vi.fn().mockResolvedValue(undefined) };
 
     const moduleRef = await Test.createTestingModule({
       controllers: [CompanyController],
@@ -61,6 +67,8 @@ describe('CompanyController (HTTP)', () => {
         { provide: GetCompanyUseCase, useValue: getCompanyUseCase },
         { provide: UpdateCompanyUseCase, useValue: updateCompanyUseCase },
         { provide: DeactivateCompanyUseCase, useValue: deactivateCompanyUseCase },
+        { provide: ReactivateCompanyUseCase, useValue: reactivateCompanyUseCase },
+        { provide: DeleteCompanyPermanentlyUseCase, useValue: deleteCompanyPermanentlyUseCase },
       ],
     }).compile();
 
@@ -133,6 +141,40 @@ describe('CompanyController (HTTP)', () => {
 
     expect(response.status).toBe(204);
     expect(deactivateCompanyUseCase.execute).toHaveBeenCalledWith({ companyId: 'company-1' });
+  });
+
+  it('POST /:id/reactivate reactiva la Company', async () => {
+    const response = await request(app.getHttpServer()).post('/companies/company-1/reactivate');
+
+    expect(response.status).toBe(200);
+    expect(reactivateCompanyUseCase.execute).toHaveBeenCalledWith({ companyId: 'company-1' });
+  });
+
+  it('POST /:id/reactivate responde 404 COMPANY_NOT_FOUND si el use-case lo lanza', async () => {
+    reactivateCompanyUseCase.execute.mockRejectedValue(new CompanyNotFoundError('missing'));
+
+    const response = await request(app.getHttpServer()).post('/companies/missing/reactivate');
+
+    expect(response.status).toBe(404);
+    expect(response.body.code).toBe('COMPANY_NOT_FOUND');
+  });
+
+  it('DELETE /:id/purge borra permanentemente la Company', async () => {
+    const response = await request(app.getHttpServer()).delete('/companies/company-1/purge');
+
+    expect(response.status).toBe(204);
+    expect(deleteCompanyPermanentlyUseCase.execute).toHaveBeenCalledWith({
+      companyId: 'company-1',
+    });
+  });
+
+  it('DELETE /:id/purge responde 404 COMPANY_NOT_FOUND si el use-case lo lanza', async () => {
+    deleteCompanyPermanentlyUseCase.execute.mockRejectedValue(new CompanyNotFoundError('missing'));
+
+    const response = await request(app.getHttpServer()).delete('/companies/missing/purge');
+
+    expect(response.status).toBe(404);
+    expect(response.body.code).toBe('COMPANY_NOT_FOUND');
   });
 
   it('POST / responde 400 si el body incluye campos no declarados (Mass Assignment)', async () => {

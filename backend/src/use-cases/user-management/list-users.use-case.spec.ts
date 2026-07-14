@@ -13,6 +13,8 @@ function createFakes() {
     list: vi.fn().mockResolvedValue({ data: [{ id: 'user-1' }], total: 1 }),
     update: vi.fn(),
     deactivate: vi.fn(),
+    reactivate: vi.fn(),
+    deleteAllByCompanyId: vi.fn(),
   };
   const unitOfWork = {
     runInTransaction: vi.fn((work: (ctx: unknown) => Promise<unknown>) => work(FAKE_CTX)),
@@ -35,7 +37,7 @@ describe('ListUsersUseCase', () => {
     });
 
     expect(fakes.userRepository.list).toHaveBeenCalledWith(
-      { companyId: 'company-1', isActive: true },
+      { companyId: 'company-1' },
       { limit: 20, offset: 0 },
       FAKE_CTX,
     );
@@ -52,7 +54,7 @@ describe('ListUsersUseCase', () => {
     });
 
     expect(fakes.userRepository.list).toHaveBeenCalledWith(
-      { companyId: null, isActive: true },
+      { companyId: null },
       { limit: 20, offset: 0 },
       FAKE_CTX,
     );
@@ -69,7 +71,7 @@ describe('ListUsersUseCase', () => {
     });
 
     expect(fakes.userRepository.list).toHaveBeenCalledWith(
-      { companyId: 'company-2', isActive: true },
+      { companyId: 'company-2' },
       { limit: 20, offset: 0 },
       FAKE_CTX,
     );
@@ -86,7 +88,7 @@ describe('ListUsersUseCase', () => {
     });
 
     expect(fakes.userRepository.list).toHaveBeenCalledWith(
-      { companyId: 'company-1', isActive: true },
+      { companyId: 'company-1' },
       { limit: 20, offset: 0 },
       FAKE_CTX,
     );

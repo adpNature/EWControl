@@ -60,4 +60,16 @@ export class UsersState {
         tap(() => this.usersSignal.update((current) => current.filter((user) => user.id !== id))),
       );
   }
+
+  reactivate(id: string): Observable<ManagedUser> {
+    return this.usersApi
+      .reactivate(id)
+      .pipe(
+        tap((reactivated) =>
+          this.usersSignal.update((current) =>
+            current.map((user) => (user.id === id ? reactivated : user)),
+          ),
+        ),
+      );
+  }
 }

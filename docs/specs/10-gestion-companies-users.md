@@ -44,6 +44,14 @@ Hoy la única forma de que exista una `Company` o un `User` es el seed de entorn
 - **When** un `SuperAdmin` llama a `DELETE /api/v1/companies/:id`.
 - **Then** la API responde `204` y marca la Company como inactiva (`isActive = false`, baja lógica); ningún `User` de esa Company puede volver a autenticarse ni renovar su sesión ([05-auth-login.md](05-auth-login.md)), sin eliminar filas ni desactivar físicamente sus Users/Machines/Signals (Documento 3, apartado 3.2.1: "impedirá el acceso... sin necesidad de eliminarlos físicamente").
 
+- **Given** una Company existente e inactiva.
+- **When** un `SuperAdmin` llama a `POST /api/v1/companies/:id/reactivate`.
+- **Then** la API responde `200` con la Company marcada como activa (`isActive = true`), restaurando el acceso a sus Users (Documento 3, apartado 3.2.1). La operación es idempotente: si la Company ya estaba activa, responde `200` sin error.
+
+- **Given** una Company existente (activa o inactiva), con Users, Machines, Signals y Dashboards asociados.
+- **When** un `SuperAdmin` llama a `DELETE /api/v1/companies/:id/purge`.
+- **Then** la API responde `204` y elimina físicamente, en una única transacción de Postgres: las Signals y MachineConnections de cada Machine, las Machines de la Company, los Users de la Company (los Dashboards se eliminan solos por `ON DELETE CASCADE`) y finalmente la propia Company; tras confirmar la transacción, elimina también el histórico de Signals de esa Company en InfluxDB (predicado por `company_id`, Documento 4 apartado 4.3). La operación es irreversible y no requiere que la Company esté previamente desactivada.
+
 - **Given** un `SuperAdmin` autenticado que acaba de crear una Company.
 - **When** llama a `POST /api/v1/users` con `{ "companyId": "<id de la Company>", "email": "...", "password": "...", "role": "AdminCliente" }`.
 - **Then** la API responde `201` con el primer `User` de esa Company (así se completa el alta de un nuevo cliente: Company + su AdminCliente inicial).
@@ -54,7 +62,7 @@ Hoy la única forma de que exista una `Company` o un `User` es el seed de entorn
 
 - **Given** un `AdminCliente` o `SuperAdmin` con Users existentes visibles.
 - **When** llama a `GET /api/v1/users` o `GET /api/v1/users/:id`.
-- **Then** la API responde `200` con los Users **activos** de su Company (`AdminCliente`) o de todas las Companies (`SuperAdmin`), incluyendo `companyId` y `role` en cada uno, nunca `passwordHash`.
+- **Then** la API responde `200` con **todos** los Users (activos e inactivos) de su Company (`AdminCliente`) o de todas las Companies (`SuperAdmin`), incluyendo `companyId`, `role` e `isActive` en cada uno, nunca `passwordHash` — necesario para poder ver y reactivar Users dados de baja.
 
 - **Given** un User existente en la Company del requester.
 - **When** llama a `PATCH /api/v1/users/:id` con `{ "email": "..." }` y/o `{ "role": "..." }`.
@@ -63,6 +71,10 @@ Hoy la única forma de que exista una `Company` o un `User` es el seed de entorn
 - **Given** un User existente en la Company del requester.
 - **When** llama a `DELETE /api/v1/users/:id`.
 - **Then** la API responde `204`, marca el User como inactivo (`isActive = false`, baja lógica) e invalida inmediatamente todos sus refresh tokens activos (Documento 6, apartado 6.6), sin eliminar la fila.
+
+- **Given** un User existente e inactivo en la Company del requester.
+- **When** llama a `POST /api/v1/users/:id/reactivate`.
+- **Then** la API responde `200` con el User marcado como activo (`isActive = true`), permitiéndole volver a autenticarse (Documento 3, apartado 3.2.2: "ser reactivado"). La operación es idempotente: si el User ya estaba activo, responde `200` sin error.
 
 - **Given** un User autenticado que conoce su contraseña actual.
 - **When** llama a `PATCH /api/v1/users/me/password` con `{ "currentPassword": "...", "newPassword": "..." }`.
@@ -122,13 +134,25 @@ Hoy la única forma de que exista una `Company` o un `User` es el seed de entorn
 - **When** se procesa la petición.
 - **Then** el `ValidationPipe` global (`whitelist: true`, `forbidNonWhitelisted: true`) rechaza el payload con `400` (cierra Mass Assignment, OWASP A04).
 
+- **Given** una Company o un User inexistente.
+- **When** se llama a `POST /api/v1/companies/:id/reactivate`, `DELETE /api/v1/companies/:id/purge` o `POST /api/v1/users/:id/reactivate` con un `id` que no existe.
+- **Then** la API responde `404`.
+
+- **Given** `DELETE /api/v1/companies/:id/purge`.
+- **When** se procesa la petición.
+- **Then** el control de autorización es exclusivamente `RolesGuard` (rol `SuperAdmin`), igual que el resto de endpoints de Company; la API **no** valida en el servidor ningún nombre de Company tecleado por el cliente — esa confirmación es fricción de UI contra el clic accidental (OWASP A04, Documento 6 apartado 6.10), no un control de autorización, y su ausencia u omisión en el payload no afecta al resultado de la operación.
+
+- **Given** el borrado físico de una Company vía `purge`.
+- **When** se completa con éxito.
+- **Then** no se genera ninguna entrada de auditoría específica (el `auth_audit_log` existente cubre solo autenticación, OWASP A09, Documento 6 apartado 6.10) — mismo alcance que el resto de bajas lógicas de esta spec, que tampoco se auditan hoy; queda como mejora futura fuera de alcance.
+
 ### Contrato de entrada/salida
 
 Ver [11-api-rest.md](../11-api-rest.md), secciones "Auth" (`forgot-password`, `reset-password`), "Company" y "User" (incluyendo `PATCH /api/v1/users/me/password`).
 
 ### Criterios de aceptación backend
 
-1. `POST /companies`, `GET /companies`, `GET /companies/:id`, `PATCH /companies/:id` y `DELETE /companies/:id` solo son accesibles con rol `SuperAdmin`; cualquier otro rol recibe `403`.
+1. `POST /companies`, `GET /companies`, `GET /companies/:id`, `PATCH /companies/:id`, `DELETE /companies/:id`, `POST /companies/:id/reactivate` y `DELETE /companies/:id/purge` solo son accesibles con rol `SuperAdmin`; cualquier otro rol recibe `403`.
 2. `DELETE /companies/:id` es una baja lógica que bloquea el login/refresh de todos los Users de esa Company sin eliminar ni desactivar físicamente filas asociadas.
 3. `POST /users` toma el `companyId` del token para un `AdminCliente` (ignorando cualquier `companyId` del payload) y requiere `companyId` explícito en el payload para un `SuperAdmin`.
 4. Ningún `AdminCliente` puede crear, ascender, ver ni modificar un `User` con rol `SuperAdmin`, ni acceder a Users de otra Company (`404`).
@@ -140,6 +164,9 @@ Ver [11-api-rest.md](../11-api-rest.md), secciones "Auth" (`forgot-password`, `r
 10. El email de `User` es único en toda la plataforma; un duplicado responde `409 EMAIL_ALREADY_EXISTS`.
 11. Toda nueva contraseña (creación de User, cambio propio o recuperación) exige mínimo 8 caracteres con al menos una letra y un número, validado por DTO (`400` si no cumple).
 12. El seed de entorno demo ([01-fundacion-entorno-demo.md](01-fundacion-entorno-demo.md)) incluye un segundo User demo con rol `SuperAdmin`, permitiendo probar esta spec de extremo a extremo sin acceso directo a la base de datos.
+13. `GET /users`/`GET /users/:id` devuelven Users activos e inactivos (nunca ocultan los dados de baja, para poder reactivarlos).
+14. `POST /companies/:id/reactivate` y `POST /users/:id/reactivate` son idempotentes (no fallan si el recurso ya estaba activo) y no dependen de ningún estado previo del recurso.
+15. `DELETE /companies/:id/purge` elimina físicamente la Company y todos sus recursos asociados (Users, Machines, MachineConnections, Signals; Dashboards vía `ON DELETE CASCADE`) en Postgres, y su histórico de Signals en InfluxDB; puede ejecutarse tanto sobre una Company activa como inactiva; un fallo al borrar el histórico de InfluxDB se registra pero no revierte ni bloquea el borrado ya confirmado en Postgres.
 
 ## Frontend
 
@@ -153,9 +180,21 @@ Ver [11-api-rest.md](../11-api-rest.md), secciones "Auth" (`forgot-password`, `r
 - **When** el `SuperAdmin` pulsa "Nueva Company", completa el nombre y confirma.
 - **Then** la app llama a `POST /api/v1/companies`, añade la Company a la lista y ofrece continuar directamente al alta de su primer User (`AdminCliente`) sobre esa Company recién creada.
 
+- **Given** la lista de Companies.
+- **When** el `SuperAdmin` pulsa "Reactivar" sobre una Company inactiva.
+- **Then** la app llama a `POST /api/v1/companies/:id/reactivate`, actualiza el estado de la fila a "Activa" y muestra un toast de confirmación, sin diálogo de confirmación adicional (acción reversible, no destructiva).
+
+- **Given** la lista de Companies.
+- **When** el `SuperAdmin` pulsa "Eliminar permanentemente" sobre una Company (activa o inactiva).
+- **Then** la app abre un diálogo que advierte explícitamente que se perderán la Company, sus Users, Machines, Signals y Dashboards de forma irreversible, y exige teclear el nombre exacto de la Company para habilitar el botón de confirmar; al confirmar, llama a `DELETE /api/v1/companies/:id/purge` y quita la Company de la lista.
+
 - **Given** un `AdminCliente` o `SuperAdmin` autenticado que entra a la pantalla "Users" de Configuración.
 - **When** el `SuperAdmin` ha seleccionado previamente una Company (Documento 8, apartado 8.8, "Experiencia del SuperAdmin"), o el `AdminCliente` entra directamente.
-- **Then** ve la lista de Users de esa Company (email, rol, estado), con acciones para crear, editar y dar de baja; un `AdminCliente` nunca ve el selector de Company.
+- **Then** ve la lista de Users de esa Company (email, rol, estado), con acciones para crear, editar, dar de baja y reactivar; un `AdminCliente` nunca ve el selector de Company.
+
+- **Given** la lista de Users.
+- **When** el usuario con permisos pulsa "Reactivar" sobre un User inactivo.
+- **Then** la app llama a `POST /api/v1/users/:id/reactivate`, actualiza el estado de la fila a "Activo" y muestra un toast de confirmación, sin diálogo de confirmación adicional.
 
 - **Given** la pantalla de Users.
 - **When** el usuario pulsa "Nuevo User", completa email/contraseña/rol y confirma.
@@ -201,7 +240,7 @@ Ver [11-api-rest.md](../11-api-rest.md), secciones "Auth" (`forgot-password`, `r
 
 ### Componentes/pantallas involucrados
 
-Extiende `frontend/src/app/config/` ([06-gestion-machines-signals.md](06-gestion-machines-signals.md)) con el listado y formulario de Companies (solo `SuperAdmin`) y el listado y formulario de Users; extiende `config-permissions.ts` (hoy un único `canConfigure()` binario) para distinguir permisos específicos de Company (`SuperAdmin` únicamente) frente a los de User (`AdminCliente`/`SuperAdmin`). Añade a `frontend/src/app/auth/` las pantallas de cambio de contraseña (autenticado), "¿Olvidaste tu contraseña?" y "Restablecer contraseña" (no autenticadas), junto al enlace correspondiente en `login-page`.
+Extiende `frontend/src/app/config/` ([06-gestion-machines-signals.md](06-gestion-machines-signals.md)) con el listado y formulario de Companies (solo `SuperAdmin`) y el listado y formulario de Users; extiende `config-permissions.ts` (hoy un único `canConfigure()` binario) para distinguir permisos específicos de Company (`SuperAdmin` únicamente) frente a los de User (`AdminCliente`/`SuperAdmin`). Añade a `frontend/src/app/auth/` las pantallas de cambio de contraseña (autenticado), "¿Olvidaste tu contraseña?" y "Restablecer contraseña" (no autenticadas), junto al enlace correspondiente en `login-page`. Extiende `frontend/src/app/shared/ui/confirm-dialog/` (hoy Sí/No puro) con un modo "escribe el nombre para confirmar", reutilizado por la acción "Eliminar permanentemente" de Company.
 
 ### Criterios de aceptación frontend
 
@@ -212,3 +251,5 @@ Extiende `frontend/src/app/config/` ([06-gestion-machines-signals.md](06-gestion
 5. La acción de deshabilitar/eliminar la propia fila de usuario está deshabilitada preventivamente en la UI.
 6. El flujo de recuperación de contraseña muestra siempre el mismo mensaje de confirmación tras `forgot-password`, exista o no la cuenta.
 7. Un `429` en `forgot-password` muestra un mensaje de límite de solicitudes, distinto del mensaje de confirmación genérico (criterio 6).
+8. "Reactivar" (Company y User) es una acción directa sin diálogo de confirmación, visible únicamente cuando el recurso está inactivo.
+9. "Eliminar permanentemente" (Company) exige teclear el nombre exacto de la Company para habilitar el botón de confirmar, y el diálogo advierte explícitamente qué se pierde (Users, Machines, Signals, Dashboards) y que la acción es irreversible; está visible tanto si la Company está activa como inactiva.

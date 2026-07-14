@@ -22,6 +22,8 @@ function createFakes() {
     list: vi.fn(),
     update: vi.fn(),
     deactivate: vi.fn().mockResolvedValue({ ...USER, isActive: false }),
+    reactivate: vi.fn(),
+    deleteAllByCompanyId: vi.fn(),
   };
   const refreshTokenRepository = {
     create: vi.fn(),

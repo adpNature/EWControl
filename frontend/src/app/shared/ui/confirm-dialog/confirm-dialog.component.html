@@ -12,6 +12,17 @@
     >
       <h2 [id]="titleId" class="title-lg">{{ title }}</h2>
       <p [id]="messageId" class="text-body">{{ message }}</p>
+      @if (confirmText !== undefined) {
+        <label class="form-label" [for]="confirmInputId">Escribe "{{ confirmText }}" para confirmar</label>
+        <input
+          [id]="confirmInputId"
+          class="form-input"
+          type="text"
+          autocomplete="off"
+          [value]="typedValue"
+          (input)="onTypedValueInput($any($event.target).value)"
+        />
+      }
       <div class="confirm-dialog__actions">
         <button type="button" class="btn-secondary" (click)="cancelled.emit()">
           {{ cancelLabel }}
@@ -19,6 +30,7 @@
         <button
           type="button"
           [class]="danger ? 'btn-danger' : 'btn-primary'"
+          [disabled]="isConfirmDisabled"
           (click)="confirmed.emit()"
         >
           {{ confirmLabel }}

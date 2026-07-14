@@ -23,6 +23,8 @@ function createFakes() {
     list: vi.fn(),
     update: vi.fn().mockResolvedValue({ ...USER, email: 'nuevo@ewcontrol.local' }),
     deactivate: vi.fn(),
+    reactivate: vi.fn(),
+    deleteAllByCompanyId: vi.fn(),
   };
   const unitOfWork = {
     runInTransaction: vi.fn((work: (ctx: unknown) => Promise<unknown>) => work(FAKE_CTX)),

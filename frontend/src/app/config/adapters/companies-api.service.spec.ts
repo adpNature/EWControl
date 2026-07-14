@@ -59,4 +59,20 @@ describe('CompaniesApiService', () => {
     expect(req.request.method).toBe('DELETE');
     req.flush(null);
   });
+
+  it('reactivate llama a POST /companies/:id/reactivate', () => {
+    service.reactivate('company-1').subscribe();
+
+    const req = httpMock.expectOne('/api/v1/companies/company-1/reactivate');
+    expect(req.request.method).toBe('POST');
+    req.flush({});
+  });
+
+  it('purge llama a DELETE /companies/:id/purge', () => {
+    service.purge('company-1').subscribe();
+
+    const req = httpMock.expectOne('/api/v1/companies/company-1/purge');
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null);
+  });
 });

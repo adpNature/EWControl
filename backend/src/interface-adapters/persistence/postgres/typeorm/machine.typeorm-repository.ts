@@ -44,4 +44,12 @@ export class MachineTypeOrmRepository implements IMachineRepository {
     await repository.update(id, { isActive: false });
     return repository.findOneByOrFail({ id });
   }
+
+  findAllByCompanyId(companyId: string, ctx: TransactionContext): Promise<Machine[]> {
+    return (ctx as EntityManager).getRepository(Machine).find({ where: { companyId } });
+  }
+
+  async deleteAllByCompanyId(companyId: string, ctx: TransactionContext): Promise<void> {
+    await (ctx as EntityManager).getRepository(Machine).delete({ companyId });
+  }
 }
