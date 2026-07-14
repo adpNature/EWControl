@@ -62,4 +62,18 @@ describe('ForgotPasswordPage', () => {
       'Si existe una cuenta con ese email',
     );
   });
+
+  it('muestra un mensaje de límite de solicitudes cuando el Backend responde 429, sin mostrar la confirmación genérica', async () => {
+    authApi.forgotPassword.mockReturnValue(
+      throwError(() => ({ status: 429, code: 'TOO_MANY_REQUESTS', message: 'x' })),
+    );
+    await renderPage();
+
+    await userEvent.type(screen.getByLabelText('Email'), 'demo@ewcontrol.local');
+    await userEvent.click(screen.getByRole('button', { name: 'Enviar enlace de recuperación' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Demasiados intentos');
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Email')).toBeInTheDocument();
+  });
 });

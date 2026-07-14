@@ -191,6 +191,10 @@ Ver [11-api-rest.md](../11-api-rest.md), secciones "Auth" (`forgot-password`, `r
 - **When** el backend responde `401 INVALID_RESET_TOKEN`.
 - **Then** se muestra un mensaje indicando que el enlace ya no es válido y un acceso para solicitar uno nuevo.
 
+- **Given** el formulario de "¿Olvidaste tu contraseña?".
+- **When** el backend responde `429 TOO_MANY_REQUESTS`.
+- **Then** se muestra un mensaje indicando que se ha superado el número de solicitudes y debe esperar, en vez del mensaje de confirmación genérico (mismo criterio que el login, spec 05; no viola la protección anti-enumeración porque el contador del `429` ya se lleva por email solicitado con independencia de si la cuenta existe, ver más arriba, backend).
+
 - **Given** un intento de dar de baja el propio usuario desde la pantalla de Users.
 - **When** el backend responde `422 CANNOT_DEACTIVATE_SELF`.
 - **Then** la acción "Eliminar" para la propia fila aparece deshabilitada de antemano en la UI, con un tooltip explicativo, en vez de esperar al error del Backend.
@@ -207,3 +211,4 @@ Extiende `frontend/src/app/config/` ([06-gestion-machines-signals.md](06-gestion
 4. Un error `422`/`400` de validación de negocio se muestra asociado al campo relevante del formulario, no como error genérico.
 5. La acción de deshabilitar/eliminar la propia fila de usuario está deshabilitada preventivamente en la UI.
 6. El flujo de recuperación de contraseña muestra siempre el mismo mensaje de confirmación tras `forgot-password`, exista o no la cuenta.
+7. Un `429` en `forgot-password` muestra un mensaje de límite de solicitudes, distinto del mensaje de confirmación genérico (criterio 6).
