@@ -14,15 +14,19 @@ import { GetUserUseCase } from '../use-cases/user-management/get-user.use-case';
 import { ListUsersUseCase } from '../use-cases/user-management/list-users.use-case';
 import { UpdateUserUseCase } from '../use-cases/user-management/update-user.use-case';
 import { UserAccessResolver } from '../use-cases/user-management/user-access.resolver';
+import { AuthModule } from './auth.module';
 
 /**
  * Wiring de docs/specs/10-gestion-companies-users.md (User): mismo estilo que
  * `machine-management.module.ts`/`company-management.module.ts`. No registra
  * `APP_GUARD` — `JwtAuthGuard` ya es global (`auth.module.ts`); tampoco
  * `RolesGuard`, ya que `UserController` no lleva `@roles()` (su alcance es por
- * `UserAccessResolver`, no un gate de rol).
+ * `UserAccessResolver`, no un gate de rol). Importa `AuthModule` únicamente
+ * por `ChangePasswordUseCase` (`PATCH /users/me/password`), que ya depende de
+ * los puertos de `auth/` (`AUTH_USER_REPOSITORY`, `REFRESH_TOKEN_REPOSITORY`...).
  */
 @Module({
+  imports: [AuthModule],
   controllers: [UserController],
   providers: [
     UserAccessResolver,

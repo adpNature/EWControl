@@ -91,6 +91,14 @@ export class UserTypeOrmRepository implements IUserRepository, IAuthUserReposito
     return user ? this.toAuthUserRecord(user) : null;
   }
 
+  async updatePasswordHash(
+    userId: string,
+    passwordHash: string,
+    ctx: TransactionContext,
+  ): Promise<void> {
+    await (ctx as EntityManager).getRepository(User).update(userId, { passwordHash });
+  }
+
   private toAuthUserRecord(user: User): AuthUserRecord {
     return {
       id: user.id,

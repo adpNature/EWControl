@@ -17,4 +17,6 @@ export type AuthUserRecord = {
 export interface IAuthUserRepository {
   findByEmailWithCompany(email: string, ctx: TransactionContext): Promise<AuthUserRecord | null>;
   findByIdWithCompany(userId: string, ctx: TransactionContext): Promise<AuthUserRecord | null>;
+  /** docs/specs/10-gestion-companies-users.md: cambio propio y recuperación de contraseña. */
+  updatePasswordHash(userId: string, passwordHash: string, ctx: TransactionContext): Promise<void>;
 }

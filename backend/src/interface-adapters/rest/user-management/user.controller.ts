@@ -18,6 +18,8 @@ import {
 } from '@nestjs/common';
 import type { CurrentUser } from '../../auth-guard/current-user';
 import { currentUser } from '../../auth-guard/current-user.decorator';
+import { ChangePasswordUseCase } from '../../../use-cases/auth/change-password.use-case';
+import { CurrentPasswordInvalidError } from '../../../use-cases/auth/errors/current-password-invalid.error';
 import { CreateUserUseCase } from '../../../use-cases/user-management/create-user.use-case';
 import { DeactivateUserUseCase } from '../../../use-cases/user-management/deactivate-user.use-case';
 import { CannotCreateSuperAdminError } from '../../../use-cases/user-management/errors/cannot-create-superadmin.error';
@@ -28,6 +30,7 @@ import { UserNotFoundError } from '../../../use-cases/user-management/errors/use
 import { GetUserUseCase } from '../../../use-cases/user-management/get-user.use-case';
 import { ListUsersUseCase } from '../../../use-cases/user-management/list-users.use-case';
 import { UpdateUserUseCase } from '../../../use-cases/user-management/update-user.use-case';
+import { ChangePasswordDto } from './change-password.dto';
 import { CreateUserDto } from './create-user.dto';
 import { ListUsersQueryDto } from './list-users-query.dto';
 import { UpdateUserDto } from './update-user.dto';
@@ -51,6 +54,7 @@ export class UserController {
     private readonly getUserUseCase: GetUserUseCase,
     private readonly updateUserUseCase: UpdateUserUseCase,
     private readonly deactivateUserUseCase: DeactivateUserUseCase,
+    private readonly changePasswordUseCase: ChangePasswordUseCase,
   ) {}
 
   @Post()
@@ -93,6 +97,23 @@ export class UserController {
         requester: { companyId: user.companyId, role: user.role },
       });
       return toUserResponse(found);
+    } catch (error) {
+      throw this.toHttpException(error);
+    }
+  }
+
+  @Patch('me/password')
+  @HttpCode(HttpStatus.OK)
+  async changePassword(
+    @Body() dto: ChangePasswordDto,
+    @currentUser() user: CurrentUser,
+  ): Promise<void> {
+    try {
+      await this.changePasswordUseCase.execute({
+        userId: user.id,
+        currentPassword: dto.currentPassword,
+        newPassword: dto.newPassword,
+      });
     } catch (error) {
       throw this.toHttpException(error);
     }
@@ -150,6 +171,12 @@ export class UserController {
     if (error instanceof CompanyIdRequiredError) {
       return new UnprocessableEntityException({
         code: 'COMPANY_ID_REQUIRED',
+        message: error.message,
+      });
+    }
+    if (error instanceof CurrentPasswordInvalidError) {
+      return new UnprocessableEntityException({
+        code: 'CURRENT_PASSWORD_INVALID',
         message: error.message,
       });
     }

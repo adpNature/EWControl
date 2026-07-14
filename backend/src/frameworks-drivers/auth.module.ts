@@ -18,6 +18,7 @@ import { AUTH_USER_REPOSITORY } from '../use-cases/auth/ports/auth-user-reposito
 import { ID_GENERATOR } from '../use-cases/auth/ports/id-generator.port';
 import { REFRESH_TOKEN_REPOSITORY } from '../use-cases/auth/ports/refresh-token-repository.port';
 import { TOKEN_SERVICE } from '../use-cases/auth/ports/token.port';
+import { ChangePasswordUseCase } from '../use-cases/auth/change-password.use-case';
 import { LoginUseCase } from '../use-cases/auth/login.use-case';
 import { LogoutUseCase } from '../use-cases/auth/logout.use-case';
 import { RefreshUseCase } from '../use-cases/auth/refresh.use-case';
@@ -31,7 +32,10 @@ import { UNIT_OF_WORK } from '../use-cases/seed-demo-environment/ports/unit-of-w
  * `@Public()` — incluye `SimulatorController` sin modificarlo. También registra
  * `RolesGuard` (docs/specs/10-gestion-companies-users.md) justo después: Nest
  * ejecuta los `APP_GUARD` en orden de registro, y `RolesGuard` necesita que
- * `JwtAuthGuard` ya haya poblado `request.user`.
+ * `JwtAuthGuard` ya haya poblado `request.user`. También exporta
+ * `ChangePasswordUseCase` (mismo spec): `UserController` vive en
+ * `UserManagementModule`, que importa este módulo para inyectarlo, en vez de
+ * duplicar aquí sus puertos (`AUTH_USER_REPOSITORY`, `REFRESH_TOKEN_REPOSITORY`...).
  */
 @Module({
   imports: [JwtModule.register({})], // sin secreto por defecto: cada sign/verify pasa el suyo (JwtTokenService)
@@ -40,6 +44,7 @@ import { UNIT_OF_WORK } from '../use-cases/seed-demo-environment/ports/unit-of-w
     LoginUseCase,
     RefreshUseCase,
     LogoutUseCase,
+    ChangePasswordUseCase,
     JwtAuthGuard,
     RolesGuard,
     { provide: AUTH_USER_REPOSITORY, useClass: UserTypeOrmRepository },
@@ -53,5 +58,6 @@ import { UNIT_OF_WORK } from '../use-cases/seed-demo-environment/ports/unit-of-w
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
+  exports: [ChangePasswordUseCase],
 })
 export class AuthModule {}

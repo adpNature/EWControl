@@ -20,6 +20,16 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadChildren: () => import('./alarms/alarms.routes').then((m) => m.alarmsRoutes),
   },
+  {
+    // docs/specs/10-gestion-companies-users.md: top-level porque auth.routes.ts
+    // no lleva guard propio (todo lo que cuelga de `login` es público por diseño).
+    path: 'account/change-password',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./auth/pages/change-password-page/change-password-page').then(
+        (m) => m.ChangePasswordPage,
+      ),
+  },
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
   { path: '**', redirectTo: 'dashboard' },
 ];

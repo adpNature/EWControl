@@ -3,6 +3,8 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { UserRole } from '../../../entities/user-role.enum';
+import { ChangePasswordUseCase } from '../../../use-cases/auth/change-password.use-case';
+import { CurrentPasswordInvalidError } from '../../../use-cases/auth/errors/current-password-invalid.error';
 import { CreateUserUseCase } from '../../../use-cases/user-management/create-user.use-case';
 import { DeactivateUserUseCase } from '../../../use-cases/user-management/deactivate-user.use-case';
 import { CannotCreateSuperAdminError } from '../../../use-cases/user-management/errors/cannot-create-superadmin.error';
@@ -29,6 +31,7 @@ describe('UserController (HTTP)', () => {
   let getUserUseCase: { execute: ReturnType<typeof vi.fn> };
   let updateUserUseCase: { execute: ReturnType<typeof vi.fn> };
   let deactivateUserUseCase: { execute: ReturnType<typeof vi.fn> };
+  let changePasswordUseCase: { execute: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     createUserUseCase = {
@@ -63,6 +66,7 @@ describe('UserController (HTTP)', () => {
       execute: vi.fn().mockResolvedValue({ id: 'user-2', email: 'new@x.com' }),
     };
     deactivateUserUseCase = { execute: vi.fn().mockResolvedValue(undefined) };
+    changePasswordUseCase = { execute: vi.fn().mockResolvedValue(undefined) };
 
     const moduleRef = await Test.createTestingModule({
       controllers: [UserController],
@@ -72,6 +76,7 @@ describe('UserController (HTTP)', () => {
         { provide: GetUserUseCase, useValue: getUserUseCase },
         { provide: UpdateUserUseCase, useValue: updateUserUseCase },
         { provide: DeactivateUserUseCase, useValue: deactivateUserUseCase },
+        { provide: ChangePasswordUseCase, useValue: changePasswordUseCase },
       ],
     }).compile();
 
@@ -203,6 +208,39 @@ describe('UserController (HTTP)', () => {
       requesterId: 'user-1',
       requester: { companyId: 'company-1', role: UserRole.AdminCliente },
     });
+  });
+
+  it('PATCH /me/password cambia la contraseña del propio requester', async () => {
+    const response = await request(app.getHttpServer())
+      .patch('/users/me/password')
+      .send({ currentPassword: 'Demo1234!', newPassword: 'Nueva1234!' });
+
+    expect(response.status).toBe(200);
+    expect(changePasswordUseCase.execute).toHaveBeenCalledWith({
+      userId: 'user-1',
+      currentPassword: 'Demo1234!',
+      newPassword: 'Nueva1234!',
+    });
+  });
+
+  it('PATCH /me/password responde 422 CURRENT_PASSWORD_INVALID si el use-case lo lanza', async () => {
+    changePasswordUseCase.execute.mockRejectedValue(new CurrentPasswordInvalidError());
+
+    const response = await request(app.getHttpServer())
+      .patch('/users/me/password')
+      .send({ currentPassword: 'mala', newPassword: 'Nueva1234!' });
+
+    expect(response.status).toBe(422);
+    expect(response.body.code).toBe('CURRENT_PASSWORD_INVALID');
+  });
+
+  it('PATCH /me/password responde 400 si la nueva contraseña no cumple la política', async () => {
+    const response = await request(app.getHttpServer())
+      .patch('/users/me/password')
+      .send({ currentPassword: 'Demo1234!', newPassword: 'short' });
+
+    expect(response.status).toBe(400);
+    expect(changePasswordUseCase.execute).not.toHaveBeenCalled();
   });
 
   it('PATCH /:id responde 500 INTERNAL_ERROR ante un error no mapeado', async () => {
