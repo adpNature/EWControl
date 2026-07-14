@@ -1,0 +1,38 @@
+<div class="box company-list-page">
+  <div class="company-list-page__header">
+    <h1 class="title-xl">Companies</h1>
+    @if (canManageCompanies()) {
+      <a routerLink="new" class="btn-primary">Nueva Company</a>
+    }
+  </div>
+
+  <app-table
+    [columns]="columns"
+    [rows]="companiesState.companies()"
+    [rowKey]="rowKey"
+    [actionsTemplate]="canManageCompanies() ? actions : undefined"
+    emptyMessage="No hay Companies todavía."
+  />
+
+  <ng-template #actions let-company>
+    <a [routerLink]="[company.id, 'edit']">Editar</a>
+    @if (company.isActive) {
+      <button type="button" class="btn-danger" (click)="companyToDeactivate.set(company)">
+        Dar de baja
+      </button>
+    }
+  </ng-template>
+</div>
+
+<app-confirm-dialog
+  [open]="companyToDeactivate() !== null"
+  title="Dar de baja Company"
+  [message]="
+    'Esta acción impedirá el acceso a todos los Users de ' +
+    (companyToDeactivate()?.name ?? '') +
+    '. ¿Continuar?'
+  "
+  confirmLabel="Dar de baja"
+  (confirmed)="confirmDeactivate()"
+  (cancelled)="companyToDeactivate.set(null)"
+/>

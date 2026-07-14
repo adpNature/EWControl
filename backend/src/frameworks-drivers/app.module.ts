@@ -5,6 +5,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { ENTITIES } from '../entities';
 import { AlarmsModule } from './alarms.module';
 import { AuthModule } from './auth.module';
+import { CompanyManagementModule } from './company-management.module';
 import { DashboardModule } from './dashboard.module';
 import { MachineManagementModule } from './machine-management.module';
 import { SimulatorModule } from './simulator.module';
@@ -24,6 +25,7 @@ import { postgresConnectionOptions } from './database/postgres.config';
     EventEmitterModule.forRoot(),
     AuthModule,
     SimulatorModule,
+    CompanyManagementModule,
     MachineManagementModule,
     DashboardModule,
     AlarmsModule,
