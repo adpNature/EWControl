@@ -1,12 +1,26 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { AlarmDefinition } from '../../../alarms/entities/alarm-definition.model';
+import { AlarmDefinitionsState } from '../../../alarms/use-cases/alarm-definitions.state';
 import { ApiError } from '../../../core/http/api-error.model';
+import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
 import { InputComponent } from '../../../shared/ui/input/input.component';
+import { TableColumn, TableComponent } from '../../../shared/ui/table/table.component';
+import { ToastService } from '../../../shared/ui/toast/toast.service';
 import { SignalsApiService } from '../../adapters/signals-api.service';
 import { SignalSource, SignalType } from '../../entities/signal.model';
 import { SignalsState } from '../../use-cases/signals.state';
 import { signalFormErrorMessage } from './signal-form-error-message';
+
+const ALARM_DEFINITION_COLUMNS: TableColumn<AlarmDefinition>[] = [
+  { key: 'operator', header: 'Operador' },
+  { key: 'threshold', header: 'Umbral' },
+  { key: 'priority', header: 'Prioridad' },
+  { key: 'notifyByEmail', header: 'Email', cell: (d) => (d.notifyByEmail ? 'Sí' : 'No') },
+  { key: 'showOnDashboard', header: 'Dashboard', cell: (d) => (d.showOnDashboard ? 'Sí' : 'No') },
+  { key: 'isActive', header: 'Activa', cell: (d) => (d.isActive ? 'Sí' : 'No') },
+];
 
 /**
  * docs/specs/06-gestion-machines-signals.md: alta y edición de Signal, con
@@ -17,7 +31,13 @@ import { signalFormErrorMessage } from './signal-form-error-message';
 @Component({
   selector: 'app-signal-form-page',
   standalone: true,
-  imports: [ReactiveFormsModule, InputComponent],
+  imports: [
+    ReactiveFormsModule,
+    InputComponent,
+    RouterLink,
+    TableComponent,
+    ConfirmDialogComponent,
+  ],
   templateUrl: './signal-form-page.html',
   styleUrl: './signal-form-page.scss',
 })
@@ -26,9 +46,15 @@ export class SignalFormPage implements OnInit {
   private readonly router = inject(Router);
   private readonly signalsApi = inject(SignalsApiService);
   private readonly signalsState = inject(SignalsState);
+  protected readonly alarmDefinitionsState = inject(AlarmDefinitionsState);
+  private readonly toastService = inject(ToastService);
 
   readonly machineId = this.route.snapshot.paramMap.get('machineId')!;
   private signalId: string | null = null;
+
+  readonly alarmDefinitionColumns = ALARM_DEFINITION_COLUMNS;
+  readonly alarmDefinitionRowKey = (definition: AlarmDefinition): string => definition.id;
+  readonly alarmDefinitionToDeactivate = signal<AlarmDefinition | null>(null);
 
   readonly form = new FormGroup({
     name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -45,6 +71,10 @@ export class SignalFormPage implements OnInit {
 
   get isEditMode(): boolean {
     return this.signalId !== null;
+  }
+
+  get currentSignalId(): string | null {
+    return this.signalId;
   }
 
   get isFormula(): boolean {
@@ -69,6 +99,7 @@ export class SignalFormPage implements OnInit {
       });
       this.form.controls.signalType.disable();
     });
+    this.alarmDefinitionsState.load(this.signalId).subscribe();
   }
 
   nameError(): string | null {
@@ -121,6 +152,19 @@ export class SignalFormPage implements OnInit {
           this.formError.set(mapping.message);
         }
       },
+    });
+  }
+
+  confirmDeactivateAlarmDefinition(): void {
+    const definition = this.alarmDefinitionToDeactivate();
+    this.alarmDefinitionToDeactivate.set(null);
+    if (!definition) {
+      return;
+    }
+    this.alarmDefinitionsState.deactivate(definition.id).subscribe({
+      next: () => this.toastService.show({ type: 'success', message: 'Regla desactivada.' }),
+      error: () =>
+        this.toastService.show({ type: 'danger', message: 'No se ha podido desactivar la regla.' }),
     });
   }
 }

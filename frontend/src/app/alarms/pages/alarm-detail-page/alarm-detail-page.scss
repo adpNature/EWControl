@@ -1,0 +1,11 @@
+.alarm-detail-page__summary {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--spacing-xs) var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+
+  dt {
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+}

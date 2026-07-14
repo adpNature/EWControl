@@ -1,3 +1,5 @@
+import { AlarmDefinition } from './alarm-definition.entity';
+import { AlarmState } from './alarm-state.entity';
 import { AuthAuditLog } from './auth-audit-log.entity';
 import { Company } from './company.entity';
 import { Dashboard } from './dashboard.entity';
@@ -27,4 +29,6 @@ export const ENTITIES = [
   AuthAuditLog,
   Dashboard,
   DashboardWidget,
+  AlarmDefinition,
+  AlarmState,
 ];

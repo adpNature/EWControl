@@ -1,3 +1,16 @@
-<div class="box widget">
-  <p class="text-muted">Las alarmas estarán disponibles próximamente.</p>
+<div class="box widget alarm-list-widget">
+  @if (loadError()) {
+    <p class="text-muted">No se han podido cargar las alarmas.</p>
+  } @else if (alarms().length === 0) {
+    <p class="text-muted">Sin alarmas activas.</p>
+  } @else {
+    <ul class="alarm-list-widget__list">
+      @for (alarmState of alarms(); track alarmState.id) {
+        <li class="alarm-list-widget__item">
+          <span>{{ signalName(alarmState.signalId) }}</span>
+          <app-alarm-priority-badge [priority]="alarmState.priority" />
+        </li>
+      }
+    </ul>
+  }
 </div>

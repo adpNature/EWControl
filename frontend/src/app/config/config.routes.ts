@@ -32,5 +32,19 @@ export const configRoutes: Routes = [
     loadComponent: () =>
       import('./pages/signal-form-page/signal-form-page').then((m) => m.SignalFormPage),
   },
+  {
+    path: 'machines/:machineId/signals/:signalId/alarm-definitions/new',
+    loadComponent: () =>
+      import('../alarms/pages/alarm-definition-form-page/alarm-definition-form-page').then(
+        (m) => m.AlarmDefinitionFormPage,
+      ),
+  },
+  {
+    path: 'machines/:machineId/signals/:signalId/alarm-definitions/:alarmDefinitionId/edit',
+    loadComponent: () =>
+      import('../alarms/pages/alarm-definition-form-page/alarm-definition-form-page').then(
+        (m) => m.AlarmDefinitionFormPage,
+      ),
+  },
   { path: '', pathMatch: 'full', redirectTo: 'machines' },
 ];

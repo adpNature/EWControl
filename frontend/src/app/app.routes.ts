@@ -15,6 +15,11 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadChildren: () => import('./config/config.routes').then((m) => m.configRoutes),
   },
+  {
+    path: 'alarms',
+    canActivate: [authGuard],
+    loadChildren: () => import('./alarms/alarms.routes').then((m) => m.alarmsRoutes),
+  },
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
   { path: '**', redirectTo: 'dashboard' },
 ];

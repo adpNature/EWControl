@@ -1,3 +1,4 @@
+import type { AlarmPriority } from '../../../entities/alarm-priority.enum';
 import type { SignalQuality } from '../../../entities/signal-quality.enum';
 
 export const EVENT_PUBLISHER = Symbol('EventPublisher');
@@ -18,6 +19,28 @@ export type SignalUpdatedPayload = {
   quality: SignalQuality;
   timestamp: Date;
 };
+/**
+ * docs/specs/09-alarmas.md, docs/11-api-rest.md sección "Eventos WebSocket".
+ * `value` es de uso interno (Notification Service, contenido del email —
+ * Documento 2, apartado 2.10): el Gateway lo omite deliberadamente al
+ * reemitir por WebSocket, cuyo contrato ya está catalogado sin ese campo.
+ */
+export type AlarmTriggeredPayload = {
+  alarmStateId: string;
+  alarmDefinitionId: string;
+  signalId: string;
+  companyId: string;
+  priority: AlarmPriority;
+  value: number | boolean | string;
+  timestamp: Date;
+};
+export type AlarmClearedPayload = {
+  alarmStateId: string;
+  alarmDefinitionId: string;
+  signalId: string;
+  companyId: string;
+  timestamp: Date;
+};
 
 /**
  * Único punto por el que el dominio/aplicación publica eventos, sin conocer
@@ -30,4 +53,6 @@ export interface IEventPublisher {
   publish(eventName: 'MachineConnected', payload: MachineConnectedPayload): void;
   publish(eventName: 'MachineDisconnected', payload: MachineDisconnectedPayload): void;
   publish(eventName: 'SignalUpdated', payload: SignalUpdatedPayload): void;
+  publish(eventName: 'AlarmTriggered', payload: AlarmTriggeredPayload): void;
+  publish(eventName: 'AlarmCleared', payload: AlarmClearedPayload): void;
 }

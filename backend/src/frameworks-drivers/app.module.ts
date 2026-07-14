@@ -3,6 +3,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
 import { ENTITIES } from '../entities';
+import { AlarmsModule } from './alarms.module';
 import { AuthModule } from './auth.module';
 import { DashboardModule } from './dashboard.module';
 import { MachineManagementModule } from './machine-management.module';
@@ -25,6 +26,7 @@ import { postgresConnectionOptions } from './database/postgres.config';
     SimulatorModule,
     MachineManagementModule,
     DashboardModule,
+    AlarmsModule,
     LoggerModule.forRoot({
       pinoHttp: {
         level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',

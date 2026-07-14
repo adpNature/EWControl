@@ -1,0 +1,57 @@
+<div class="box alarm-panel-page">
+  <h1 class="title-xl">Alarmas</h1>
+
+  <form [formGroup]="filters" (ngSubmit)="applyFilters()" class="alarm-panel-page__filters">
+    <div class="form-field">
+      <label class="form-label" for="filter-status">Estado</label>
+      <select id="filter-status" class="form-input" formControlName="status" (change)="applyFilters()">
+        <option value="">Todos</option>
+        @for (status of statuses; track status) {
+          <option [value]="status">{{ status }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="filter-machine">Máquina</label>
+      <select
+        id="filter-machine"
+        class="form-input"
+        formControlName="machineId"
+        (change)="applyFilters()"
+      >
+        <option value="">Todas</option>
+        @for (machine of machinesState.machines(); track machine.id) {
+          <option [value]="machine.id">{{ machine.name }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="filter-priority">Prioridad</label>
+      <select
+        id="filter-priority"
+        class="form-input"
+        formControlName="priority"
+        (change)="applyFilters()"
+      >
+        <option value="">Todas</option>
+        @for (priority of priorities; track priority) {
+          <option [value]="priority">{{ priority }}</option>
+        }
+      </select>
+    </div>
+  </form>
+
+  <app-table
+    [columns]="columns"
+    [rows]="alarmStatesState.alarmStates()"
+    [rowKey]="rowKey"
+    [actionsTemplate]="alarmStateActions"
+    emptyMessage="No hay alarmas para los filtros seleccionados."
+  />
+
+  <ng-template #alarmStateActions let-alarmState>
+    <a [routerLink]="['/alarms', alarmState.id]">Ver detalle</a>
+  </ng-template>
+</div>

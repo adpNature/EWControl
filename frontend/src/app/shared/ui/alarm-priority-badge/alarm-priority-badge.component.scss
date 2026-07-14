@@ -1,0 +1,27 @@
+.priority-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--spacing-sm);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+
+  &--low {
+    background: var(--info-background);
+    color: var(--info-color);
+  }
+
+  &--medium {
+    background: var(--warning-background);
+    color: var(--warning-color);
+  }
+
+  &--high,
+  &--critical {
+    background: var(--danger-background);
+    color: var(--danger-color);
+  }
+
+  &--critical {
+    font-weight: 700;
+  }
+}

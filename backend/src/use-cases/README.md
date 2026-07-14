@@ -8,7 +8,8 @@ Orquesta los casos de uso de la aplicación coordinando Entities e Interface Ada
 - `simulator-control/` — control del Simulador vía API: forzar desconexión/calidad (`docs/specs/03-simulador-forzar-fallo.md`).
 - `auth/` — Auth Service: login, refresh, logout (`docs/specs/05-auth-login.md`).
 - `history/` — History Service (Documento 2, apartado 2.9).
-- `notification/` — Notification Service (Documento 2, apartado 2.10).
+- `alarms/` — Alarm Engine y CRUD de `AlarmDefinition`/`AlarmState` (Documento 2, apartado 2.8; `docs/specs/09-alarmas.md`).
+- `notification/` — Notification Service (Documento 2, apartado 2.10; `docs/specs/09-alarmas.md`).
 - `scheduler/` — Scheduler.
 
 Regla de dependencia: puede depender de `entities/`, nunca de `interface-adapters/` ni `frameworks-drivers/` directamente (recibe sus dependencias por inyección, contra interfaces).

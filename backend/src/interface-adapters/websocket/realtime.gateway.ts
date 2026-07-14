@@ -4,6 +4,8 @@ import { OnGatewayConnection, WebSocketGateway, WebSocketServer } from '@nestjs/
 import type { Server, Socket } from 'socket.io';
 import { TOKEN_SERVICE, type ITokenService } from '../../use-cases/auth/ports/token.port';
 import type {
+  AlarmClearedPayload,
+  AlarmTriggeredPayload,
   MachineConnectedPayload,
   MachineDisconnectedPayload,
   SignalUpdatedPayload,
@@ -61,6 +63,27 @@ export class RealtimeGateway implements OnGatewayConnection {
   relayMachineDisconnected(payload: MachineDisconnectedPayload): void {
     this.server.to(this.roomFor(payload.companyId)).emit('MachineDisconnected', {
       machineId: payload.machineId,
+      timestamp: payload.timestamp,
+    });
+  }
+
+  @OnEvent('AlarmTriggered')
+  relayAlarmTriggered(payload: AlarmTriggeredPayload): void {
+    this.server.to(this.roomFor(payload.companyId)).emit('AlarmTriggered', {
+      alarmStateId: payload.alarmStateId,
+      alarmDefinitionId: payload.alarmDefinitionId,
+      signalId: payload.signalId,
+      priority: payload.priority,
+      timestamp: payload.timestamp,
+    });
+  }
+
+  @OnEvent('AlarmCleared')
+  relayAlarmCleared(payload: AlarmClearedPayload): void {
+    this.server.to(this.roomFor(payload.companyId)).emit('AlarmCleared', {
+      alarmStateId: payload.alarmStateId,
+      alarmDefinitionId: payload.alarmDefinitionId,
+      signalId: payload.signalId,
       timestamp: payload.timestamp,
     });
   }

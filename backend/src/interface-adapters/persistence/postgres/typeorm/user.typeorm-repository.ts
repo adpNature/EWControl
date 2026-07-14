@@ -19,6 +19,16 @@ export class UserTypeOrmRepository implements IUserRepository, IAuthUserReposito
     return repository.save(repository.create(data));
   }
 
+  findActiveByCompanyAndRole(
+    companyId: string,
+    role: UserRole,
+    ctx: TransactionContext,
+  ): Promise<User[]> {
+    return (ctx as EntityManager)
+      .getRepository(User)
+      .find({ where: { companyId, role, isActive: true } });
+  }
+
   async findByEmailWithCompany(
     email: string,
     ctx: TransactionContext,

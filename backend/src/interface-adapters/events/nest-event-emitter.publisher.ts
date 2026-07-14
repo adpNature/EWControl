@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
+  AlarmClearedPayload,
+  AlarmTriggeredPayload,
   IEventPublisher,
   MachineConnectedPayload,
   MachineDisconnectedPayload,
@@ -18,9 +20,21 @@ export class NestEventEmitterPublisher implements IEventPublisher {
   publish(eventName: 'MachineConnected', payload: MachineConnectedPayload): void;
   publish(eventName: 'MachineDisconnected', payload: MachineDisconnectedPayload): void;
   publish(eventName: 'SignalUpdated', payload: SignalUpdatedPayload): void;
+  publish(eventName: 'AlarmTriggered', payload: AlarmTriggeredPayload): void;
+  publish(eventName: 'AlarmCleared', payload: AlarmClearedPayload): void;
   publish(
-    eventName: 'MachineConnected' | 'MachineDisconnected' | 'SignalUpdated',
-    payload: MachineConnectedPayload | MachineDisconnectedPayload | SignalUpdatedPayload,
+    eventName:
+      | 'MachineConnected'
+      | 'MachineDisconnected'
+      | 'SignalUpdated'
+      | 'AlarmTriggered'
+      | 'AlarmCleared',
+    payload:
+      | MachineConnectedPayload
+      | MachineDisconnectedPayload
+      | SignalUpdatedPayload
+      | AlarmTriggeredPayload
+      | AlarmClearedPayload,
   ): void {
     this.emitter.emit(eventName, payload);
   }

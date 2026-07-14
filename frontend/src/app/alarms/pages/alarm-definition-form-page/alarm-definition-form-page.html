@@ -1,0 +1,47 @@
+<div class="box alarm-definition-form-page">
+  <h1 class="title-xl">{{ isEditMode ? 'Editar regla de alarma' : 'Nueva regla de alarma' }}</h1>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="form-field">
+      <label class="form-label" for="alarm-operator">Operador</label>
+      <select id="alarm-operator" class="form-input" formControlName="operator">
+        @for (operator of operators; track operator) {
+          <option [value]="operator">{{ operator }}</option>
+        }
+      </select>
+    </div>
+
+    <app-input
+      formControlName="threshold"
+      [label]="isNumericOperator ? 'Umbral (número)' : 'Umbral'"
+      [errorMessage]="thresholdError() ?? thresholdFieldError()"
+    />
+
+    <div class="form-field">
+      <label class="form-label" for="alarm-priority">Prioridad</label>
+      <select id="alarm-priority" class="form-input" formControlName="priority">
+        @for (priority of priorities; track priority) {
+          <option [value]="priority">{{ priority }}</option>
+        }
+      </select>
+    </div>
+
+    <label class="form-label">
+      <input type="checkbox" formControlName="notifyByEmail" />
+      Notificar por email
+    </label>
+
+    <label class="form-label">
+      <input type="checkbox" formControlName="showOnDashboard" />
+      Mostrar en el Dashboard
+    </label>
+
+    @if (formError()) {
+      <p class="form-error" role="alert">{{ formError() }}</p>
+    }
+
+    <button type="submit" class="btn-primary" [disabled]="submitting()">
+      {{ submitting() ? 'Guardando…' : 'Guardar' }}
+    </button>
+  </form>
+</div>

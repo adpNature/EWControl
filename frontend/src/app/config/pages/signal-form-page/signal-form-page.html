@@ -35,4 +35,53 @@
       {{ submitting() ? 'Guardando…' : 'Guardar' }}
     </button>
   </form>
+
+  @if (isEditMode && currentSignalId; as signalId) {
+    <div class="signal-form-page__alarms-header">
+      <h2 class="title-lg">Reglas de alarma</h2>
+      <a
+        [routerLink]="['/config/machines', machineId, 'signals', signalId, 'alarm-definitions', 'new']"
+        class="btn-primary"
+      >
+        Añadir regla
+      </a>
+    </div>
+
+    <app-table
+      [columns]="alarmDefinitionColumns"
+      [rows]="alarmDefinitionsState.definitions()"
+      [rowKey]="alarmDefinitionRowKey"
+      [actionsTemplate]="alarmDefinitionActions"
+      emptyMessage="No hay reglas de alarma todavía."
+    />
+
+    <ng-template #alarmDefinitionActions let-definition>
+      <a
+        [routerLink]="[
+          '/config/machines',
+          machineId,
+          'signals',
+          signalId,
+          'alarm-definitions',
+          definition.id,
+          'edit',
+        ]"
+      >
+        Editar
+      </a>
+      @if (definition.isActive) {
+        <button type="button" class="btn-danger" (click)="alarmDefinitionToDeactivate.set(definition)">
+          Desactivar
+        </button>
+      }
+    </ng-template>
+  }
 </div>
+
+<app-confirm-dialog
+  [open]="alarmDefinitionToDeactivate() !== null"
+  title="Desactivar regla de alarma"
+  message="La regla dejará de evaluarse; su histórico de alarmas anterior se conserva. ¿Continuar?"
+  (confirmed)="confirmDeactivateAlarmDefinition()"
+  (cancelled)="alarmDefinitionToDeactivate.set(null)"
+/>
