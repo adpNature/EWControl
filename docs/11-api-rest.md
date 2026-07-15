@@ -77,39 +77,47 @@ Todo endpoint que devuelva o modifique datos de negocio filtra automáticamente 
 
 ## Auth
 
-Ver spec completa en [docs/specs/05-auth-login.md](specs/05-auth-login.md).
+Ver spec completa en [docs/specs/05-auth-login.md](specs/05-auth-login.md). El auto-servicio de recuperación de contraseña está catalogado aquí y especificado en [docs/specs/10-gestion-companies-users.md](specs/10-gestion-companies-users.md).
 
-| Método | Ruta                   | Descripción                                                                            |
-| ------ | ---------------------- | -------------------------------------------------------------------------------------- |
-| POST   | `/api/v1/auth/login`   | Autentica con email/contraseña. Devuelve `accessToken` y `refreshToken`.               |
-| POST   | `/api/v1/auth/refresh` | Cambia un `refreshToken` válido por un nuevo `accessToken` (y rota el `refreshToken`). |
-| POST   | `/api/v1/auth/logout`  | Invalida el `refreshToken` actual.                                                     |
+| Método | Ruta                           | Descripción                                                                                                                         |
+| ------ | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/v1/auth/login`           | Autentica con email/contraseña. Devuelve `accessToken` y `refreshToken`.                                                            |
+| POST   | `/api/v1/auth/refresh`         | Cambia un `refreshToken` válido por un nuevo `accessToken` (y rota el `refreshToken`).                                              |
+| POST   | `/api/v1/auth/logout`          | Invalida el `refreshToken` actual.                                                                                                  |
+| POST   | `/api/v1/auth/forgot-password` | Solicita un enlace de recuperación de contraseña por email. Respuesta idéntica exista o no el email (evita enumeración, OWASP A07). |
+| POST   | `/api/v1/auth/reset-password`  | Establece una nueva contraseña a partir de un token de recuperación de un solo uso.                                                 |
 
 ---
 
 ## Company
 
-Solo accesible por `SuperAdmin` (una Company se crea al dar de alta un cliente, Documento 3 apartado 3.2.1).
+Solo accesible por `SuperAdmin` (una Company se crea al dar de alta un cliente, Documento 3 apartado 3.2.1). Ver spec completa en [docs/specs/10-gestion-companies-users.md](specs/10-gestion-companies-users.md).
 
-| Método | Ruta                    | Descripción                 |
-| ------ | ----------------------- | --------------------------- |
-| GET    | `/api/v1/companies`     | Lista todas las Companies.  |
-| GET    | `/api/v1/companies/:id` | Detalle de una Company.     |
-| POST   | `/api/v1/companies`     | Crea una Company.           |
-| PATCH  | `/api/v1/companies/:id` | Actualiza una Company.      |
-| DELETE | `/api/v1/companies/:id` | Baja lógica de una Company. |
+| Método | Ruta                               | Descripción                                                                                                             |
+| ------ | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/v1/companies`                | Lista todas las Companies (activas e inactivas).                                                                        |
+| GET    | `/api/v1/companies/:id`            | Detalle de una Company.                                                                                                 |
+| POST   | `/api/v1/companies`                | Crea una Company.                                                                                                       |
+| PATCH  | `/api/v1/companies/:id`            | Actualiza una Company.                                                                                                  |
+| DELETE | `/api/v1/companies/:id`            | Baja lógica de una Company.                                                                                             |
+| POST   | `/api/v1/companies/:id/reactivate` | Reactiva una Company dada de baja.                                                                                      |
+| DELETE | `/api/v1/companies/:id/purge`      | Borrado físico e irreversible de la Company junto con sus Users, Machines, Signals, Dashboards e histórico en InfluxDB. |
 
 ---
 
 ## User
 
-| Método | Ruta                | Descripción                                                                  |
-| ------ | ------------------- | ---------------------------------------------------------------------------- |
-| GET    | `/api/v1/users`     | Lista los Users de la Company del usuario autenticado (`SuperAdmin`: todos). |
-| GET    | `/api/v1/users/:id` | Detalle de un User.                                                          |
-| POST   | `/api/v1/users`     | Crea un User dentro de la Company (rol `AdminCliente` o `SuperAdmin`).       |
-| PATCH  | `/api/v1/users/:id` | Actualiza un User.                                                           |
-| DELETE | `/api/v1/users/:id` | Baja lógica de un User (invalida sus refresh tokens, Documento 6).           |
+Ver spec completa en [docs/specs/10-gestion-companies-users.md](specs/10-gestion-companies-users.md).
+
+| Método | Ruta                           | Descripción                                                                                       |
+| ------ | ------------------------------ | ------------------------------------------------------------------------------------------------- |
+| GET    | `/api/v1/users`                | Lista los Users de la Company del usuario autenticado, activos e inactivos (`SuperAdmin`: todos). |
+| GET    | `/api/v1/users/:id`            | Detalle de un User (activo o inactivo).                                                           |
+| POST   | `/api/v1/users`                | Crea un User dentro de la Company (rol `AdminCliente` o `SuperAdmin`).                            |
+| PATCH  | `/api/v1/users/:id`            | Actualiza un User.                                                                                |
+| DELETE | `/api/v1/users/:id`            | Baja lógica de un User (invalida sus refresh tokens, Documento 6).                                |
+| POST   | `/api/v1/users/:id/reactivate` | Reactiva un User dado de baja.                                                                    |
+| PATCH  | `/api/v1/users/me/password`    | Cambia la contraseña del propio usuario autenticado (requiere la contraseña actual).              |
 
 ---
 

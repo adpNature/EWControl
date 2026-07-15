@@ -14,8 +14,12 @@ import { SeedModule } from '../src/frameworks-drivers/seed.module';
 import { AuthAuditEventType } from '../src/entities/auth-audit-event-type.enum';
 import { RefreshTokenStatus } from '../src/entities/refresh-token-status.enum';
 import { InvalidCredentialsError } from '../src/use-cases/auth/errors/invalid-credentials.error';
+import { InvalidResetTokenError } from '../src/use-cases/auth/errors/invalid-reset-token.error';
 import { RefreshTokenReusedError } from '../src/use-cases/auth/errors/refresh-token-reused.error';
 import { TooManyLoginAttemptsError } from '../src/use-cases/auth/errors/too-many-login-attempts.error';
+import { TooManyPasswordResetRequestsError } from '../src/use-cases/auth/errors/too-many-password-reset-requests.error';
+import { ForgotPasswordUseCase } from '../src/use-cases/auth/forgot-password.use-case';
+import { ResetPasswordUseCase } from '../src/use-cases/auth/reset-password.use-case';
 import { type IClock, CLOCK } from '../src/use-cases/history/ports/clock.port';
 import { LoginUseCase } from '../src/use-cases/auth/login.use-case';
 import { LogoutUseCase } from '../src/use-cases/auth/logout.use-case';
@@ -32,7 +36,7 @@ import {
 
 async function truncateAuthTables(dataSource: DataSource): Promise<void> {
   await dataSource.query(
-    'TRUNCATE TABLE "auth_audit_log", "refresh_tokens", "signals", "machine_connections", "machines", "users", "companies" RESTART IDENTITY CASCADE',
+    'TRUNCATE TABLE "auth_audit_log", "refresh_tokens", "password_reset_tokens", "signals", "machine_connections", "machines", "users", "companies" RESTART IDENTITY CASCADE',
   );
 }
 
@@ -79,6 +83,8 @@ describe('Auth (login/refresh/logout) (integration)', () => {
   let loginUseCase: LoginUseCase;
   let refreshUseCase: RefreshUseCase;
   let logoutUseCase: LogoutUseCase;
+  let forgotPasswordUseCase: ForgotPasswordUseCase;
+  let resetPasswordUseCase: ResetPasswordUseCase;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -92,6 +98,8 @@ describe('Auth (login/refresh/logout) (integration)', () => {
     loginUseCase = app.get(LoginUseCase);
     refreshUseCase = app.get(RefreshUseCase);
     logoutUseCase = app.get(LogoutUseCase);
+    forgotPasswordUseCase = app.get(ForgotPasswordUseCase);
+    resetPasswordUseCase = app.get(ResetPasswordUseCase);
   });
 
   beforeEach(async () => {
@@ -285,5 +293,70 @@ describe('Auth (login/refresh/logout) (integration)', () => {
 
   it('logout sin refresh token es idempotente y no lanza', async () => {
     await expect(logoutUseCase.execute({ refreshToken: undefined })).resolves.toBeUndefined();
+  });
+
+  it('forgot-password + reset-password: genera un token real, permite fijar una nueva contraseña y revoca las sesiones activas (docs/specs/10)', async () => {
+    const companyId = await insertCompany(dataSource);
+    await insertUser(dataSource, passwordHasher, { companyId });
+    const session = await loginUseCase.execute({ email: DEMO_EMAIL, password: DEMO_PASSWORD });
+
+    await forgotPasswordUseCase.execute({ email: DEMO_EMAIL });
+
+    const [tokenRow] = await dataSource.query(
+      'SELECT id FROM password_reset_tokens ORDER BY created_at DESC LIMIT 1',
+    );
+    expect(tokenRow?.id).toBeTruthy();
+
+    await resetPasswordUseCase.execute({ token: tokenRow.id, newPassword: 'NuevaPass1234!' });
+
+    await expect(
+      loginUseCase.execute({ email: DEMO_EMAIL, password: DEMO_PASSWORD }),
+    ).rejects.toBeInstanceOf(InvalidCredentialsError);
+    const newSession = await loginUseCase.execute({
+      email: DEMO_EMAIL,
+      password: 'NuevaPass1234!',
+    });
+    expect(newSession.accessToken).toBeTruthy();
+
+    const oldRefreshPayload = await tokenService.verifyRefreshToken(session.refreshToken);
+    expect((await findRefreshTokenRow(dataSource, oldRefreshPayload.jti))?.status).toBe(
+      RefreshTokenStatus.Revoked,
+    );
+
+    await expect(
+      resetPasswordUseCase.execute({ token: tokenRow.id, newPassword: 'OtraVez1234!' }),
+    ).rejects.toBeInstanceOf(InvalidResetTokenError);
+  });
+
+  it('forgot-password no crea ningún token para un email inexistente, sin lanzar (evita enumeración)', async () => {
+    await expect(
+      forgotPasswordUseCase.execute({ email: 'ghost@ewcontrol.local' }),
+    ).resolves.toBeUndefined();
+
+    expect(await dataSource.query('SELECT COUNT(*)::int AS c FROM password_reset_tokens')).toEqual([
+      { c: 0 },
+    ]);
+  });
+
+  it('forgot-password bloquea tras 3 solicitudes en 15 minutos para el mismo email', async () => {
+    const companyId = await insertCompany(dataSource);
+    await insertUser(dataSource, passwordHasher, { companyId });
+
+    await forgotPasswordUseCase.execute({ email: DEMO_EMAIL });
+    await forgotPasswordUseCase.execute({ email: DEMO_EMAIL });
+    await forgotPasswordUseCase.execute({ email: DEMO_EMAIL });
+
+    await expect(forgotPasswordUseCase.execute({ email: DEMO_EMAIL })).rejects.toBeInstanceOf(
+      TooManyPasswordResetRequestsError,
+    );
+  });
+
+  it('reset-password con un token inexistente responde InvalidResetTokenError', async () => {
+    await expect(
+      resetPasswordUseCase.execute({
+        token: '00000000-0000-0000-0000-000000000000',
+        newPassword: 'NuevaPass1234!',
+      }),
+    ).rejects.toBeInstanceOf(InvalidResetTokenError);
   });
 });

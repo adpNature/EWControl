@@ -1,4 +1,5 @@
 # Documento 3
+
 # Modelo del Dominio
 
 3.1 Introducción
@@ -308,17 +309,17 @@ Gracias a esta separación, el dominio permanece estable mientras el sistema pro
 
 El dominio está compuesto por nueve entidades principales.
 
-| Entidad | Responsabilidad |
-|----------|-----------------|
-| Company | Representa una empresa que utiliza la plataforma |
-| User | Representa un usuario autenticado dentro de una Company |
-| Machine | Representa un activo industrial monitorizado |
-| MachineConnection | Define cómo acceder a la Machine |
-| Signal | Representa un dato industrial configurable |
-| AlarmDefinition | Define una regla de supervisión |
-| AlarmState | Representa el estado e histórico de una alarma |
-| Dashboard | Define una vista de supervisión |
-| DashboardWidget | Representa un elemento visual del Dashboard |
+| Entidad           | Responsabilidad                                         |
+| ----------------- | ------------------------------------------------------- |
+| Company           | Representa una empresa que utiliza la plataforma        |
+| User              | Representa un usuario autenticado dentro de una Company |
+| Machine           | Representa un activo industrial monitorizado            |
+| MachineConnection | Define cómo acceder a la Machine                        |
+| Signal            | Representa un dato industrial configurable              |
+| AlarmDefinition   | Define una regla de supervisión                         |
+| AlarmState        | Representa el estado e histórico de una alarma          |
+| Dashboard         | Define una vista de supervisión                         |
+| DashboardWidget   | Representa un elemento visual del Dashboard             |
 
 Cada una de estas entidades será desarrollada en los siguientes apartados.
 
@@ -494,7 +495,9 @@ Una vez creada podrá:
 - Configurar dashboards.
 - Configurar señales y alarmas.
 
-La desactivación de una Company impedirá el acceso a todos sus recursos sin necesidad de eliminarlos físicamente.
+La desactivación de una Company impedirá el acceso a todos sus recursos sin necesidad de eliminarlos físicamente. Una Company desactivada podrá reactivarse en cualquier momento, restaurando el acceso a sus recursos.
+
+Adicionalmente, una Company podrá eliminarse físicamente (borrado permanente) junto con todos sus recursos asociados (Users, Machines, Signals, Dashboards y su histórico de Signals), a diferencia de la baja lógica. Esta operación es irreversible y está reservada a SuperAdmin (ver `docs/specs/10-gestion-companies-users.md`).
 
 ---
 
@@ -594,9 +597,9 @@ Estas responsabilidades pertenecen a otras entidades o servicios.
 
 En la primera versión del sistema existirán dos roles.
 
-| Rol | Descripción |
-|------|-------------|
-| SuperAdmin | Administración completa de la plataforma. |
+| Rol          | Descripción                                   |
+| ------------ | --------------------------------------------- |
+| SuperAdmin   | Administración completa de la plataforma.     |
 | AdminCliente | Administración de los recursos de su Company. |
 
 El modelo permitirá incorporar nuevos roles sin modificar la estructura de la entidad.
@@ -637,7 +640,7 @@ Durante su ciclo de vida podrá:
 - Cambiar sus preferencias.
 - Cambiar su contraseña mediante los servicios de autenticación.
 - Ser deshabilitado.
-- Ser reactivado.
+- Ser reactivado (ver `docs/specs/10-gestion-companies-users.md`).
 
 La eliminación física de usuarios no forma parte de la primera versión de la plataforma.
 
@@ -948,12 +951,12 @@ Cuando `ProviderType = OpcUa`, `ConnectionConfig` incluye:
 
 El `StatusCode` nativo de OPC UA se traduce al enum de calidad interno (Documento 2, apartado 2.5) según la siguiente tabla:
 
-| StatusCode OPC UA | Calidad interna |
-|---|---|
-| Good | GOOD |
-| Uncertain (cualquier subcódigo) | UNCERTAIN |
-| Bad (cualquier subcódigo) | BAD |
-| Sin lectura / sesión caída | OFFLINE |
+| StatusCode OPC UA               | Calidad interna |
+| ------------------------------- | --------------- |
+| Good                            | GOOD            |
+| Uncertain (cualquier subcódigo) | UNCERTAIN       |
+| Bad (cualquier subcódigo)       | BAD             |
+| Sin lectura / sesión caída      | OFFLINE         |
 
 Esta traducción la realiza el propio `OpcUaProvider`, antes de publicar la Variable (Documento 2, apartado 2.4): el resto de la plataforma nunca ve un `StatusCode` de OPC UA, solo la calidad interna ya traducida.
 
@@ -1507,14 +1510,14 @@ Este apartado formaliza las enumeraciones utilizadas por las entidades del domin
 
 ## Tabla de Enumeraciones
 
-| Enumeración | Valores | Utilizada por |
-|---|---|---|
-| UserRole | SuperAdmin, AdminCliente | User |
-| ProviderType | Simulator, OpcUa, Mqtt, ModbusTcp | MachineConnection |
-| SignalType | DIRECT, FORMULA | Signal |
-| AlarmPriority | LOW, MEDIUM, HIGH, CRITICAL | AlarmDefinition |
-| AlarmStateType | INACTIVE, ACTIVE | AlarmState |
-| WidgetType | VALUE, CHART, GAUGE, TABLE, ALARM_LIST | DashboardWidget |
+| Enumeración    | Valores                                | Utilizada por     |
+| -------------- | -------------------------------------- | ----------------- |
+| UserRole       | SuperAdmin, AdminCliente               | User              |
+| ProviderType   | Simulator, OpcUa, Mqtt, ModbusTcp      | MachineConnection |
+| SignalType     | DIRECT, FORMULA                        | Signal            |
+| AlarmPriority  | LOW, MEDIUM, HIGH, CRITICAL            | AlarmDefinition   |
+| AlarmStateType | INACTIVE, ACTIVE                       | AlarmState        |
+| WidgetType     | VALUE, CHART, GAUGE, TABLE, ALARM_LIST | DashboardWidget   |
 
 ---
 
@@ -1570,17 +1573,17 @@ Este apartado resume, a modo de referencia rápida, las decisiones arquitectóni
 
 ## Resumen de Decisiones
 
-| Entidad | Decisión |
-|---|---|
-| Company | Aggregate Root del contexto organizativo; límite de seguridad de la plataforma |
-| User | Identidad funcional desacoplada de la infraestructura de autenticación |
-| Machine | Aggregate Root del dominio industrial |
-| MachineConnection | Frontera entre el dominio y la infraestructura de adquisición de datos |
-| Signal | Objeto central del dominio; unidad de información de negocio |
-| AlarmDefinition | Regla de supervisión, separada de su resultado |
-| AlarmState | Estado runtime y trazabilidad histórica de una alarma |
-| Dashboard | Configuración de presentación, sin lógica de negocio |
-| DashboardWidget | Presentación desacoplada de la adquisición de datos, siempre a través de Signals |
+| Entidad           | Decisión                                                                         |
+| ----------------- | -------------------------------------------------------------------------------- |
+| Company           | Aggregate Root del contexto organizativo; límite de seguridad de la plataforma   |
+| User              | Identidad funcional desacoplada de la infraestructura de autenticación           |
+| Machine           | Aggregate Root del dominio industrial                                            |
+| MachineConnection | Frontera entre el dominio y la infraestructura de adquisición de datos           |
+| Signal            | Objeto central del dominio; unidad de información de negocio                     |
+| AlarmDefinition   | Regla de supervisión, separada de su resultado                                   |
+| AlarmState        | Estado runtime y trazabilidad histórica de una alarma                            |
+| Dashboard         | Configuración de presentación, sin lógica de negocio                             |
+| DashboardWidget   | Presentación desacoplada de la adquisición de datos, siempre a través de Signals |
 
 ---
 

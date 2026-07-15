@@ -1,0 +1,44 @@
+<div class="box user-list-page">
+  <div class="user-list-page__header">
+    <h1 class="title-xl">Users</h1>
+    @if (canManageUsers()) {
+      <a routerLink="new" class="btn-primary">Nuevo User</a>
+    }
+  </div>
+
+  @if (isSuperAdmin()) {
+    <app-select label="Company" [formControl]="companyFilter" [options]="companyOptions()" />
+  }
+
+  <app-table
+    [columns]="columns"
+    [rows]="usersState.users()"
+    [rowKey]="rowKey"
+    [actionsTemplate]="canManageUsers() ? actions : undefined"
+    emptyMessage="No hay Users todavía."
+  />
+
+  <ng-template #actions let-user>
+    <a [routerLink]="[user.id, 'edit']">Editar</a>
+    @if (!user.isActive) {
+      <button type="button" class="btn-primary" (click)="reactivate(user)">Reactivar</button>
+    } @else if (isSelf(user)) {
+      <button type="button" class="btn-danger" disabled title="No puedes darte de baja a ti mismo.">
+        Dar de baja
+      </button>
+    } @else {
+      <button type="button" class="btn-danger" (click)="userToDeactivate.set(user)">
+        Dar de baja
+      </button>
+    }
+  </ng-template>
+</div>
+
+<app-confirm-dialog
+  [open]="userToDeactivate() !== null"
+  title="Dar de baja User"
+  [message]="'¿Dar de baja a ' + (userToDeactivate()?.email ?? '') + '?'"
+  confirmLabel="Dar de baja"
+  (confirmed)="confirmDeactivate()"
+  (cancelled)="userToDeactivate.set(null)"
+/>

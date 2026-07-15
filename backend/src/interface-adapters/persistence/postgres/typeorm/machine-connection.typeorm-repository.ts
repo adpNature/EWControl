@@ -40,4 +40,8 @@ export class MachineConnectionTypeOrmRepository implements IMachineConnectionRep
     await repository.update({ machineId }, changes);
     return repository.findOneByOrFail({ machineId });
   }
+
+  async deleteByMachineId(machineId: string, ctx: TransactionContext): Promise<void> {
+    await (ctx as EntityManager).getRepository(MachineConnection).delete({ machineId });
+  }
 }

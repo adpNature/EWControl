@@ -22,4 +22,15 @@ export type AuthAuditEntry = {
 export interface IAuthAuditRepository {
   record(entry: AuthAuditEntry, ctx: TransactionContext): Promise<void>;
   countRecentFailures(email: string, since: Date, ctx: TransactionContext): Promise<number>;
+  /**
+   * docs/specs/10-gestion-companies-users.md: rate limiting de `forgot-password`.
+   * Método aparte de `countRecentFailures` (fijado a `LoginFailure`) para no
+   * arriesgar el rate limiting de login.
+   */
+  countRecentByEmailAndType(
+    email: string,
+    eventType: AuthAuditEventType,
+    since: Date,
+    ctx: TransactionContext,
+  ): Promise<number>;
 }

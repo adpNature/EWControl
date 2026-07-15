@@ -5,7 +5,7 @@ import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthStateService } from '../../auth/use-cases/auth.state';
 
 const API_PREFIX = '/api/v1';
-const AUTH_ENDPOINT_PATTERN = /\/auth\/(login|refresh|logout)$/;
+const AUTH_ENDPOINT_PATTERN = /\/auth\/(login|refresh|logout|forgot-password|reset-password)$/;
 
 /**
  * docs/specs/05-auth-login.md, criterio de aceptación frontend 3. Adjunta el

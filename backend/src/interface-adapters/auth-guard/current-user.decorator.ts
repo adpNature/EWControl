@@ -7,10 +7,9 @@ import { CurrentUser } from './current-user';
  * camelCase (no `CurrentUser` en PascalCase) por la misma regla de naming del
  * proyecto que ya renombró `Public()` a `publicRoute()`.
  *
- * No existe todavía un `RolesGuard`: los dos roles definidos (`SuperAdmin`,
- * `AdminCliente`) tienen acceso a la gestión de Machines/Signals
- * (docs/specs/06-gestion-machines-signals.md) — la próxima spec que excluya un
- * rol de una funcionalidad concreta debe añadir el guard de roles, no aquí.
+ * Los endpoints que excluyen un rol concreto (p. ej. `CompanyController`, solo
+ * `SuperAdmin`) usan `RolesGuard`/`roles()` (docs/specs/10-gestion-companies-users.md),
+ * no este decorador.
  */
 export const currentUser = createParamDecorator(
   (_data: unknown, ctx: ExecutionContext): CurrentUser => {

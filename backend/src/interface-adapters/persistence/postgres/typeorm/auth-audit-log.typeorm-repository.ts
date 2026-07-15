@@ -24,4 +24,15 @@ export class AuthAuditLogTypeOrmRepository implements IAuthAuditRepository {
       },
     });
   }
+
+  countRecentByEmailAndType(
+    email: string,
+    eventType: AuthAuditEventType,
+    since: Date,
+    ctx: TransactionContext,
+  ): Promise<number> {
+    return (ctx as EntityManager)
+      .getRepository(AuthAuditLog)
+      .count({ where: { email, eventType, createdAt: MoreThanOrEqual(since) } });
+  }
 }

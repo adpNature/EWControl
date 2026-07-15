@@ -19,4 +19,18 @@ export class AuthApiService {
   logout(): Observable<void> {
     return this.api.post<void>('/auth/logout', {});
   }
+
+  /** docs/specs/10-gestion-companies-users.md, sección Auto-servicio de contraseña. */
+  changePassword(currentPassword: string, newPassword: string): Observable<void> {
+    return this.api.patch<void>('/users/me/password', { currentPassword, newPassword });
+  }
+
+  /** docs/specs/10-gestion-companies-users.md, recuperación de contraseña. */
+  forgotPassword(email: string): Observable<void> {
+    return this.api.post<void>('/auth/forgot-password', { email });
+  }
+
+  resetPassword(token: string, newPassword: string): Observable<void> {
+    return this.api.post<void>('/auth/reset-password', { token, newPassword });
+  }
 }

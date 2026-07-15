@@ -252,8 +252,12 @@ Definir cómo un usuario administrador configura Machines, Signals, AlarmDefinit
 | Definir una Signal             | Signal                     | AdminCliente / SuperAdmin |
 | Definir una regla de alarma    | AlarmDefinition            | AdminCliente / SuperAdmin |
 | Crear o modificar un Dashboard | Dashboard, DashboardWidget | AdminCliente / SuperAdmin |
+| Dar de alta una Company        | Company                    | SuperAdmin                |
+| Gestionar Users de la Company  | User                       | AdminCliente / SuperAdmin |
 
 Cada formulario del Frontend se corresponde con una entidad del dominio (Documento 3) y con los endpoints de escritura definidos en el Documento 11. El Frontend valida el formato de los datos introducidos, pero la validación de negocio (por ejemplo, que una Signal FORMULA solo referencie Variables de su misma Machine) siempre se revalida en el Backend.
+
+Las dos últimas filas de la tabla anterior (Company, User) están especificadas en detalle en [docs/specs/10-gestion-companies-users.md](specs/10-gestion-companies-users.md), incluyendo el auto-servicio de cambio/recuperación de contraseña de un User.
 
 ---
 

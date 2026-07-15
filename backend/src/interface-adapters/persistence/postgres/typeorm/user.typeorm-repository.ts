@@ -29,6 +29,56 @@ export class UserTypeOrmRepository implements IUserRepository, IAuthUserReposito
       .find({ where: { companyId, role, isActive: true } });
   }
 
+  findById(id: string, ctx: TransactionContext): Promise<User | null> {
+    return (ctx as EntityManager).getRepository(User).findOne({ where: { id } });
+  }
+
+  findByEmail(email: string, ctx: TransactionContext): Promise<User | null> {
+    return (ctx as EntityManager).getRepository(User).findOne({ where: { email } });
+  }
+
+  async list(
+    filter: { companyId: string | null },
+    pagination: { limit: number; offset: number },
+    ctx: TransactionContext,
+  ): Promise<{ data: User[]; total: number }> {
+    const repository = (ctx as EntityManager).getRepository(User);
+    const where = filter.companyId ? { companyId: filter.companyId } : {};
+    const [data, total] = await repository.findAndCount({
+      where,
+      take: pagination.limit,
+      skip: pagination.offset,
+      order: { email: 'ASC' },
+    });
+    return { data, total };
+  }
+
+  async update(
+    id: string,
+    changes: { email?: string; role?: UserRole },
+    ctx: TransactionContext,
+  ): Promise<User> {
+    const repository = (ctx as EntityManager).getRepository(User);
+    await repository.update(id, changes);
+    return repository.findOneByOrFail({ id });
+  }
+
+  async deactivate(id: string, ctx: TransactionContext): Promise<User> {
+    const repository = (ctx as EntityManager).getRepository(User);
+    await repository.update(id, { isActive: false });
+    return repository.findOneByOrFail({ id });
+  }
+
+  async reactivate(id: string, ctx: TransactionContext): Promise<User> {
+    const repository = (ctx as EntityManager).getRepository(User);
+    await repository.update(id, { isActive: true });
+    return repository.findOneByOrFail({ id });
+  }
+
+  async deleteAllByCompanyId(companyId: string, ctx: TransactionContext): Promise<void> {
+    await (ctx as EntityManager).getRepository(User).delete({ companyId });
+  }
+
   async findByEmailWithCompany(
     email: string,
     ctx: TransactionContext,
@@ -47,6 +97,14 @@ export class UserTypeOrmRepository implements IUserRepository, IAuthUserReposito
       .getRepository(User)
       .findOne({ where: { id: userId }, relations: ['company'] });
     return user ? this.toAuthUserRecord(user) : null;
+  }
+
+  async updatePasswordHash(
+    userId: string,
+    passwordHash: string,
+    ctx: TransactionContext,
+  ): Promise<void> {
+    await (ctx as EntityManager).getRepository(User).update(userId, { passwordHash });
   }
 
   private toAuthUserRecord(user: User): AuthUserRecord {

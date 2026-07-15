@@ -1,0 +1,21 @@
+<div class="form-field">
+  <label class="form-label" [for]="id">{{ label }}</label>
+  <select
+    class="form-input"
+    [id]="id"
+    [disabled]="disabled"
+    [attr.aria-describedby]="errorMessage ? id + '-error' : null"
+    [attr.aria-invalid]="errorMessage ? true : null"
+    (change)="handleChange($event)"
+    (blur)="handleBlur()"
+  >
+    @for (option of options; track option.value) {
+      <option [value]="option.value" [selected]="option.value === value">
+        {{ option.label }}
+      </option>
+    }
+  </select>
+  @if (errorMessage) {
+    <p class="form-error" [id]="id + '-error'" role="alert">{{ errorMessage }}</p>
+  }
+</div>

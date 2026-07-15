@@ -11,6 +11,10 @@ export const SEED_COMPANY_NAME = 'EWControl Demo';
 export const SEED_USER_EMAIL = 'demo@ewcontrol.local';
 export const SEED_USER_PASSWORD = 'Demo1234!';
 export const SEED_USER_ROLE = UserRole.AdminCliente;
+/** SuperAdmin de demo (docs/specs/10-gestion-companies-users.md), misma Company que el AdminCliente anterior. */
+export const SEED_SUPERADMIN_EMAIL = 'superadmin@ewcontrol.local';
+export const SEED_SUPERADMIN_PASSWORD = 'SuperAdmin1234!';
+export const SEED_SUPERADMIN_ROLE = UserRole.SuperAdmin;
 export const SEED_MACHINE_NAME = 'Bobinadora Demo 1';
 export const SEED_MACHINE_PROVIDER_TYPE = ProviderType.Simulator;
 

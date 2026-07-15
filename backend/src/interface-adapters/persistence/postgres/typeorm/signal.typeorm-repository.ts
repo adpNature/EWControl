@@ -80,4 +80,8 @@ export class SignalTypeOrmRepository implements ISignalRepository {
   async deactivateAllByMachineId(machineId: string, ctx: TransactionContext): Promise<void> {
     await (ctx as EntityManager).getRepository(Signal).update({ machineId }, { isActive: false });
   }
+
+  async deleteAllByMachineId(machineId: string, ctx: TransactionContext): Promise<void> {
+    await (ctx as EntityManager).getRepository(Signal).delete({ machineId });
+  }
 }

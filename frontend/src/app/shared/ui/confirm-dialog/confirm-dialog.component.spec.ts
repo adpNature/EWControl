@@ -11,6 +11,7 @@ import { ConfirmDialogComponent } from './confirm-dialog.component';
       [open]="open"
       title="Eliminar Machine"
       message="¿Seguro que quieres eliminar esta Machine? Sus Signals también se desactivarán."
+      [confirmText]="confirmText"
       (confirmed)="onConfirm()"
       (cancelled)="onCancel()"
     />
@@ -18,6 +19,7 @@ import { ConfirmDialogComponent } from './confirm-dialog.component';
 })
 class HostComponent {
   open = false;
+  confirmText?: string;
   confirmed = false;
   cancelled = false;
 
@@ -77,5 +79,54 @@ describe('ConfirmDialogComponent', () => {
 
     await userEvent.click(screen.getByRole('alertdialog').parentElement!);
     expect(fixture.componentInstance.cancelled).toBe(true);
+  });
+
+  describe('con confirmText (escribe el nombre para confirmar)', () => {
+    it('el botón de confirmar empieza deshabilitado', async () => {
+      await render(HostComponent, {
+        componentProperties: { open: true, confirmText: 'ACME' },
+      });
+
+      expect(screen.getByRole('button', { name: 'Eliminar' })).toBeDisabled();
+    });
+
+    it('sigue deshabilitado si el texto tecleado no coincide exactamente', async () => {
+      await render(HostComponent, {
+        componentProperties: { open: true, confirmText: 'ACME' },
+      });
+
+      await userEvent.type(screen.getByRole('textbox'), 'acme');
+
+      expect(screen.getByRole('button', { name: 'Eliminar' })).toBeDisabled();
+    });
+
+    it('se habilita cuando el texto tecleado coincide exactamente y permite confirmar', async () => {
+      const { fixture } = await render(HostComponent, {
+        componentProperties: { open: true, confirmText: 'ACME' },
+      });
+
+      await userEvent.type(screen.getByRole('textbox'), 'ACME');
+      const confirmButton = screen.getByRole('button', { name: 'Eliminar' });
+      expect(confirmButton).toBeEnabled();
+
+      await userEvent.click(confirmButton);
+      expect(fixture.componentInstance.confirmed).toBe(true);
+    });
+
+    it('resetea el texto tecleado cada vez que el diálogo se vuelve a abrir', async () => {
+      const { fixture } = await render(HostComponent, {
+        componentProperties: { open: true, confirmText: 'ACME' },
+      });
+      await userEvent.type(screen.getByRole('textbox'), 'ACME');
+      expect(screen.getByRole('button', { name: 'Eliminar' })).toBeEnabled();
+
+      fixture.componentInstance.open = false;
+      fixture.detectChanges();
+      fixture.componentInstance.open = true;
+      fixture.detectChanges();
+
+      expect(screen.getByRole('button', { name: 'Eliminar' })).toBeDisabled();
+      expect(screen.getByRole('textbox')).toHaveValue('');
+    });
   });
 });
