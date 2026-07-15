@@ -91,7 +91,11 @@ jobs:
       - name: Esperar a que el Backend responda
         run: |
           for i in $(seq 1 30); do
-            status=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/api/v1/auth/login -X POST -H 'Content-Type: application/json' -d '{}')
+            # `|| true`: sin backend escuchando aún, curl devuelve el código de
+            # transporte (7, conexión rechazada) — con `bash -e` (por defecto en
+            # los steps de Actions) eso abortaría el script en el primer intento
+            # en vez de dejar que el bucle reintente.
+            status=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/api/v1/auth/login -X POST -H 'Content-Type: application/json' -d '{}' || true)
             if [ "$status" != "000" ]; then
               exit 0
             fi
