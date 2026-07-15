@@ -11,6 +11,14 @@
       <dd>{{ detail.signalId }}</dd>
     </dl>
 
+    @if (detail.ackedAt) {
+      <p class="alarm-detail-page__acked">
+        Reconocida por {{ detail.ackedByEmail }} el {{ detail.ackedAt | date: 'short' }}
+      </p>
+    } @else {
+      <button type="button" class="btn-primary" (click)="ack()">Reconocer</button>
+    }
+
     <h2 class="title-lg">Histórico de activaciones</h2>
     <app-table
       [columns]="historyColumns"

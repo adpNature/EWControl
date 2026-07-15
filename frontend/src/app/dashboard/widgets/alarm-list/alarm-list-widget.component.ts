@@ -79,6 +79,9 @@ export class AlarmListWidgetComponent implements OnInit, OnDestroy {
             priority: event.priority,
             activatedAt: event.timestamp,
             resolvedAt: null,
+            ackedAt: null,
+            ackedByUserId: null,
+            ackedByEmail: null,
           };
           this.alarms.update((current) => [
             triggered,

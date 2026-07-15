@@ -26,13 +26,13 @@ function createResolver(fakes: ReturnType<typeof createFakes>) {
 
 describe('AlarmStateAccessResolver', () => {
   describe('resolveAny', () => {
-    it('devuelve el AlarmState cuando su Signal/Machine pertenecen a la Company del requester', async () => {
+    it('devuelve el AlarmState y el companyId cuando su Signal/Machine pertenecen a la Company del requester', async () => {
       const fakes = createFakes();
       const resolver = createResolver(fakes);
 
-      const alarmState = await resolver.resolveAny('state-1', REQUESTER, FAKE_CTX);
+      const result = await resolver.resolveAny('state-1', REQUESTER, FAKE_CTX);
 
-      expect(alarmState).toEqual(ALARM_STATE);
+      expect(result).toEqual({ alarmState: ALARM_STATE, companyId: 'company-1' });
     });
 
     it('lanza AlarmStateNotFoundError si el AlarmState no existe', async () => {
@@ -58,17 +58,17 @@ describe('AlarmStateAccessResolver', () => {
       ).rejects.toBeInstanceOf(AlarmStateNotFoundError);
     });
 
-    it('devuelve el AlarmState de otra Company si el requester es SuperAdmin', async () => {
+    it('devuelve el AlarmState y el companyId real de otra Company si el requester es SuperAdmin', async () => {
       const fakes = createFakes();
       const resolver = createResolver(fakes);
 
-      const alarmState = await resolver.resolveAny(
+      const result = await resolver.resolveAny(
         'state-1',
         { companyId: 'other-company', role: UserRole.SuperAdmin },
         FAKE_CTX,
       );
 
-      expect(alarmState).toEqual(ALARM_STATE);
+      expect(result).toEqual({ alarmState: ALARM_STATE, companyId: 'company-1' });
     });
   });
 });

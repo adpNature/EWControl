@@ -6,13 +6,17 @@ import { Signal } from './signal.entity';
 
 /**
  * Resultado de evaluar una AlarmDefinition (Documento 3, apartado 3.2.7): su
- * estado actual y su historial de activaciones. Solo el Alarm Engine puede
- * crearlo/modificarlo — no existen endpoints de escritura (docs/11-api-rest.md).
+ * estado actual y su historial de activaciones. Su ciclo de vida
+ * (`status`/`activatedAt`/`resolvedAt`) solo lo crea/modifica el Alarm Engine;
+ * el único endpoint de escritura es el reconocimiento manual (ACK, spec 11,
+ * docs/11-api-rest.md), que no altera ese ciclo de vida.
  *
  * Sin columna "puntero al estado vigente" (mismo criterio que `RefreshToken.status`):
  * la fila vigente de una AlarmDefinition es la de `activatedAt` más reciente.
  * `signalId` se denormaliza (además de derivarse de `alarmDefinitionId`) para
  * poder filtrar/joinear por Machine en una sola consulta (`GET /alarm-states`).
+ * `ackedByEmail` se denormaliza igual criterio, para no depender de un join
+ * al listar quién reconoció una alarma.
  */
 @Entity('alarm_states')
 @Index(['alarmDefinitionId', 'activatedAt'])
@@ -49,4 +53,14 @@ export class AlarmState {
 
   @Column({ type: 'timestamptz', nullable: true })
   resolvedAt: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  ackedAt: Date | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  ackedByUserId: string | null;
+
+  /** Copia del email del User en el momento del ACK, para no depender de un join al listar. */
+  @Column({ type: 'varchar', nullable: true })
+  ackedByEmail: string | null;
 }

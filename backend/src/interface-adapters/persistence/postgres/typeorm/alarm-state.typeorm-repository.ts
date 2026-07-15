@@ -57,6 +57,20 @@ export class AlarmStateTypeOrmRepository implements IAlarmStateRepository {
     return repository.findOneByOrFail({ id: alarmStateId });
   }
 
+  async acknowledge(
+    alarmStateId: string,
+    data: { ackedAt: Date; ackedByUserId: string; ackedByEmail: string },
+    ctx: TransactionContext,
+  ): Promise<AlarmState> {
+    const repository = (ctx as EntityManager).getRepository(AlarmState);
+    await repository.update(alarmStateId, {
+      ackedAt: data.ackedAt,
+      ackedByUserId: data.ackedByUserId,
+      ackedByEmail: data.ackedByEmail,
+    });
+    return repository.findOneByOrFail({ id: alarmStateId });
+  }
+
   async list(
     filter: {
       companyId: string | null;

@@ -3,6 +3,7 @@ import { AlarmEvaluationListener } from '../interface-adapters/events/alarm-eval
 import { AlarmTriggeredNotificationListener } from '../interface-adapters/events/alarm-triggered-notification.listener';
 import { NestEventEmitterPublisher } from '../interface-adapters/events/nest-event-emitter.publisher';
 import { NodemailerEmailSenderAdapter } from '../interface-adapters/email/nodemailer-email-sender.adapter';
+import { SystemClock } from '../interface-adapters/system/system-clock';
 import { AlarmDefinitionTypeOrmRepository } from '../interface-adapters/persistence/postgres/typeorm/alarm-definition.typeorm-repository';
 import { AlarmStateTypeOrmRepository } from '../interface-adapters/persistence/postgres/typeorm/alarm-state.typeorm-repository';
 import { CompanyTypeOrmRepository } from '../interface-adapters/persistence/postgres/typeorm/company.typeorm-repository';
@@ -13,6 +14,7 @@ import { UserTypeOrmRepository } from '../interface-adapters/persistence/postgre
 import { AlarmDefinitionController } from '../interface-adapters/rest/alarms/alarm-definition.controller';
 import { AlarmDefinitionMutationController } from '../interface-adapters/rest/alarms/alarm-definition-mutation.controller';
 import { AlarmStateController } from '../interface-adapters/rest/alarms/alarm-state.controller';
+import { AckAlarmStateUseCase } from '../use-cases/alarms/ack-alarm-state.use-case';
 import { AlarmDefinitionAccessResolver } from '../use-cases/alarms/alarm-definition-access.resolver';
 import { AlarmStateAccessResolver } from '../use-cases/alarms/alarm-state-access.resolver';
 import { CreateAlarmDefinitionUseCase } from '../use-cases/alarms/create-alarm-definition.use-case';
@@ -33,6 +35,7 @@ import { SIGNAL_REPOSITORY } from '../use-cases/seed-demo-environment/ports/sign
 import { UNIT_OF_WORK } from '../use-cases/seed-demo-environment/ports/unit-of-work.port';
 import { USER_REPOSITORY } from '../use-cases/seed-demo-environment/ports/user-repository.port';
 import { EVENT_PUBLISHER } from '../use-cases/simulator-control/ports/event-publisher.port';
+import { CLOCK } from '../use-cases/history/ports/clock.port';
 import { NODEMAILER_TRANSPORTER, createNodemailerTransporter } from './email/nodemailer.client';
 
 /**
@@ -53,6 +56,7 @@ import { NODEMAILER_TRANSPORTER, createNodemailerTransporter } from './email/nod
     EvaluateAlarmRulesUseCase,
     GetAlarmStateUseCase,
     ListAlarmStatesUseCase,
+    AckAlarmStateUseCase,
     NotifyAlarmTriggeredUseCase,
     AlarmEvaluationListener,
     AlarmTriggeredNotificationListener,
@@ -64,6 +68,7 @@ import { NODEMAILER_TRANSPORTER, createNodemailerTransporter } from './email/nod
     { provide: USER_REPOSITORY, useClass: UserTypeOrmRepository },
     { provide: UNIT_OF_WORK, useClass: TypeOrmUnitOfWork },
     { provide: EVENT_PUBLISHER, useClass: NestEventEmitterPublisher },
+    { provide: CLOCK, useClass: SystemClock },
     { provide: NODEMAILER_TRANSPORTER, useFactory: createNodemailerTransporter },
     { provide: EMAIL_SENDER, useClass: NodemailerEmailSenderAdapter },
   ],

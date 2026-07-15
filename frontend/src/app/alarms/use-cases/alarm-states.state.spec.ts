@@ -12,14 +12,17 @@ const ALARM_STATE_1: AlarmState = {
   priority: 'HIGH',
   activatedAt: '2026-07-13T10:00:00Z',
   resolvedAt: null,
+  ackedAt: null,
+  ackedByUserId: null,
+  ackedByEmail: null,
 };
 
 describe('AlarmStatesState', () => {
   let service: AlarmStatesState;
-  let alarmStatesApi: { list: ReturnType<typeof vi.fn> };
+  let alarmStatesApi: { list: ReturnType<typeof vi.fn>; ack: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
-    alarmStatesApi = { list: vi.fn() };
+    alarmStatesApi = { list: vi.fn(), ack: vi.fn() };
     TestBed.configureTestingModule({
       providers: [{ provide: AlarmStatesApiService, useValue: alarmStatesApi }],
     });
@@ -72,6 +75,9 @@ describe('AlarmStatesState', () => {
         priority: 'CRITICAL',
         activatedAt: '2026-07-13T11:00:00Z',
         resolvedAt: null,
+        ackedAt: null,
+        ackedByUserId: null,
+        ackedByEmail: null,
       },
     ]);
   });
@@ -93,6 +99,56 @@ describe('AlarmStatesState', () => {
 
     expect(service.alarmStates()).toEqual([
       { ...ALARM_STATE_1, status: 'INACTIVE', resolvedAt: '2026-07-13T12:00:00Z' },
+    ]);
+  });
+
+  it('ack(id) actualiza en el signal la alarma reconocida por la API', async () => {
+    alarmStatesApi.list.mockReturnValue(
+      of({ data: [ALARM_STATE_1], total: 1, limit: 20, offset: 0 }),
+    );
+    await new Promise((resolve, reject) =>
+      service.load({}).subscribe({ next: resolve, error: reject }),
+    );
+    const acked: AlarmState = {
+      ...ALARM_STATE_1,
+      ackedAt: '2026-07-13T13:00:00Z',
+      ackedByUserId: 'user-1',
+      ackedByEmail: 'admin@ewcontrol.local',
+    };
+    alarmStatesApi.ack.mockReturnValue(of(acked));
+
+    await new Promise((resolve, reject) =>
+      service.ack('state-1').subscribe({ next: resolve, error: reject }),
+    );
+
+    expect(alarmStatesApi.ack).toHaveBeenCalledWith('state-1');
+    expect(service.alarmStates()).toEqual([acked]);
+  });
+
+  it('applyAcked() aplica el evento de WebSocket sobre la alarma ya presente en la lista', async () => {
+    alarmStatesApi.list.mockReturnValue(
+      of({ data: [ALARM_STATE_1], total: 1, limit: 20, offset: 0 }),
+    );
+    await new Promise((resolve, reject) =>
+      service.load({}).subscribe({ next: resolve, error: reject }),
+    );
+
+    service.applyAcked({
+      alarmStateId: 'state-1',
+      alarmDefinitionId: 'def-1',
+      signalId: 'signal-1',
+      ackedByUserId: 'user-1',
+      ackedByEmail: 'admin@ewcontrol.local',
+      ackedAt: '2026-07-13T13:00:00Z',
+    });
+
+    expect(service.alarmStates()).toEqual([
+      {
+        ...ALARM_STATE_1,
+        ackedAt: '2026-07-13T13:00:00Z',
+        ackedByUserId: 'user-1',
+        ackedByEmail: 'admin@ewcontrol.local',
+      },
     ]);
   });
 });

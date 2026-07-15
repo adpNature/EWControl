@@ -41,6 +41,16 @@ export type AlarmClearedPayload = {
   companyId: string;
   timestamp: Date;
 };
+/** docs/specs/11-ack-alarmas.md, docs/11-api-rest.md sección "Eventos WebSocket". */
+export type AlarmAckedPayload = {
+  alarmStateId: string;
+  alarmDefinitionId: string;
+  signalId: string;
+  companyId: string;
+  ackedByUserId: string;
+  ackedByEmail: string;
+  ackedAt: Date;
+};
 
 /**
  * Único punto por el que el dominio/aplicación publica eventos, sin conocer
@@ -55,4 +65,5 @@ export interface IEventPublisher {
   publish(eventName: 'SignalUpdated', payload: SignalUpdatedPayload): void;
   publish(eventName: 'AlarmTriggered', payload: AlarmTriggeredPayload): void;
   publish(eventName: 'AlarmCleared', payload: AlarmClearedPayload): void;
+  publish(eventName: 'AlarmAcked', payload: AlarmAckedPayload): void;
 }

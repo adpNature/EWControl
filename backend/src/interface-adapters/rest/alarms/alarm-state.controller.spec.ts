@@ -4,6 +4,7 @@ import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AlarmStateType } from '../../../entities/alarm-state-type.enum';
 import { UserRole } from '../../../entities/user-role.enum';
+import { AckAlarmStateUseCase } from '../../../use-cases/alarms/ack-alarm-state.use-case';
 import { AlarmStateNotFoundError } from '../../../use-cases/alarms/errors/alarm-state-not-found.error';
 import { GetAlarmStateUseCase } from '../../../use-cases/alarms/get-alarm-state.use-case';
 import { ListAlarmStatesUseCase } from '../../../use-cases/alarms/list-alarm-states.use-case';
@@ -21,6 +22,7 @@ describe('AlarmStateController (HTTP)', () => {
   let app: INestApplication;
   let listAlarmStatesUseCase: { execute: ReturnType<typeof vi.fn> };
   let getAlarmStateUseCase: { execute: ReturnType<typeof vi.fn> };
+  let ackAlarmStateUseCase: { execute: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     listAlarmStatesUseCase = {
@@ -31,12 +33,16 @@ describe('AlarmStateController (HTTP)', () => {
     getAlarmStateUseCase = {
       execute: vi.fn().mockResolvedValue({ id: 'state-1', history: [{ id: 'state-1' }] }),
     };
+    ackAlarmStateUseCase = {
+      execute: vi.fn().mockResolvedValue({ id: 'state-1', ackedAt: '2026-07-15T12:00:00.000Z' }),
+    };
 
     const moduleRef = await Test.createTestingModule({
       controllers: [AlarmStateController],
       providers: [
         { provide: ListAlarmStatesUseCase, useValue: listAlarmStatesUseCase },
         { provide: GetAlarmStateUseCase, useValue: getAlarmStateUseCase },
+        { provide: AckAlarmStateUseCase, useValue: ackAlarmStateUseCase },
       ],
     }).compile();
 
@@ -102,6 +108,28 @@ describe('AlarmStateController (HTTP)', () => {
     getAlarmStateUseCase.execute.mockRejectedValue(new AlarmStateNotFoundError('state-1'));
 
     const response = await request(app.getHttpServer()).get('/alarm-states/state-1');
+
+    expect(response.status).toBe(404);
+    expect(response.body.code).toBe('ALARM_STATE_NOT_FOUND');
+  });
+
+  it('POST /:id/ack reconoce la alarma con el requester actual', async () => {
+    const response = await request(app.getHttpServer()).post('/alarm-states/state-1/ack').send();
+
+    expect(response.status).toBe(200);
+    expect(ackAlarmStateUseCase.execute).toHaveBeenCalledWith({
+      alarmStateId: 'state-1',
+      requester: { companyId: 'company-1', role: UserRole.AdminCliente },
+      ackedByUserId: 'user-1',
+      ackedByEmail: 'demo@ewcontrol.local',
+    });
+    expect(response.body).toEqual({ id: 'state-1', ackedAt: '2026-07-15T12:00:00.000Z' });
+  });
+
+  it('POST /:id/ack responde 404 ALARM_STATE_NOT_FOUND si el use-case lo lanza', async () => {
+    ackAlarmStateUseCase.execute.mockRejectedValue(new AlarmStateNotFoundError('state-1'));
+
+    const response = await request(app.getHttpServer()).post('/alarm-states/state-1/ack').send();
 
     expect(response.status).toBe(404);
     expect(response.body.code).toBe('ALARM_STATE_NOT_FOUND');

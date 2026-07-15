@@ -31,6 +31,12 @@ export interface IAlarmStateRepository {
     resolvedAt: Date,
     ctx: TransactionContext,
   ): Promise<AlarmState>;
+  /** Reconocimiento manual (ACK, docs/specs/11-ack-alarmas.md). No altera `status`/`activatedAt`/`resolvedAt`. */
+  acknowledge(
+    alarmStateId: string,
+    data: { ackedAt: Date; ackedByUserId: string; ackedByEmail: string },
+    ctx: TransactionContext,
+  ): Promise<AlarmState>;
   list(
     filter: {
       companyId: string | null;

@@ -1239,6 +1239,7 @@ AlarmState es responsable de:
 - Pertenecer a una única AlarmDefinition.
 - Almacenar el estado actual (`AlarmStateType`): INACTIVE o ACTIVE.
 - Almacenar la fecha de activación y, en su caso, la fecha de resolución.
+- Almacenar, opcionalmente, su reconocimiento manual (ACK): quién lo reconoció y cuándo (`ackedAt`, `ackedByUserId`, `ackedByEmail`), spec 11.
 
 No es responsable de evaluar condiciones ni de enviar notificaciones.
 
@@ -1260,7 +1261,7 @@ Un AlarmState únicamente puede ser creado o actualizado por el Alarm Engine.
 
 **Regla 2**
 
-Un AlarmState nunca se crea ni modifica manualmente.
+Un AlarmState nunca se crea ni modifica manualmente, salvo su reconocimiento manual (ACK): un User autorizado puede establecer `ackedAt`/`ackedByUserId`/`ackedByEmail` de un AlarmState existente, exactamente una vez por activación, sin poder alterar `status`, `activatedAt` ni `resolvedAt` (spec 11).
 
 ---
 
@@ -1272,7 +1273,7 @@ El conjunto de AlarmState de una AlarmDefinition constituye el histórico de ala
 
 ### Evolución
 
-El modelo permite incorporar en el futuro el reconocimiento manual de alarmas (ACK), comentarios del operador y asignación de responsables.
+El modelo permite incorporar en el futuro comentarios del operador y asignación de responsables sobre una alarma reconocida.
 
 ---
 

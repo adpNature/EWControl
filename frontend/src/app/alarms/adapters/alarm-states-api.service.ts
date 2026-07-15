@@ -4,7 +4,7 @@ import { ApiService } from '../../core/http/api.service';
 import { PaginatedResponse } from '../../core/http/paginated-response.model';
 import { AlarmState, AlarmStateDetail, AlarmStateFilters } from '../entities/alarm-state.model';
 
-/** Interface Adapter: llamadas HTTP de docs/11-api-rest.md, sección "AlarmState" (solo lectura). */
+/** Interface Adapter: llamadas HTTP de docs/11-api-rest.md, sección "AlarmState". */
 @Injectable({ providedIn: 'root' })
 export class AlarmStatesApiService {
   private readonly api = inject(ApiService);
@@ -31,5 +31,9 @@ export class AlarmStatesApiService {
 
   get(id: string): Observable<AlarmStateDetail> {
     return this.api.get<AlarmStateDetail>(`/alarm-states/${id}`);
+  }
+
+  ack(id: string): Observable<AlarmState> {
+    return this.api.post<AlarmState>(`/alarm-states/${id}/ack`, {});
   }
 }

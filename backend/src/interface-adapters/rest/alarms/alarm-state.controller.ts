@@ -1,14 +1,19 @@
 import {
   Controller,
   Get,
+  HttpCode,
   HttpException,
+  HttpStatus,
   InternalServerErrorException,
   NotFoundException,
   Param,
+  Post,
   Query,
 } from '@nestjs/common';
 import type { CurrentUser } from '../../auth-guard/current-user';
 import { currentUser } from '../../auth-guard/current-user.decorator';
+import { AlarmState } from '../../../entities/alarm-state.entity';
+import { AckAlarmStateUseCase } from '../../../use-cases/alarms/ack-alarm-state.use-case';
 import { AlarmStateNotFoundError } from '../../../use-cases/alarms/errors/alarm-state-not-found.error';
 import {
   GetAlarmStateResult,
@@ -23,12 +28,18 @@ import { AlarmStateQueryDto } from './alarm-state-query.dto';
 const DEFAULT_LIMIT = 20;
 const DEFAULT_OFFSET = 0;
 
-/** docs/specs/09-alarmas.md, docs/11-api-rest.md sección "AlarmState" — solo lectura. */
+/**
+ * docs/specs/09-alarmas.md, docs/specs/11-ack-alarmas.md, docs/11-api-rest.md
+ * sección "AlarmState". Su ciclo de vida (`status`/`activatedAt`/`resolvedAt`)
+ * solo lo crea/modifica el Alarm Engine; el único endpoint de escritura es
+ * el reconocimiento manual (ACK).
+ */
 @Controller('alarm-states')
 export class AlarmStateController {
   constructor(
     private readonly listAlarmStatesUseCase: ListAlarmStatesUseCase,
     private readonly getAlarmStateUseCase: GetAlarmStateUseCase,
+    private readonly ackAlarmStateUseCase: AckAlarmStateUseCase,
   ) {}
 
   @Get()
@@ -59,6 +70,21 @@ export class AlarmStateController {
       return await this.getAlarmStateUseCase.execute({
         alarmStateId: id,
         requester: { companyId: user.companyId, role: user.role },
+      });
+    } catch (error) {
+      throw this.toHttpException(error);
+    }
+  }
+
+  @Post(':id/ack')
+  @HttpCode(HttpStatus.OK)
+  async ack(@Param('id') id: string, @currentUser() user: CurrentUser): Promise<AlarmState> {
+    try {
+      return await this.ackAlarmStateUseCase.execute({
+        alarmStateId: id,
+        requester: { companyId: user.companyId, role: user.role },
+        ackedByUserId: user.id,
+        ackedByEmail: user.email,
       });
     } catch (error) {
       throw this.toHttpException(error);

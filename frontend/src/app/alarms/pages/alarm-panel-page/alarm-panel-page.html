@@ -53,5 +53,13 @@
 
   <ng-template #alarmStateActions let-alarmState>
     <a [routerLink]="['/alarms', alarmState.id]">Ver detalle</a>
+    @if (alarmState.ackedAt) {
+      <span class="alarm-panel-page__acked">
+        Reconocida por {{ alarmState.ackedByEmail }} el
+        {{ alarmState.ackedAt | date: 'short' }}
+      </span>
+    } @else {
+      <button type="button" class="btn-primary" (click)="ack(alarmState)">Reconocer</button>
+    }
   </ng-template>
 </div>

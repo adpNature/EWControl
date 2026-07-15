@@ -21,6 +21,7 @@ import { AlarmsModule } from '../src/frameworks-drivers/alarms.module';
 import { MachineManagementModule } from '../src/frameworks-drivers/machine-management.module';
 import { SeedModule } from '../src/frameworks-drivers/seed.module';
 import { SimulatorModule } from '../src/frameworks-drivers/simulator.module';
+import { AckAlarmStateUseCase } from '../src/use-cases/alarms/ack-alarm-state.use-case';
 import { CreateAlarmDefinitionUseCase } from '../src/use-cases/alarms/create-alarm-definition.use-case';
 import { ListAlarmStatesUseCase } from '../src/use-cases/alarms/list-alarm-states.use-case';
 import { IngestSignalTickUseCase } from '../src/use-cases/dashboard/ingest-signal-tick.use-case';
@@ -37,6 +38,18 @@ async function insertCompany(dataSource: DataSource, name = 'Empresa Demo'): Pro
   const [row] = await dataSource.query(
     'INSERT INTO companies (name, is_active) VALUES ($1, true) RETURNING id',
     [name],
+  );
+  return row.id;
+}
+
+async function insertUser(
+  dataSource: DataSource,
+  companyId: string,
+  email = 'admin@ewcontrol.local',
+): Promise<string> {
+  const [row] = await dataSource.query(
+    'INSERT INTO users (company_id, email, password_hash, role, is_active) VALUES ($1, $2, $3, $4, true) RETURNING id',
+    [companyId, email, 'not-a-real-hash', 'AdminCliente'],
   );
   return row.id;
 }
@@ -78,6 +91,7 @@ describe('Alarmas (integration)', () => {
   let createAlarmDefinitionUseCase: CreateAlarmDefinitionUseCase;
   let listAlarmStatesUseCase: ListAlarmStatesUseCase;
   let ingestSignalTick: IngestSignalTickUseCase;
+  let ackAlarmStateUseCase: AckAlarmStateUseCase;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -98,6 +112,7 @@ describe('Alarmas (integration)', () => {
     createAlarmDefinitionUseCase = app.get(CreateAlarmDefinitionUseCase);
     listAlarmStatesUseCase = app.get(ListAlarmStatesUseCase);
     ingestSignalTick = app.get(IngestSignalTickUseCase);
+    ackAlarmStateUseCase = app.get(AckAlarmStateUseCase);
   });
 
   beforeEach(async () => {
@@ -231,5 +246,89 @@ describe('Alarmas (integration)', () => {
 
     expect(result.data).toHaveLength(1);
     expect(result.data[0].alarmDefinitionId).toBe(alarmDefinition.id);
+  });
+
+  describe('AckAlarmStateUseCase (docs/specs/11-ack-alarmas.md)', () => {
+    it('persiste ackedAt/ackedByUserId/ackedByEmail al reconocer un AlarmState activo', async () => {
+      const companyId = await insertCompany(dataSource);
+      const userId = await insertUser(dataSource, companyId, 'admin@ewcontrol.local');
+      const { machine, requester, alarmDefinition } = await createFixture(companyId);
+      await ingestSignalTick.execute({
+        machineId: machine.id,
+        variableName: 'temperature',
+        value: 84,
+        quality: SignalQuality.Good,
+        timestamp: new Date('2026-07-15T10:00:00Z'),
+      });
+      const [activeRow] = await waitForAlarmState(
+        dataSource,
+        alarmDefinition.id,
+        (rows) => rows.length === 1 && rows[0].status === 'ACTIVE',
+      );
+      const [{ id: alarmStateId }] = await dataSource.query(
+        'SELECT id FROM alarm_states WHERE alarm_definition_id = $1',
+        [alarmDefinition.id],
+      );
+
+      const result = await ackAlarmStateUseCase.execute({
+        alarmStateId,
+        requester,
+        ackedByUserId: userId,
+        ackedByEmail: 'admin@ewcontrol.local',
+      });
+
+      expect(result.ackedAt).not.toBeNull();
+      expect(result.ackedByUserId).toBe(userId);
+      expect(result.ackedByEmail).toBe('admin@ewcontrol.local');
+      expect(result.status).toBe(activeRow.status);
+
+      const [row] = await dataSource.query(
+        'SELECT acked_at AS "ackedAt", acked_by_user_id AS "ackedByUserId", acked_by_email AS "ackedByEmail" FROM alarm_states WHERE id = $1',
+        [alarmStateId],
+      );
+      expect(row.ackedAt).not.toBeNull();
+      expect(row.ackedByUserId).toBe(userId);
+      expect(row.ackedByEmail).toBe('admin@ewcontrol.local');
+    });
+
+    it('es idempotente: reconocer dos veces preserva quién reconoció primero', async () => {
+      const companyId = await insertCompany(dataSource);
+      const firstUserId = await insertUser(dataSource, companyId, 'first@ewcontrol.local');
+      const secondUserId = await insertUser(dataSource, companyId, 'second@ewcontrol.local');
+      const { machine, requester, alarmDefinition } = await createFixture(companyId);
+      await ingestSignalTick.execute({
+        machineId: machine.id,
+        variableName: 'temperature',
+        value: 84,
+        quality: SignalQuality.Good,
+        timestamp: new Date('2026-07-15T10:00:00Z'),
+      });
+      await waitForAlarmState(
+        dataSource,
+        alarmDefinition.id,
+        (rows) => rows.length === 1 && rows[0].status === 'ACTIVE',
+      );
+      const [{ id: alarmStateId }] = await dataSource.query(
+        'SELECT id FROM alarm_states WHERE alarm_definition_id = $1',
+        [alarmDefinition.id],
+      );
+
+      const first = await ackAlarmStateUseCase.execute({
+        alarmStateId,
+        requester,
+        ackedByUserId: firstUserId,
+        ackedByEmail: 'first@ewcontrol.local',
+      });
+      const second = await ackAlarmStateUseCase.execute({
+        alarmStateId,
+        requester,
+        ackedByUserId: secondUserId,
+        ackedByEmail: 'second@ewcontrol.local',
+      });
+
+      expect(second.ackedByUserId).toBe(firstUserId);
+      expect(second.ackedByEmail).toBe('first@ewcontrol.local');
+      expect(second.ackedAt).toEqual(first.ackedAt);
+    });
   });
 });
