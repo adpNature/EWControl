@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -5,6 +6,7 @@ import { Subscription } from 'rxjs';
 import { MachinesState } from '../../../config/use-cases/machines.state';
 import { RealtimeSocketService } from '../../../core/websocket/realtime-socket.service';
 import { TableColumn, TableComponent } from '../../../shared/ui/table/table.component';
+import { ToastService } from '../../../shared/ui/toast/toast.service';
 import { AlarmPriority } from '../../entities/alarm-definition.model';
 import { AlarmState, AlarmStateStatus } from '../../entities/alarm-state.model';
 import { AlarmStatesState } from '../../use-cases/alarm-states.state';
@@ -32,7 +34,7 @@ const ALARM_STATE_COLUMNS: TableColumn<AlarmState>[] = [
 @Component({
   selector: 'app-alarm-panel-page',
   standalone: true,
-  imports: [ReactiveFormsModule, TableComponent, RouterLink],
+  imports: [ReactiveFormsModule, TableComponent, RouterLink, DatePipe],
   templateUrl: './alarm-panel-page.html',
   styleUrl: './alarm-panel-page.scss',
 })
@@ -40,6 +42,7 @@ export class AlarmPanelPage implements OnInit, OnDestroy {
   protected readonly alarmStatesState = inject(AlarmStatesState);
   protected readonly machinesState = inject(MachinesState);
   private readonly realtimeSocket = inject(RealtimeSocketService);
+  private readonly toastService = inject(ToastService);
   private readonly subscriptions = new Subscription();
 
   readonly statuses = STATUSES;
@@ -66,6 +69,9 @@ export class AlarmPanelPage implements OnInit, OnDestroy {
         this.alarmStatesState.applyCleared(event),
       ),
     );
+    this.subscriptions.add(
+      this.realtimeSocket.alarmAcked$.subscribe((event) => this.alarmStatesState.applyAcked(event)),
+    );
   }
 
   ngOnDestroy(): void {
@@ -81,5 +87,13 @@ export class AlarmPanelPage implements OnInit, OnDestroy {
         priority: priority || undefined,
       })
       .subscribe();
+  }
+
+  ack(alarmState: AlarmState): void {
+    this.alarmStatesState.ack(alarmState.id).subscribe({
+      next: () => this.toastService.show({ type: 'success', message: 'Alarma reconocida.' }),
+      error: () =>
+        this.toastService.show({ type: 'danger', message: 'No se ha podido reconocer la alarma.' }),
+    });
   }
 }

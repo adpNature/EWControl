@@ -1,6 +1,10 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, map, tap } from 'rxjs';
-import { AlarmClearedEvent, AlarmTriggeredEvent } from '../../core/websocket/realtime-events.model';
+import {
+  AlarmAckedEvent,
+  AlarmClearedEvent,
+  AlarmTriggeredEvent,
+} from '../../core/websocket/realtime-events.model';
 import { AlarmStatesApiService } from '../adapters/alarm-states-api.service';
 import { AlarmState, AlarmStateFilters } from '../entities/alarm-state.model';
 
@@ -45,6 +49,9 @@ export class AlarmStatesState {
       priority: event.priority,
       activatedAt: event.timestamp,
       resolvedAt: null,
+      ackedAt: null,
+      ackedByUserId: null,
+      ackedByEmail: null,
     };
     this.alarmStatesSignal.update((current) => [
       triggered,
@@ -57,6 +64,33 @@ export class AlarmStatesState {
       current.map((alarmState) =>
         alarmState.id === event.alarmStateId
           ? { ...alarmState, status: 'INACTIVE', resolvedAt: event.timestamp }
+          : alarmState,
+      ),
+    );
+  }
+
+  ack(id: string): Observable<AlarmState> {
+    return this.alarmStatesApi
+      .ack(id)
+      .pipe(
+        tap((acked) =>
+          this.alarmStatesSignal.update((current) =>
+            current.map((alarmState) => (alarmState.id === id ? acked : alarmState)),
+          ),
+        ),
+      );
+  }
+
+  applyAcked(event: AlarmAckedEvent): void {
+    this.alarmStatesSignal.update((current) =>
+      current.map((alarmState) =>
+        alarmState.id === event.alarmStateId
+          ? {
+              ...alarmState,
+              ackedAt: event.ackedAt,
+              ackedByUserId: event.ackedByUserId,
+              ackedByEmail: event.ackedByEmail,
+            }
           : alarmState,
       ),
     );

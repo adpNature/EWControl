@@ -26,7 +26,11 @@ export class GetAlarmStateUseCase {
 
   execute(input: GetAlarmStateInput): Promise<GetAlarmStateResult> {
     return this.unitOfWork.runInTransaction(async (ctx) => {
-      const alarmState = await this.resolver.resolveAny(input.alarmStateId, input.requester, ctx);
+      const { alarmState } = await this.resolver.resolveAny(
+        input.alarmStateId,
+        input.requester,
+        ctx,
+      );
       const history = await this.alarmStateRepository.findHistoryByAlarmDefinitionId(
         alarmState.alarmDefinitionId,
         ctx,

@@ -36,7 +36,7 @@ export class AlarmStateAccessResolver {
     alarmStateId: string,
     requester: Requester,
     ctx: TransactionContext,
-  ): Promise<AlarmState> {
+  ): Promise<{ alarmState: AlarmState; companyId: string }> {
     const alarmState = await this.alarmStateRepository.findById(alarmStateId, ctx);
     if (!alarmState) {
       throw new AlarmStateNotFoundError(alarmStateId);
@@ -49,7 +49,7 @@ export class AlarmStateAccessResolver {
     if (!machine || !this.belongsToRequester(machine, requester)) {
       throw new AlarmStateNotFoundError(alarmStateId);
     }
-    return alarmState;
+    return { alarmState, companyId: machine.companyId };
   }
 
   private belongsToRequester(machine: { companyId: string }, requester: Requester): boolean {

@@ -220,7 +220,7 @@ Las alarmas activas se actualizan en tiempo real por WebSocket, igual que cualqu
 
 ## Interacción del Usuario
 
-El reconocimiento manual de alarmas (ACK) es evolución futura del modelo (Documento 3, apartado 3.2.7; Documento 11, sección "AlarmState") y no está disponible en esta versión: el Frontend únicamente visualiza el `AlarmState` que le comunica el Backend, sin poder modificarlo. Cuando se especifique esa funcionalidad (spec dedicada, Documento 0), esta acción se traducirá igualmente en una petición REST que el Backend valida y confirma; el Frontend nunca cambiará el estado de una alarma localmente sin esa confirmación.
+El reconocimiento manual de alarmas (ACK) está disponible desde el panel de alarmas y el detalle de una alarma (spec 11): el usuario puede reconocer una alarma, acción que se traduce en `POST /api/v1/alarm-states/:id/ack` (Documento 11, sección "AlarmState"); el Frontend nunca marca una alarma como reconocida antes de recibir la confirmación del Backend. El widget `ALARM_LIST` del Dashboard permanece de solo lectura (glance view compacto) y no ofrece esta acción.
 
 ---
 

@@ -168,5 +168,30 @@ describe('RealtimeGateway', () => {
         timestamp,
       });
     });
+
+    it('reemite AlarmAcked a la sala de la Company del payload (docs/specs/11-ack-alarmas.md)', () => {
+      const { gateway, server } = createGateway(createTokenService());
+      const ackedAt = new Date('2026-07-12T10:00:00Z');
+
+      gateway.relayAlarmAcked({
+        alarmStateId: 'state-1',
+        alarmDefinitionId: 'def-1',
+        signalId: 'signal-1',
+        companyId: 'company-1',
+        ackedByUserId: 'user-1',
+        ackedByEmail: 'admin@ewcontrol.local',
+        ackedAt,
+      });
+
+      expect(server.to).toHaveBeenCalledWith('company:company-1');
+      expect(server.emit).toHaveBeenCalledWith('AlarmAcked', {
+        alarmStateId: 'state-1',
+        alarmDefinitionId: 'def-1',
+        signalId: 'signal-1',
+        ackedByUserId: 'user-1',
+        ackedByEmail: 'admin@ewcontrol.local',
+        ackedAt,
+      });
+    });
   });
 });

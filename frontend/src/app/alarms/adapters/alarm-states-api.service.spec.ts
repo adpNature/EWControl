@@ -49,4 +49,13 @@ describe('AlarmStatesApiService', () => {
     expect(req.request.method).toBe('GET');
     req.flush({});
   });
+
+  it('ack llama a POST /alarm-states/:id/ack sin body (docs/specs/11-ack-alarmas.md)', () => {
+    service.ack('state-1').subscribe();
+
+    const req = httpMock.expectOne('/api/v1/alarm-states/state-1/ack');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({});
+    req.flush({});
+  });
 });

@@ -160,4 +160,24 @@ describe('RealtimeSocketService', () => {
 
     await expect(promise).resolves.toEqual(event);
   });
+
+  it('alarmAcked$ emite lo que recibe el socket subyacente en "AlarmAcked" (docs/specs/11-ack-alarmas.md)', async () => {
+    const { host, appRef } = await createHost();
+    accessTokenSignal.set('token-1');
+    TestBed.tick();
+    await appRef.whenStable();
+
+    const event = {
+      alarmStateId: 'state-1',
+      alarmDefinitionId: 'def-1',
+      signalId: 'signal-1',
+      ackedByUserId: 'user-1',
+      ackedByEmail: 'admin@ewcontrol.local',
+      ackedAt: '2026-07-12T10:00:00Z',
+    };
+    const promise = firstValueFrom(host.service.alarmAcked$);
+    listeners.get('AlarmAcked')?.(event);
+
+    await expect(promise).resolves.toEqual(event);
+  });
 });

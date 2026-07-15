@@ -3,6 +3,7 @@ import { Observable, Subject } from 'rxjs';
 import { io, type Socket } from 'socket.io-client';
 import { AuthStateService } from '../../auth/use-cases/auth.state';
 import {
+  AlarmAckedEvent,
   AlarmClearedEvent,
   AlarmTriggeredEvent,
   MachineConnectedEvent,
@@ -30,6 +31,7 @@ export class RealtimeSocketService {
   private readonly machineDisconnectedSubject = new Subject<MachineDisconnectedEvent>();
   private readonly alarmTriggeredSubject = new Subject<AlarmTriggeredEvent>();
   private readonly alarmClearedSubject = new Subject<AlarmClearedEvent>();
+  private readonly alarmAckedSubject = new Subject<AlarmAckedEvent>();
 
   readonly signalUpdates$: Observable<SignalUpdatedEvent> =
     this.signalUpdatedSubject.asObservable();
@@ -40,6 +42,7 @@ export class RealtimeSocketService {
   readonly alarmTriggered$: Observable<AlarmTriggeredEvent> =
     this.alarmTriggeredSubject.asObservable();
   readonly alarmCleared$: Observable<AlarmClearedEvent> = this.alarmClearedSubject.asObservable();
+  readonly alarmAcked$: Observable<AlarmAckedEvent> = this.alarmAckedSubject.asObservable();
 
   constructor() {
     effect(() => {
@@ -77,6 +80,7 @@ export class RealtimeSocketService {
     this.socket.on('AlarmCleared', (event: AlarmClearedEvent) =>
       this.alarmClearedSubject.next(event),
     );
+    this.socket.on('AlarmAcked', (event: AlarmAckedEvent) => this.alarmAckedSubject.next(event));
   }
 
   private disconnect(): void {

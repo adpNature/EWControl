@@ -8,7 +8,9 @@ const HISTORY = [ALARM_STATE, { id: 'state-0', alarmDefinitionId: 'def-1', statu
 const REQUESTER = { companyId: 'company-1', role: UserRole.AdminCliente };
 
 function createFakes() {
-  const resolver = { resolveAny: vi.fn().mockResolvedValue(ALARM_STATE) };
+  const resolver = {
+    resolveAny: vi.fn().mockResolvedValue({ alarmState: ALARM_STATE, companyId: 'company-1' }),
+  };
   const alarmStateRepository = {
     findHistoryByAlarmDefinitionId: vi.fn().mockResolvedValue(HISTORY),
   };

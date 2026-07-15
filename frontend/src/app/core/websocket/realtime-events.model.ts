@@ -38,6 +38,16 @@ export interface AlarmClearedEvent {
   timestamp: string;
 }
 
+/** docs/specs/11-ack-alarmas.md, docs/11-api-rest.md sección "WebSocket". */
+export interface AlarmAckedEvent {
+  alarmStateId: string;
+  alarmDefinitionId: string;
+  signalId: string;
+  ackedByUserId: string;
+  ackedByEmail: string;
+  ackedAt: string;
+}
+
 /** Entrada de la Realtime Cache devuelta por `GET .../signals/:id/value` (docs/11-api-rest.md). */
 export interface SignalValue {
   signalId: string;

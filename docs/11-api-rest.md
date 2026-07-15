@@ -184,14 +184,13 @@ Respuesta de `GET .../history` (spec 08, [08-historicos.md](specs/08-historicos.
 
 ## AlarmState
 
-Solo lectura: un AlarmState únicamente lo crea o modifica el Alarm Engine (Documento 3, apartado 3.2.7, Regla 1). No existen endpoints de escritura en esta versión.
+Su ciclo de vida (`status`/`activatedAt`/`resolvedAt`) únicamente lo crea o modifica el Alarm Engine (Documento 3, apartado 3.2.7, Regla 1); el único endpoint de escritura es el reconocimiento manual (ACK, spec 11), que no altera ese ciclo de vida.
 
-| Método | Ruta                       | Descripción                                                                                  |
-| ------ | -------------------------- | -------------------------------------------------------------------------------------------- |
-| GET    | `/api/v1/alarm-states`     | Lista alarmas de la Company. Query: `status` (`ACTIVE`/`INACTIVE`), `machineId`, `priority`. |
-| GET    | `/api/v1/alarm-states/:id` | Detalle de un AlarmState, incluyendo histórico de activaciones de su AlarmDefinition.        |
-
-El reconocimiento manual de alarmas (ACK) es evolución futura del modelo (Documento 3, apartado "Evolución" de AlarmState) y no forma parte de este catálogo hasta que exista esa spec.
+| Método | Ruta                           | Descripción                                                                                                 |
+| ------ | ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/v1/alarm-states`         | Lista alarmas de la Company. Query: `status` (`ACTIVE`/`INACTIVE`), `machineId`, `priority`.                |
+| GET    | `/api/v1/alarm-states/:id`     | Detalle de un AlarmState, incluyendo histórico de activaciones de su AlarmDefinition.                       |
+| POST   | `/api/v1/alarm-states/:id/ack` | Reconoce manualmente la alarma (ACK): fija `ackedAt`/`ackedByUserId`/`ackedByEmail`. Idempotente (spec 11). |
 
 ---
 
@@ -218,13 +217,14 @@ Tras conectar, el cliente recibe únicamente eventos de Machines/Signals de su p
 
 Eventos publicados por el backend (ya descritos como eventos internos en Documento 2, apartado "Sistema de Eventos"; aquí se formalizan como contrato público hacia el Frontend):
 
-| Evento                | Payload                                                              | Descripción                                          |
-| --------------------- | -------------------------------------------------------------------- | ---------------------------------------------------- |
-| `SignalUpdated`       | `{ signalId, machineId, value, quality, timestamp }`                 | Una Signal ha sido actualizada en la Realtime Cache. |
-| `MachineConnected`    | `{ machineId, timestamp }`                                           | La máquina ha establecido conexión.                  |
-| `MachineDisconnected` | `{ machineId, timestamp }`                                           | La máquina ha perdido la comunicación.               |
-| `AlarmTriggered`      | `{ alarmStateId, alarmDefinitionId, signalId, priority, timestamp }` | Se ha activado una alarma.                           |
-| `AlarmCleared`        | `{ alarmStateId, alarmDefinitionId, signalId, timestamp }`           | Una alarma ha vuelto a estado normal.                |
+| Evento                | Payload                                                                               | Descripción                                               |
+| --------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `SignalUpdated`       | `{ signalId, machineId, value, quality, timestamp }`                                  | Una Signal ha sido actualizada en la Realtime Cache.      |
+| `MachineConnected`    | `{ machineId, timestamp }`                                                            | La máquina ha establecido conexión.                       |
+| `MachineDisconnected` | `{ machineId, timestamp }`                                                            | La máquina ha perdido la comunicación.                    |
+| `AlarmTriggered`      | `{ alarmStateId, alarmDefinitionId, signalId, priority, timestamp }`                  | Se ha activado una alarma.                                |
+| `AlarmCleared`        | `{ alarmStateId, alarmDefinitionId, signalId, timestamp }`                            | Una alarma ha vuelto a estado normal.                     |
+| `AlarmAcked`          | `{ alarmStateId, alarmDefinitionId, signalId, ackedByUserId, ackedByEmail, ackedAt }` | Una alarma ha sido reconocida manualmente (ACK, spec 11). |
 
 El cliente no publica eventos de negocio por WebSocket: toda escritura se hace vía REST. El WebSocket es unidireccional (servidor → cliente).
 
