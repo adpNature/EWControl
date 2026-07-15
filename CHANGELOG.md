@@ -1,3 +1,30 @@
+# [1.8.0](https://github.com/adpNature/EWControl/compare/v1.7.2...v1.8.0) (2026-07-15)
+
+### Bug Fixes
+
+- **alarms:** fix GET /alarm-states 500 (bad query builder joins/orderBy) ([5709194](https://github.com/adpNature/EWControl/commit/57091945c7a9d9a77d92be938209490d51aea230))
+- **auth:** reuse SEED_USER_PASSWORD constant instead of hardcoded literal in tests ([9dd9d75](https://github.com/adpNature/EWControl/commit/9dd9d759e2661c2db5056af7c811e24d0b8f85c1))
+- **auth:** show rate-limit message on forgot-password 429 ([6ed3956](https://github.com/adpNature/EWControl/commit/6ed39569d26e82483d484d5f5a406fc24cedb03c))
+- **ci:** el retry del backend en e2e no abortaba, y Release exige Node 22 ([6e256d4](https://github.com/adpNature/EWControl/commit/6e256d4475addd232504db246c145fd2456ae22c))
+- **ci:** retry loop del E2E no reintentaba, y Release exige Node 22 ([fd6c2e1](https://github.com/adpNature/EWControl/commit/fd6c2e185e136c9a9c61e0e7e039302fdebed934))
+- **users:** add mandatory Company selector to new-user form for SuperAdmin ([41e8370](https://github.com/adpNature/EWControl/commit/41e8370928b74944ed6de6b76d35eacf4d7b828b))
+
+### Features
+
+- **alarms:** add Alarm Engine evaluation (spec 09, slice 2/5) ([e734606](https://github.com/adpNature/EWControl/commit/e7346068c9a1b466dfa16bf508cb57938e016bf9))
+- **alarms:** add AlarmDefinition CRUD (spec 09, slice 1/5) ([45f8d85](https://github.com/adpNature/EWControl/commit/45f8d85f8788a2284451062ed5253865e4b08f37))
+- **alarms:** add AlarmState read and panel (spec 09, slice 3/5) ([245596d](https://github.com/adpNature/EWControl/commit/245596d25610718b6f406854c53b22a69739ad94))
+- **alarms:** add email notification service (spec 09, slice 4/5) ([093efb0](https://github.com/adpNature/EWControl/commit/093efb0bec00365f5d6c717df56dcde1e6b6dfd3))
+- **alarms:** add manual acknowledgement (ACK) for alarms (spec 11) ([cf1ea6c](https://github.com/adpNature/EWControl/commit/cf1ea6c89b6d0bf5cc09f1641b62e5a5aa0c603b))
+- **alarms:** implement ALARM_LIST widget with live updates (spec 09, slice 5/5) ([a8bf2a0](https://github.com/adpNature/EWControl/commit/a8bf2a0bed3442f0377d311124875b6f3c95d2ac))
+- **auth:** add forgot-password/reset-password recovery flow (spec 10, slice 5/5) ([76813d4](https://github.com/adpNature/EWControl/commit/76813d4853af92931f41b5546b036b7343e04f23))
+- **auth:** add RolesGuard and seed a demo SuperAdmin user (spec 10, slice 1/5) ([c5a5bd0](https://github.com/adpNature/EWControl/commit/c5a5bd02064d04401f0cf4dd696e9c4affd4c7bd))
+- **auth:** add self-service password change (spec 10, slice 4/5) ([5ee38a0](https://github.com/adpNature/EWControl/commit/5ee38a06353eebd11b12cb0da00361f2f4e4fee9))
+- **companies:** add Company CRUD, SuperAdmin only (spec 10, slice 2/5) ([a12479b](https://github.com/adpNature/EWControl/commit/a12479bc518f91b79e0a2aac40dd07ee35e78eb5))
+- **companies:** add reactivate and permanent delete for Company, reactivate for User (spec 10) ([5b38f5b](https://github.com/adpNature/EWControl/commit/5b38f5bdc4fe65393b75e48d72b83517dd620815))
+- implementa navegación y shell de la zona privada (spec 12) ([22f9d23](https://github.com/adpNature/EWControl/commit/22f9d23755363501667a49c934324ad1f4e2cf5a))
+- **users:** add User CRUD with per-company isolation (spec 10, slice 3/5) ([39da9a8](https://github.com/adpNature/EWControl/commit/39da9a82180f069dce4bb358cf285b55058cf70f))
+
 ## [1.7.2](https://github.com/adpNature/EWControl/compare/v1.7.1...v1.7.2) (2026-07-13)
 
 ### Bug Fixes
