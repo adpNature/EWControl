@@ -110,7 +110,7 @@ Se acepta este riesgo conscientemente porque `@semantic-release/npm` **no está 
 
 - **Dependabot** (`.github/dependabot.yml`): abre Pull Requests semanales de actualización de dependencias para la raíz, `/backend`, `/frontend` y las propias GitHub Actions usadas en los workflows — cierra en la práctica el compromiso de "dependencias actualizadas" del checklist OWASP (Documento 6, A06), en vez de depender de una revisión manual periódica.
 - **Plantilla de Pull Request** (`.github/PULL_REQUEST_TEMPLATE.md`): obliga a enlazar la spec que implementa el PR y a repasar un checklist mínimo (tests por criterio de aceptación, lint limpio, accesibilidad si toca UI, documentación actualizada en el mismo PR) — lleva a la práctica, en cada PR, la disciplina de Spec-Driven Development y Docs as Code del Documento 0.
-- **Versión de Node fijada** (`.nvmrc`, raíz): evita divergencias entre la versión de Node usada en local y la fijada en los workflows de CI (Node 20).
+- **Versión de Node fijada** (`.nvmrc`, raíz): evita divergencias entre la versión de Node usada en local y la fijada en los workflows de CI (Node 20) para Backend/Frontend. La única excepción es el job `release` (`release.yml`), que usa Node 22 porque `semantic-release@^25` exige `^22.14.0 || >=24.10.0` — una divergencia deliberada y acotada a esa herramienta de tooling, no al runtime de la plataforma.
 
 ---
 
