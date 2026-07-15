@@ -3,7 +3,7 @@
   "private": true,
   "description": "Tooling compartido de EWControl: git hooks, formato y release (Documento 0, Documento 13). El código de la plataforma vive en /backend y /frontend, cada uno con su propio package.json.",
   "engines": {
-    "node": ">=20.19.0 <21"
+    "node": "^22.14.0 || >=24.10.0"
   },
   "packageManager": "pnpm@10.34.3",
   "scripts": {
