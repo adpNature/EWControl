@@ -198,7 +198,7 @@ Ver [11-api-rest.md](../11-api-rest.md), secciones "Auth" (`forgot-password`, `r
 
 - **Given** la pantalla de Users.
 - **When** el usuario pulsa "Nuevo User", completa email/contraseña/rol y confirma.
-- **Then** la app llama a `POST /api/v1/users` y añade el User a la lista sin recargar la página; el selector de rol solo ofrece `SuperAdmin` cuando el requester ya es `SuperAdmin`.
+- **Then** la app llama a `POST /api/v1/users` y añade el User a la lista sin recargar la página; el selector de rol solo ofrece `SuperAdmin` cuando el requester ya es `SuperAdmin`; si el requester es `SuperAdmin`, el formulario incluye además un selector "Company" obligatorio (ausente para `AdminCliente` y en modo edición), pre-rellenado con la Company seleccionada previamente en el switcher de la lista si la hay.
 
 - **Given** un usuario autenticado que abre su menú de cuenta.
 - **When** entra a "Cambiar contraseña" e introduce su contraseña actual y la nueva.
@@ -217,6 +217,10 @@ Ver [11-api-rest.md](../11-api-rest.md), secciones "Auth" (`forgot-password`, `r
 - **Given** un `AdminCliente` autenticado.
 - **When** intenta navegar directamente a la URL de la pantalla de Companies.
 - **Then** el guard de rutas lo redirige (el Backend rechazaría la petición igualmente con `403`, Documento 8 apartado 8.6 Regla 1).
+
+- **Given** un `SuperAdmin` autenticado que navega directamente a la URL de alta de User (`/config/users/new`) sin haber seleccionado antes una Company en el switcher de la lista.
+- **When** entra al formulario.
+- **Then** el selector "Company" aparece vacío y obligatorio; el formulario no permite guardar hasta elegir una, evitando depender de haber navegado antes por la lista (no se asume ningún contexto de Company implícito).
 
 - **Given** el formulario de "Cambiar contraseña".
 - **When** el backend responde `422 CURRENT_PASSWORD_INVALID`.
@@ -253,3 +257,4 @@ Extiende `frontend/src/app/config/` ([06-gestion-machines-signals.md](06-gestion
 7. Un `429` en `forgot-password` muestra un mensaje de límite de solicitudes, distinto del mensaje de confirmación genérico (criterio 6).
 8. "Reactivar" (Company y User) es una acción directa sin diálogo de confirmación, visible únicamente cuando el recurso está inactivo.
 9. "Eliminar permanentemente" (Company) exige teclear el nombre exacto de la Company para habilitar el botón de confirmar, y el diálogo advierte explícitamente qué se pierde (Users, Machines, Signals, Dashboards) y que la acción es irreversible; está visible tanto si la Company está activa como inactiva.
+10. El formulario de alta de User exige un selector de Company obligatorio cuando el requester es `SuperAdmin` (ausente para `AdminCliente` y en modo edición); no depende de ningún contexto de navegación previo (funciona igual entrando directamente a la URL de alta que llegando desde el switcher de la lista, que solo lo pre-rellena).

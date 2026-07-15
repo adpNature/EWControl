@@ -2,6 +2,15 @@
   <h1 class="title-xl">{{ isEditMode ? 'Editar User' : 'Nuevo User' }}</h1>
 
   <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    @if (showCompanySelector) {
+      <app-select
+        formControlName="companyId"
+        label="Company"
+        [options]="companyOptions()"
+        [errorMessage]="companyIdError()"
+      />
+    }
+
     <app-input formControlName="email" label="Email" type="email" [errorMessage]="emailError()" />
 
     @if (!isEditMode) {
