@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AuthAuditEventType } from '../../entities/auth-audit-event-type.enum';
 import { AuthAuditResult } from '../../entities/auth-audit-result.enum';
+import { SEED_USER_PASSWORD } from '../seed-demo-environment/seed-demo-environment.config';
 import { ChangePasswordUseCase } from './change-password.use-case';
 import { CurrentPasswordInvalidError } from './errors/current-password-invalid.error';
 
@@ -69,11 +70,11 @@ describe('ChangePasswordUseCase', () => {
 
     await useCase.execute({
       userId: 'user-1',
-      currentPassword: 'Demo1234!',
+      currentPassword: SEED_USER_PASSWORD,
       newPassword: 'Nueva1234!',
     });
 
-    expect(fakes.passwordHasher.compare).toHaveBeenCalledWith('Demo1234!', 'hashed:current');
+    expect(fakes.passwordHasher.compare).toHaveBeenCalledWith(SEED_USER_PASSWORD, 'hashed:current');
     expect(fakes.passwordHasher.hash).toHaveBeenCalledWith('Nueva1234!');
     expect(fakes.authUserRepository.updatePasswordHash).toHaveBeenCalledWith(
       'user-1',

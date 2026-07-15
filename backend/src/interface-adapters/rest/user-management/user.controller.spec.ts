@@ -15,6 +15,7 @@ import { GetUserUseCase } from '../../../use-cases/user-management/get-user.use-
 import { ListUsersUseCase } from '../../../use-cases/user-management/list-users.use-case';
 import { ReactivateUserUseCase } from '../../../use-cases/user-management/reactivate-user.use-case';
 import { UpdateUserUseCase } from '../../../use-cases/user-management/update-user.use-case';
+import { SEED_USER_PASSWORD } from '../../../use-cases/seed-demo-environment/seed-demo-environment.config';
 import { HttpExceptionFilter } from '../http-exception.filter';
 import { UserController } from './user.controller';
 
@@ -112,14 +113,14 @@ describe('UserController (HTTP)', () => {
   it('POST / crea el User con el requester del token', async () => {
     const response = await request(app.getHttpServer())
       .post('/users')
-      .send({ email: 'nuevo@ewcontrol.local', password: 'Demo1234!', role: 'AdminCliente' });
+      .send({ email: 'nuevo@ewcontrol.local', password: SEED_USER_PASSWORD, role: 'AdminCliente' });
 
     expect(response.status).toBe(201);
     expect(createUserUseCase.execute).toHaveBeenCalledWith({
       requester: { companyId: 'company-1', role: UserRole.AdminCliente },
       companyId: undefined,
       email: 'nuevo@ewcontrol.local',
-      password: 'Demo1234!',
+      password: SEED_USER_PASSWORD,
       role: 'AdminCliente',
     });
   });
@@ -127,7 +128,7 @@ describe('UserController (HTTP)', () => {
   it('POST / nunca devuelve passwordHash en la respuesta', async () => {
     const response = await request(app.getHttpServer())
       .post('/users')
-      .send({ email: 'nuevo@ewcontrol.local', password: 'Demo1234!', role: 'AdminCliente' });
+      .send({ email: 'nuevo@ewcontrol.local', password: SEED_USER_PASSWORD, role: 'AdminCliente' });
 
     expect(response.body).not.toHaveProperty('passwordHash');
     expect(response.body).toEqual({
@@ -153,7 +154,7 @@ describe('UserController (HTTP)', () => {
 
     const response = await request(app.getHttpServer())
       .post('/users')
-      .send({ email: 'nuevo@ewcontrol.local', password: 'Demo1234!', role: 'SuperAdmin' });
+      .send({ email: 'nuevo@ewcontrol.local', password: SEED_USER_PASSWORD, role: 'SuperAdmin' });
 
     expect(response.status).toBe(403);
     expect(response.body.code).toBe('FORBIDDEN');
@@ -164,7 +165,7 @@ describe('UserController (HTTP)', () => {
 
     const response = await request(app.getHttpServer())
       .post('/users')
-      .send({ email: 'x@x.com', password: 'Demo1234!', role: 'AdminCliente' });
+      .send({ email: 'x@x.com', password: SEED_USER_PASSWORD, role: 'AdminCliente' });
 
     expect(response.status).toBe(409);
     expect(response.body.code).toBe('EMAIL_ALREADY_EXISTS');
@@ -246,12 +247,12 @@ describe('UserController (HTTP)', () => {
   it('PATCH /me/password cambia la contraseña del propio requester', async () => {
     const response = await request(app.getHttpServer())
       .patch('/users/me/password')
-      .send({ currentPassword: 'Demo1234!', newPassword: 'Nueva1234!' });
+      .send({ currentPassword: SEED_USER_PASSWORD, newPassword: 'Nueva1234!' });
 
     expect(response.status).toBe(200);
     expect(changePasswordUseCase.execute).toHaveBeenCalledWith({
       userId: 'user-1',
-      currentPassword: 'Demo1234!',
+      currentPassword: SEED_USER_PASSWORD,
       newPassword: 'Nueva1234!',
     });
   });
@@ -270,7 +271,7 @@ describe('UserController (HTTP)', () => {
   it('PATCH /me/password responde 400 si la nueva contraseña no cumple la política', async () => {
     const response = await request(app.getHttpServer())
       .patch('/users/me/password')
-      .send({ currentPassword: 'Demo1234!', newPassword: 'short' });
+      .send({ currentPassword: SEED_USER_PASSWORD, newPassword: 'short' });
 
     expect(response.status).toBe(400);
     expect(changePasswordUseCase.execute).not.toHaveBeenCalled();
