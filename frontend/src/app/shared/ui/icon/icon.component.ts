@@ -1,4 +1,4 @@
-import { Component, ElementRef, Input, OnChanges, inject } from '@angular/core';
+import { Component, ElementRef, Input, OnChanges, SecurityContext, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { DomSanitizer } from '@angular/platform-browser';
 import { firstValueFrom } from 'rxjs';
@@ -30,9 +30,22 @@ export class IconComponent implements OnChanges {
   private readonly elementRef = inject(ElementRef<HTMLElement>);
 
   async ngOnChanges(): Promise<void> {
-    const svg = await this.loadSvg(this.name);
+    let svg: string;
+    try {
+      svg = await this.loadSvg(this.name);
+    } catch {
+      // SVG todavía no descargado en public/icons/ (ver README de esa carpeta):
+      // no rompe el render, el icono simplemente queda vacío hasta añadirlo.
+      return;
+    }
+
     const host = this.elementRef.nativeElement as HTMLElement;
-    host.innerHTML = this.sanitizer.sanitize(1 /* SecurityContext.HTML */, svg) ?? '';
+    // `sanitize(HTML, ...)` a secas destriparía el SVG: su allowlist es de HTML,
+    // no reconoce `<svg>/<path>/<defs>/<clipPath>`... Estos ficheros son estáticos
+    // y curados a mano (public/icons/, Documento 12 apartado 12.5), nunca contenido
+    // de usuario, así que se marcan de confianza antes de sanitizar.
+    const trusted = this.sanitizer.bypassSecurityTrustHtml(svg);
+    host.innerHTML = this.sanitizer.sanitize(SecurityContext.HTML, trusted) ?? '';
 
     const svgEl = host.querySelector('svg');
     if (!svgEl) return;
@@ -52,6 +65,7 @@ export class IconComponent implements OnChanges {
 
     const promise = firstValueFrom(this.http.get(`icons/${name}.svg`, { responseType: 'text' }));
     iconCache.set(name, promise);
+    promise.catch(() => iconCache.delete(name));
     return promise;
   }
 }

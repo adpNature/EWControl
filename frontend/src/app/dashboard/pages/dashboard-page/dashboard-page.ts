@@ -1,7 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-import { AuthStateService } from '../../../auth/use-cases/auth.state';
 import { MachinesApiService } from '../../../config/adapters/machines-api.service';
 import { SignalsApiService } from '../../../config/adapters/signals-api.service';
 import { Machine } from '../../../config/entities/machine.model';
@@ -20,9 +18,9 @@ const WIDGET_TYPES: WidgetType[] = ['VALUE', 'GAUGE', 'CHART', 'TABLE', 'ALARM_L
 /**
  * Dashboard en tiempo real (docs/specs/07-dashboard-tiempo-real.md): recorre
  * dinámicamente los widgets del Dashboard activo (Documento 8, apartado 8.3),
- * sin pantallas codificadas por Machine o Company. Conserva la cabecera de
- * sesión del placeholder anterior (spec 05) en vez de introducir un layout
- * compartido nuevo, fuera del alcance de esta spec.
+ * sin pantallas codificadas por Machine o Company. La cabecera de sesión
+ * (email, cambiar contraseña, logout) vive en el shell (docs/specs/12-navegacion-shell.md),
+ * no en esta página.
  */
 @Component({
   selector: 'app-dashboard-page',
@@ -39,13 +37,10 @@ const WIDGET_TYPES: WidgetType[] = ['VALUE', 'GAUGE', 'CHART', 'TABLE', 'ALARM_L
   styleUrl: './dashboard-page.scss',
 })
 export class DashboardPage implements OnInit {
-  private readonly authState = inject(AuthStateService);
-  private readonly router = inject(Router);
   private readonly machinesApi = inject(MachinesApiService);
   private readonly signalsApi = inject(SignalsApiService);
   protected readonly dashboardState = inject(DashboardState);
 
-  readonly currentUser = this.authState.currentUser;
   readonly widgetTypes = WIDGET_TYPES;
 
   readonly newDashboardForm = new FormGroup({
@@ -70,13 +65,6 @@ export class DashboardPage implements OnInit {
       if (dashboards.length > 0) {
         this.dashboardState.open(dashboards[0].id).subscribe();
       }
-    });
-  }
-
-  logout(): void {
-    this.authState.logout().subscribe({
-      complete: () => this.router.navigateByUrl('/login'),
-      error: () => this.router.navigateByUrl('/login'),
     });
   }
 

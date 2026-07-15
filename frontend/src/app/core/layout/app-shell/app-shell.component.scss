@@ -1,0 +1,19 @@
+@use 'breakpoints' as *;
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+
+  @include respond(md) {
+    flex-direction: row;
+  }
+}
+
+.app-shell__main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  padding: var(--spacing-lg);
+}

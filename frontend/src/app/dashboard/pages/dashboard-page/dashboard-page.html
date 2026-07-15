@@ -1,10 +1,4 @@
 <div class="dashboard-page">
-  <header class="dashboard-page__header">
-    <p class="text-body">Sesión activa: {{ currentUser()?.email }}</p>
-    <a class="btn-secondary" href="/account/change-password">Cambiar contraseña</a>
-    <button type="button" class="btn-secondary" (click)="logout()">Cerrar sesión</button>
-  </header>
-
   @if (dashboardState.activeDashboard(); as dashboard) {
     <div class="dashboard-page__toolbar">
       <h1 class="title-xl">{{ dashboard.name }}</h1>
