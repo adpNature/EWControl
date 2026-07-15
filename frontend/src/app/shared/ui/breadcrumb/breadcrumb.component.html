@@ -1,0 +1,21 @@
+@if (crumbs().length > 0) {
+  <nav class="breadcrumb" aria-label="Ruta de navegación">
+    <ol class="breadcrumb__list">
+      @for (crumb of crumbs(); track $index; let last = $last; let first = $first) {
+        <li
+          class="breadcrumb__item"
+          [class.breadcrumb__item--middle]="!first && !last"
+        >
+          @if (crumb.link) {
+            <a [routerLink]="crumb.link" class="breadcrumb__link">{{ crumb.label }}</a>
+          } @else {
+            <span [attr.aria-current]="last ? 'page' : null">{{ crumb.label }}</span>
+          }
+        </li>
+        @if (!last) {
+          <li class="breadcrumb__separator" aria-hidden="true">/</li>
+        }
+      }
+    </ol>
+  </nav>
+}

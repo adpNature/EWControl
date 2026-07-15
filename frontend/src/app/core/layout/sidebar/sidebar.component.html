@@ -1,0 +1,130 @@
+<button
+  type="button"
+  class="sidebar__mobile-trigger"
+  aria-label="Abrir menú"
+  (click)="openMobile($event.currentTarget)"
+>
+  <app-icon name="menu" />
+</button>
+
+@if (mobileOpen()) {
+  <div class="sidebar__backdrop" (click)="closeMobile()"></div>
+}
+
+<nav
+  #drawer
+  class="sidebar"
+  [class.sidebar--collapsed]="collapsed()"
+  [class.sidebar--mobile-open]="mobileOpen()"
+  aria-label="Navegación principal"
+>
+  <div class="sidebar__top">
+    <a routerLink="/dashboard" class="sidebar__logo">EWControl</a>
+
+    <button
+      type="button"
+      class="sidebar__close-mobile"
+      aria-label="Cerrar menú"
+      (click)="closeMobile()"
+    >
+      <app-icon name="menu" />
+    </button>
+
+    <button
+      type="button"
+      class="sidebar__collapse-toggle"
+      [attr.aria-expanded]="!collapsed()"
+      [attr.aria-label]="collapsed() ? 'Expandir navegación' : 'Colapsar navegación'"
+      (click)="toggleCollapsed()"
+    >
+      <app-icon name="arrow-left" />
+    </button>
+  </div>
+
+  <ul class="sidebar__nav">
+    <li>
+      <a
+        routerLink="/dashboard"
+        routerLinkActive="sidebar__link--active"
+        ariaCurrentWhenActive="page"
+        class="sidebar__link"
+      >
+        <app-icon name="home" />
+        <span>Dashboard</span>
+      </a>
+    </li>
+
+    <li>
+      <a
+        routerLink="/config"
+        routerLinkActive="sidebar__link--active"
+        ariaCurrentWhenActive="page"
+        class="sidebar__link"
+      >
+        <app-icon name="setting" />
+        <span>Configuración</span>
+      </a>
+
+      <ul class="sidebar__subnav">
+        <li>
+          <a
+            routerLink="/config/machines"
+            routerLinkActive="sidebar__sublink--active"
+            class="sidebar__sublink"
+            >Machines</a
+          >
+        </li>
+        <li>
+          <a
+            routerLink="/config/users"
+            routerLinkActive="sidebar__sublink--active"
+            class="sidebar__sublink"
+            >Users</a
+          >
+        </li>
+        @if (showCompanies()) {
+          <li>
+            <a
+              routerLink="/config/companies"
+              routerLinkActive="sidebar__sublink--active"
+              class="sidebar__sublink"
+              >Companies</a
+            >
+          </li>
+        }
+      </ul>
+    </li>
+
+    <li>
+      <a
+        routerLink="/alarms"
+        routerLinkActive="sidebar__link--active"
+        ariaCurrentWhenActive="page"
+        class="sidebar__link"
+      >
+        <app-icon name="notification-bing" />
+        <span>Alarmas</span>
+      </a>
+    </li>
+
+    <li>
+      <a
+        routerLink="/account/change-password"
+        routerLinkActive="sidebar__link--active"
+        ariaCurrentWhenActive="page"
+        class="sidebar__link"
+      >
+        <app-icon name="profile-circle" />
+        <span>Cuenta</span>
+      </a>
+    </li>
+  </ul>
+
+  <div class="sidebar__footer">
+    <p class="text-body sidebar__email">{{ currentUser()?.email }}</p>
+    <button type="button" class="btn-secondary sidebar__logout" (click)="logout()">
+      <app-icon name="logout" />
+      <span>Cerrar sesión</span>
+    </button>
+  </div>
+</nav>

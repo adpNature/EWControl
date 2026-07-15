@@ -1,0 +1,36 @@
+@use 'breakpoints' as *;
+
+.breadcrumb {
+  margin-bottom: var(--spacing-md);
+}
+
+.breadcrumb__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted-color);
+}
+
+.breadcrumb__link {
+  color: var(--text-muted-color);
+  text-decoration: underline;
+}
+
+.breadcrumb__separator {
+  color: var(--text-muted-color);
+}
+
+// Colapsa los tramos intermedios en móvil; el primero y el actual siempre se ven.
+.breadcrumb__item--middle,
+.breadcrumb__item--middle + .breadcrumb__separator {
+  display: none;
+
+  @include respond(md) {
+    display: flex;
+  }
+}

@@ -1,19 +1,11 @@
-import { Router } from '@angular/router';
 import { render, screen } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
 import { of } from 'rxjs';
-import { AuthStateService } from '../../../auth/use-cases/auth.state';
 import { MachinesApiService } from '../../../config/adapters/machines-api.service';
 import { SignalsApiService } from '../../../config/adapters/signals-api.service';
 import { DashboardDetail, DashboardWidget } from '../../entities/dashboard.model';
 import { DashboardState } from '../../use-cases/dashboard.state';
 import { DashboardPage } from './dashboard-page';
-
-const AUTH_STATE = {
-  currentUser: () => ({ email: 'demo@ewcontrol.local' }),
-  accessToken: () => null,
-  logout: vi.fn().mockReturnValue(of(undefined)),
-};
 
 function createDashboardState(overrides: Record<string, unknown> = {}) {
   return {
@@ -31,28 +23,9 @@ function createDashboardState(overrides: Record<string, unknown> = {}) {
 }
 
 describe('DashboardPage', () => {
-  it('muestra el email del usuario actual y permite cerrar sesión', async () => {
-    const navigateByUrl = vi.fn();
-    await render(DashboardPage, {
-      providers: [
-        { provide: AuthStateService, useValue: AUTH_STATE },
-        { provide: Router, useValue: { navigateByUrl } },
-        { provide: MachinesApiService, useValue: { list: vi.fn() } },
-        { provide: SignalsApiService, useValue: { list: vi.fn() } },
-        { provide: DashboardState, useValue: createDashboardState() },
-      ],
-    });
-
-    expect(screen.getByText(/demo@ewcontrol\.local/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
-    expect(navigateByUrl).toHaveBeenCalledWith('/login');
-  });
-
   it('sin Dashboards, muestra el formulario para crear uno', async () => {
     await render(DashboardPage, {
       providers: [
-        { provide: AuthStateService, useValue: AUTH_STATE },
-        { provide: Router, useValue: { navigateByUrl: vi.fn() } },
         { provide: MachinesApiService, useValue: { list: vi.fn() } },
         { provide: SignalsApiService, useValue: { list: vi.fn() } },
         { provide: DashboardState, useValue: createDashboardState() },
@@ -69,8 +42,6 @@ describe('DashboardPage', () => {
 
     await render(DashboardPage, {
       providers: [
-        { provide: AuthStateService, useValue: AUTH_STATE },
-        { provide: Router, useValue: { navigateByUrl: vi.fn() } },
         { provide: MachinesApiService, useValue: { list: vi.fn() } },
         { provide: SignalsApiService, useValue: { list: vi.fn() } },
         { provide: DashboardState, useValue: createDashboardState({ createDashboard, open }) },
@@ -110,8 +81,6 @@ describe('DashboardPage', () => {
 
     await render(DashboardPage, {
       providers: [
-        { provide: AuthStateService, useValue: AUTH_STATE },
-        { provide: Router, useValue: { navigateByUrl: vi.fn() } },
         {
           provide: MachinesApiService,
           useValue: { list: vi.fn().mockReturnValue(of({ data: [] })) },
@@ -176,8 +145,6 @@ describe('DashboardPage', () => {
 
     await render(DashboardPage, {
       providers: [
-        { provide: AuthStateService, useValue: AUTH_STATE },
-        { provide: Router, useValue: { navigateByUrl: vi.fn() } },
         { provide: MachinesApiService, useValue: machinesApi },
         { provide: SignalsApiService, useValue: signalsApi },
         {
