@@ -1,3 +1,9 @@
+# [1.9.0](https://github.com/adpNature/EWControl/compare/v1.8.0...v1.9.0) (2026-07-16)
+
+### Features
+
+- **signal-engine:** implementa el motor de fórmulas para Signals FORMULA (spec 13) ([e1ab316](https://github.com/adpNature/EWControl/commit/e1ab3169a48d9ac6b9041234e4db490dcfb3cec9))
+
 # [1.8.0](https://github.com/adpNature/EWControl/compare/v1.7.2...v1.8.0) (2026-07-15)
 
 ### Bug Fixes
