@@ -46,6 +46,23 @@ export class SignalTypeOrmRepository implements ISignalRepository {
       .getOne();
   }
 
+  findActiveFormulasByMachineAndVariableName(
+    machineId: string,
+    variableName: string,
+    ctx: TransactionContext,
+  ): Promise<Signal[]> {
+    return (ctx as EntityManager)
+      .getRepository(Signal)
+      .createQueryBuilder('signal')
+      .where('signal.machine_id = :machineId', { machineId })
+      .andWhere('signal.is_active = true')
+      .andWhere('signal.signal_type = :signalType', { signalType: SignalType.FORMULA })
+      .andWhere("signal.signal_source -> 'variables' @> :variableNameJson::jsonb", {
+        variableNameJson: JSON.stringify([variableName]),
+      })
+      .getMany();
+  }
+
   async list(
     filter: { machineId: string; isActive: boolean },
     pagination: { limit: number; offset: number },

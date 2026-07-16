@@ -25,6 +25,12 @@ export interface ISignalRepository {
     variableName: string,
     ctx: TransactionContext,
   ): Promise<Signal | null>;
+  /** Usado por el Signal Engine (docs/specs/13-motor-formulas-signal-engine.md) para resolver qué Signals FORMULA activas de la Machine recalcular al recibir un tick de esa Variable. */
+  findActiveFormulasByMachineAndVariableName(
+    machineId: string,
+    variableName: string,
+    ctx: TransactionContext,
+  ): Promise<Signal[]>;
   list(
     filter: { machineId: string; isActive: boolean },
     pagination: { limit: number; offset: number },

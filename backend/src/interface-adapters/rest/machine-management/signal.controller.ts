@@ -27,6 +27,7 @@ import {
 } from '../../../use-cases/history/get-signal-history.use-case';
 import { CreateSignalUseCase } from '../../../use-cases/machine-management/create-signal.use-case';
 import { DeleteSignalUseCase } from '../../../use-cases/machine-management/delete-signal.use-case';
+import { FormulaExpressionInvalidError } from '../../../use-cases/machine-management/errors/formula-expression-invalid.error';
 import { FormulaReferencesUnknownVariableError } from '../../../use-cases/machine-management/errors/formula-references-unknown-variable.error';
 import { MachineInactiveError } from '../../../use-cases/machine-management/errors/machine-inactive.error';
 import { MachineNotFoundError } from '../../../use-cases/machine-management/errors/machine-not-found.error';
@@ -215,6 +216,13 @@ export class SignalController {
         code: 'FORMULA_REFERENCES_UNKNOWN_VARIABLE',
         message: error.message,
         details: { variables: error.unknownVariables },
+      });
+    }
+    if (error instanceof FormulaExpressionInvalidError) {
+      return new UnprocessableEntityException({
+        code: 'FORMULA_EXPRESSION_INVALID',
+        message: error.message,
+        details: { reason: error.reason },
       });
     }
     if (error instanceof HttpException) {

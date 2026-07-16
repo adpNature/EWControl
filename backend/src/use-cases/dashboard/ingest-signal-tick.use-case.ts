@@ -1,7 +1,18 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { REALTIME_CACHE, type IRealtimeCache } from '../../entities/realtime-cache';
-import { resolveDirectSignalValue } from '../../entities/signal-engine';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  REALTIME_CACHE,
+  type IRealtimeCache,
+  type RealtimeCacheEntry,
+} from '../../entities/realtime-cache';
+import { RAW_VARIABLE_CACHE, type IRawVariableCache } from '../../entities/raw-variable-cache';
+import {
+  resolveDirectSignalValue,
+  resolveFormulaSignalValue,
+  type FormulaVariableInput,
+  type ResolvedSignalValue,
+} from '../../entities/signal-engine';
 import { SignalQuality } from '../../entities/signal-quality.enum';
+import type { FormulaSignalSource } from '../../entities/signal-source.vo';
 import {
   type IMachineRepository,
   MACHINE_REPOSITORY,
@@ -26,18 +37,38 @@ export type IngestSignalTickInput = {
   timestamp: Date;
 };
 
+type ResolvedDirectSignal = { signalId: string; historyEnabled: boolean };
+type ResolvedFormulaSignal = {
+  signalId: string;
+  expression: string;
+  variables: string[];
+  historyEnabled: boolean;
+};
+
+type ResolvedTick = {
+  companyId: string;
+  directSignal?: ResolvedDirectSignal;
+  formulaSignals: ResolvedFormulaSignal[];
+};
+
 /**
- * Signal Engine (Documento 2, apartado 2.5), wiring real de
- * docs/specs/07-dashboard-tiempo-real.md: resuelve únicamente Signals `DIRECT`
- * activas; descarta silenciosamente si la Machine o la Signal no existen o
- * están inactivas, o si `variableName` no corresponde a ninguna Signal DIRECT.
+ * Signal Engine (Documento 2, apartado 2.5). Wiring real de
+ * docs/specs/07-dashboard-tiempo-real.md (Signals `DIRECT`) y
+ * docs/specs/13-motor-formulas-signal-engine.md (Signals `FORMULA`): descarta
+ * silenciosamente si la Machine no existe o está inactiva; para una Machine
+ * activa, memoriza siempre el tick en el `RawVariableCache` (detalle interno,
+ * nunca expuesto), resuelve la Signal `DIRECT` que expone esa Variable (si
+ * existe) y cada Signal `FORMULA` activa que la referencia.
  */
 @Injectable()
 export class IngestSignalTickUseCase {
+  private readonly logger = new Logger(IngestSignalTickUseCase.name);
+
   constructor(
     @Inject(MACHINE_REPOSITORY) private readonly machineRepository: IMachineRepository,
     @Inject(SIGNAL_REPOSITORY) private readonly signalRepository: ISignalRepository,
     @Inject(REALTIME_CACHE) private readonly realtimeCache: IRealtimeCache,
+    @Inject(RAW_VARIABLE_CACHE) private readonly rawVariableCache: IRawVariableCache,
     @Inject(EVENT_PUBLISHER) private readonly eventPublisher: IEventPublisher,
     @Inject(UNIT_OF_WORK) private readonly unitOfWork: IUnitOfWork,
     @Inject(CLOCK) private readonly clock: IClock,
@@ -45,23 +76,39 @@ export class IngestSignalTickUseCase {
   ) {}
 
   async execute(input: IngestSignalTickInput): Promise<void> {
-    const resolved = await this.unitOfWork.runInTransaction(async (ctx) => {
+    const resolved = await this.unitOfWork.runInTransaction<ResolvedTick | null>(async (ctx) => {
       const machine = await this.machineRepository.findById(input.machineId, ctx);
       if (!machine || !machine.isActive) {
         return null;
       }
-      const signal = await this.signalRepository.findActiveDirectByMachineAndVariableName(
-        input.machineId,
-        input.variableName,
-        ctx,
-      );
-      if (!signal) {
-        return null;
-      }
+
+      const [directSignal, formulaSignals] = await Promise.all([
+        this.signalRepository.findActiveDirectByMachineAndVariableName(
+          input.machineId,
+          input.variableName,
+          ctx,
+        ),
+        this.signalRepository.findActiveFormulasByMachineAndVariableName(
+          input.machineId,
+          input.variableName,
+          ctx,
+        ),
+      ]);
+
       return {
-        signalId: signal.id,
         companyId: machine.companyId,
-        historyEnabled: signal.historyEnabled,
+        directSignal: directSignal
+          ? { signalId: directSignal.id, historyEnabled: directSignal.historyEnabled }
+          : undefined,
+        formulaSignals: formulaSignals.map((signal) => {
+          const source = signal.signalSource as FormulaSignalSource;
+          return {
+            signalId: signal.id,
+            expression: source.expression,
+            variables: source.variables,
+            historyEnabled: signal.historyEnabled,
+          };
+        }),
       };
     });
 
@@ -69,45 +116,161 @@ export class IngestSignalTickUseCase {
       return;
     }
 
-    const { value, quality, timestamp } = resolveDirectSignalValue({
+    this.rawVariableCache.set(input.machineId, input.variableName, {
       value: input.value,
       quality: input.quality,
       timestamp: input.timestamp,
     });
 
-    this.realtimeCache.set({
-      signalId: resolved.signalId,
-      machineId: input.machineId,
-      companyId: resolved.companyId,
-      value,
-      quality,
-      timestamp,
-      updatedAt: this.clock.now(),
-    });
-    this.eventPublisher.publish('SignalUpdated', {
-      signalId: resolved.signalId,
-      machineId: input.machineId,
-      companyId: resolved.companyId,
-      value,
-      quality,
-      timestamp,
+    if (resolved.directSignal) {
+      await this.updateDirectSignal(input, resolved.companyId, resolved.directSignal);
+    }
+
+    for (const formulaSignal of resolved.formulaSignals) {
+      await this.updateFormulaSignal(input, resolved.companyId, formulaSignal);
+    }
+  }
+
+  private async updateDirectSignal(
+    input: IngestSignalTickInput,
+    companyId: string,
+    directSignal: ResolvedDirectSignal,
+  ): Promise<void> {
+    const resolvedValue = resolveDirectSignalValue({
+      value: input.value,
+      quality: input.quality,
+      timestamp: input.timestamp,
     });
 
-    if (resolved.historyEnabled && typeof value === 'number') {
-      try {
-        await this.historyWriter.writeBatch([
-          {
-            companyId: resolved.companyId,
-            machineId: input.machineId,
-            signalId: resolved.signalId,
-            value,
-            timestamp,
-          },
-        ]);
-      } catch {
-        // Descarte silencioso (docs/04-persistencia-de-datos.md §4.8, "Tolerancia
-        // a Fallos"): un fallo de InfluxDB no interrumpe el tiempo real.
+    this.publishSignalUpdate(directSignal.signalId, input.machineId, companyId, resolvedValue);
+    await this.writeHistoryIfEnabled(
+      companyId,
+      input.machineId,
+      directSignal.signalId,
+      directSignal.historyEnabled,
+      resolvedValue,
+    );
+  }
+
+  private async updateFormulaSignal(
+    input: IngestSignalTickInput,
+    companyId: string,
+    formulaSignal: ResolvedFormulaSignal,
+  ): Promise<void> {
+    const variableInputs: Record<string, FormulaVariableInput> = {};
+    for (const variableName of formulaSignal.variables) {
+      const entry = this.rawVariableCache.get(input.machineId, variableName);
+      if (!entry) {
+        // Al menos una Variable de la fórmula todavía no ha tickeado: se omite
+        // el cálculo (spec 13, "Variable sin ningún tick todavía"), sin valor por defecto.
+        return;
       }
+      variableInputs[variableName] = entry;
+    }
+
+    let resolvedValue: ResolvedSignalValue;
+    try {
+      resolvedValue = resolveFormulaSignalValue({
+        expression: formulaSignal.expression,
+        variableInputs,
+      });
+    } catch (error) {
+      this.handleFormulaEvaluationError(
+        formulaSignal.signalId,
+        input.machineId,
+        companyId,
+        input.timestamp,
+        error as Error,
+      );
+      return;
+    }
+
+    this.publishSignalUpdate(formulaSignal.signalId, input.machineId, companyId, resolvedValue);
+    await this.writeHistoryIfEnabled(
+      companyId,
+      input.machineId,
+      formulaSignal.signalId,
+      formulaSignal.historyEnabled,
+      resolvedValue,
+    );
+  }
+
+  /**
+   * Ante un error de cálculo (división por cero, Variable no numérica, expresión
+   * inválida), mantiene el último valor válido con calidad `BAD` y el timestamp
+   * del tick que provocó el error; si nunca hubo un valor válido previo, omite
+   * la actualización (docs/02-arquitectura.md, apartado 2.5, "Errores").
+   */
+  private handleFormulaEvaluationError(
+    signalId: string,
+    machineId: string,
+    companyId: string,
+    tickTimestamp: Date,
+    error: Error,
+  ): void {
+    this.logger.error(`No se pudo evaluar la Signal FORMULA ${signalId}: ${error.message}`);
+
+    const existing = this.realtimeCache.get(signalId);
+    if (!existing) {
+      return;
+    }
+
+    this.publishSignalUpdate(signalId, machineId, companyId, {
+      value: existing.value,
+      quality: SignalQuality.Bad,
+      timestamp: tickTimestamp,
+    });
+  }
+
+  private publishSignalUpdate(
+    signalId: string,
+    machineId: string,
+    companyId: string,
+    resolved: ResolvedSignalValue,
+  ): void {
+    const entry: RealtimeCacheEntry = {
+      signalId,
+      machineId,
+      companyId,
+      value: resolved.value,
+      quality: resolved.quality,
+      timestamp: resolved.timestamp,
+      updatedAt: this.clock.now(),
+    };
+    this.realtimeCache.set(entry);
+    this.eventPublisher.publish('SignalUpdated', {
+      signalId,
+      machineId,
+      companyId,
+      value: resolved.value,
+      quality: resolved.quality,
+      timestamp: resolved.timestamp,
+    });
+  }
+
+  private async writeHistoryIfEnabled(
+    companyId: string,
+    machineId: string,
+    signalId: string,
+    historyEnabled: boolean,
+    resolved: ResolvedSignalValue,
+  ): Promise<void> {
+    if (!historyEnabled || typeof resolved.value !== 'number') {
+      return;
+    }
+    try {
+      await this.historyWriter.writeBatch([
+        {
+          companyId,
+          machineId,
+          signalId,
+          value: resolved.value,
+          timestamp: resolved.timestamp,
+        },
+      ]);
+    } catch {
+      // Descarte silencioso (docs/04-persistencia-de-datos.md §4.8, "Tolerancia
+      // a Fallos"): un fallo de InfluxDB no interrumpe el tiempo real.
     }
   }
 }
