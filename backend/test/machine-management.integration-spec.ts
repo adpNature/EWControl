@@ -326,4 +326,58 @@ describe('Machine/Signal management (integration)', () => {
     );
     expect(notFound).toBeNull();
   });
+
+  it('findActiveFormulasByMachineAndVariableName resuelve solo las Signals FORMULA activas que referencian esa variable (docs/specs/13)', async () => {
+    const companyId = await insertCompany(dataSource);
+    const machineId = await insertMachine(dataSource, companyId);
+    await insertMachineConnection(dataSource, machineId, {
+      seedProfile: 'demo',
+      signals: [
+        { variableName: 'voltage', min: 0, max: 400, stepMax: 1 },
+        { variableName: 'current', min: 0, max: 25, stepMax: 1 },
+      ],
+    });
+    const requester = { companyId, role: UserRole.AdminCliente };
+    await createSignalUseCase.execute({
+      machineId,
+      requester,
+      name: 'Voltaje',
+      signalType: SignalType.DIRECT,
+      signalSource: { variableName: 'voltage' },
+      unit: 'V',
+    });
+    const power = await createSignalUseCase.execute({
+      machineId,
+      requester,
+      name: 'Potencia',
+      signalType: SignalType.FORMULA,
+      signalSource: { expression: 'voltage * current', variables: ['voltage', 'current'] },
+      unit: 'W',
+    });
+    const doubleCurrent = await createSignalUseCase.execute({
+      machineId,
+      requester,
+      name: 'Doble corriente',
+      signalType: SignalType.FORMULA,
+      signalSource: { expression: 'current * 2', variables: ['current'] },
+      unit: 'A',
+    });
+
+    const referencingVoltage = await unitOfWork.runInTransaction((ctx) =>
+      signalRepository.findActiveFormulasByMachineAndVariableName(machineId, 'voltage', ctx),
+    );
+    expect(referencingVoltage.map((signal) => signal.id)).toEqual([power.id]);
+
+    const referencingCurrent = await unitOfWork.runInTransaction((ctx) =>
+      signalRepository.findActiveFormulasByMachineAndVariableName(machineId, 'current', ctx),
+    );
+    expect(referencingCurrent.map((signal) => signal.id).sort()).toEqual(
+      [power.id, doubleCurrent.id].sort(),
+    );
+
+    const referencingUnused = await unitOfWork.runInTransaction((ctx) =>
+      signalRepository.findActiveFormulasByMachineAndVariableName(machineId, 'unused', ctx),
+    );
+    expect(referencingUnused).toEqual([]);
+  });
 });

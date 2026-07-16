@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ProviderType } from '../../entities/provider-type.enum';
 import { SignalType } from '../../entities/signal-type.enum';
 import { UserRole } from '../../entities/user-role.enum';
+import { FormulaExpressionInvalidError } from './errors/formula-expression-invalid.error';
 import { FormulaReferencesUnknownVariableError } from './errors/formula-references-unknown-variable.error';
 import { MachineInactiveError } from './errors/machine-inactive.error';
 import { CreateSignalUseCase } from './create-signal.use-case';
@@ -118,6 +119,46 @@ describe('CreateSignalUseCase', () => {
         unit: 'u',
       }),
     ).rejects.toBeInstanceOf(FormulaReferencesUnknownVariableError);
+    expect(fakes.signalRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('lanza FormulaExpressionInvalidError si la expresión no es sintácticamente válida', async () => {
+    const fakes = createFakes();
+    const useCase = createUseCase(fakes);
+
+    await expect(
+      useCase.execute({
+        machineId: 'machine-1',
+        requester: REQUESTER,
+        name: 'Diferencial',
+        signalType: SignalType.FORMULA,
+        signalSource: {
+          expression: '(temperature - pressure',
+          variables: ['temperature', 'pressure'],
+        },
+        unit: 'u',
+      }),
+    ).rejects.toBeInstanceOf(FormulaExpressionInvalidError);
+    expect(fakes.signalRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('lanza FormulaExpressionInvalidError si la expresión usa una variable no declarada en "variables" (aunque exista en la Machine)', async () => {
+    const fakes = createFakes();
+    const useCase = createUseCase(fakes);
+
+    await expect(
+      useCase.execute({
+        machineId: 'machine-1',
+        requester: REQUESTER,
+        name: 'Diferencial',
+        signalType: SignalType.FORMULA,
+        signalSource: {
+          expression: 'temperature - pressure',
+          variables: ['temperature'],
+        },
+        unit: 'u',
+      }),
+    ).rejects.toBeInstanceOf(FormulaExpressionInvalidError);
     expect(fakes.signalRepository.create).not.toHaveBeenCalled();
   });
 

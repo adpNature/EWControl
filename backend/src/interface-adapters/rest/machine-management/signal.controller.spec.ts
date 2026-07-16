@@ -10,6 +10,7 @@ import { InvalidHistoryRangeError } from '../../../use-cases/history/errors/inva
 import { GetSignalHistoryUseCase } from '../../../use-cases/history/get-signal-history.use-case';
 import { CreateSignalUseCase } from '../../../use-cases/machine-management/create-signal.use-case';
 import { DeleteSignalUseCase } from '../../../use-cases/machine-management/delete-signal.use-case';
+import { FormulaExpressionInvalidError } from '../../../use-cases/machine-management/errors/formula-expression-invalid.error';
 import { FormulaReferencesUnknownVariableError } from '../../../use-cases/machine-management/errors/formula-references-unknown-variable.error';
 import { MachineNotFoundError } from '../../../use-cases/machine-management/errors/machine-not-found.error';
 import { SignalNotFoundError } from '../../../use-cases/machine-management/errors/signal-not-found.error';
@@ -166,6 +167,24 @@ describe('SignalController (HTTP)', () => {
     expect(response.status).toBe(422);
     expect(response.body.code).toBe('FORMULA_REFERENCES_UNKNOWN_VARIABLE');
     expect(response.body.details).toEqual({ variables: ['unknownVar'] });
+  });
+
+  it('POST / responde 422 FORMULA_EXPRESSION_INVALID si el use-case lo lanza (spec 13, criterio 9)', async () => {
+    createSignalUseCase.execute.mockRejectedValue(
+      new FormulaExpressionInvalidError('paréntesis desbalanceados'),
+    );
+
+    const response = await request(app.getHttpServer())
+      .post('/machines/machine-1/signals')
+      .send({
+        name: 'Diferencial',
+        signalType: 'FORMULA',
+        signalSource: { expression: '(a - b', variables: ['a', 'b'] },
+        unit: 'u',
+      });
+
+    expect(response.status).toBe(422);
+    expect(response.body.code).toBe('FORMULA_EXPRESSION_INVALID');
   });
 
   it('POST / responde 400 si el body incluye machineId (Mass Assignment, criterio 7)', async () => {

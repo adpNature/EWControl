@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { listSeedVariableNames } from '../../entities/connection-config.vo';
+import { validateFormulaExpression } from '../../entities/formula-evaluator';
 import { Signal } from '../../entities/signal.entity';
 import {
   findUnknownVariables,
@@ -16,6 +17,7 @@ import {
   SIGNAL_REPOSITORY,
 } from '../seed-demo-environment/ports/signal-repository.port';
 import { type IUnitOfWork, UNIT_OF_WORK } from '../seed-demo-environment/ports/unit-of-work.port';
+import { FormulaExpressionInvalidError } from './errors/formula-expression-invalid.error';
 import { FormulaReferencesUnknownVariableError } from './errors/formula-references-unknown-variable.error';
 import { SignalNotFoundError } from './errors/signal-not-found.error';
 import { assertMachineActive, MachineAccessResolver, Requester } from './machine-access.resolver';
@@ -63,6 +65,14 @@ export class UpdateSignalUseCase {
         const unknown = findUnknownVariables(input.changes.signalSource, knownVariables);
         if (unknown.length > 0) {
           throw new FormulaReferencesUnknownVariableError(unknown);
+        }
+
+        const validation = validateFormulaExpression(
+          input.changes.signalSource.expression,
+          input.changes.signalSource.variables,
+        );
+        if (!validation.valid) {
+          throw new FormulaExpressionInvalidError(validation.reason);
         }
       }
 

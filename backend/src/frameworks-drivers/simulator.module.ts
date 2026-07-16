@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { InMemoryRawVariableCache, RAW_VARIABLE_CACHE } from '../entities/raw-variable-cache';
 import { SimulationProviderRegistry } from '../interface-adapters/data-providers/simulation/simulation-provider.registry';
 import { NestEventEmitterPublisher } from '../interface-adapters/events/nest-event-emitter.publisher';
 import { MachineConnectionTypeOrmRepository } from '../interface-adapters/persistence/postgres/typeorm/machine-connection.typeorm-repository';
@@ -27,13 +28,15 @@ import { SimulatorMachineResolver } from '../use-cases/simulator-control/simulat
 
 /**
  * Wiring de las specs 03-simulador-forzar-fallo.md, 04-simulador-seed-historico.md,
- * 07-dashboard-tiempo-real.md y 08-historicos.md: conecta los puertos de
- * `simulator-control` y `history` con sus implementaciones concretas (TypeORM,
- * EventEmitter2, el registry de `SimulationProvider`), igual que `seed.module.ts`
- * para el seed. Importa `DashboardModule` únicamente por el token compartido
- * `REALTIME_CACHE`, que consume `IngestSignalTickUseCase` al procesar cada tick
- * del Simulador, y `HistoryPersistenceModule` por `HISTORY_WRITER` (persistencia
- * continua a InfluxDB y backfill puntual del seed).
+ * 07-dashboard-tiempo-real.md, 08-historicos.md y 13-motor-formulas-signal-engine.md:
+ * conecta los puertos de `simulator-control` y `history` con sus implementaciones
+ * concretas (TypeORM, EventEmitter2, el registry de `SimulationProvider`), igual
+ * que `seed.module.ts` para el seed. Importa `DashboardModule` únicamente por el
+ * token compartido `REALTIME_CACHE`, que consume `IngestSignalTickUseCase` al
+ * procesar cada tick del Simulador, y `HistoryPersistenceModule` por
+ * `HISTORY_WRITER` (persistencia continua a InfluxDB y backfill puntual del seed).
+ * `RAW_VARIABLE_CACHE` es interno a este módulo (no se exporta, spec 13): solo lo
+ * consume `IngestSignalTickUseCase` para evaluar Signals `FORMULA` multi-variable.
  */
 @Module({
   imports: [DashboardModule, HistoryPersistenceModule],
@@ -46,6 +49,7 @@ import { SimulatorMachineResolver } from '../use-cases/simulator-control/simulat
     SimulatorMachineResolver,
     SimulationProviderRegistry,
     IngestSignalTickUseCase,
+    { provide: RAW_VARIABLE_CACHE, useClass: InMemoryRawVariableCache },
     { provide: MACHINE_REPOSITORY, useClass: MachineTypeOrmRepository },
     { provide: MACHINE_CONNECTION_REPOSITORY, useClass: MachineConnectionTypeOrmRepository },
     { provide: SIGNAL_REPOSITORY, useClass: SignalTypeOrmRepository },

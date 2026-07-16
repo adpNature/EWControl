@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ProviderType } from '../../entities/provider-type.enum';
 import { SignalType } from '../../entities/signal-type.enum';
 import { UserRole } from '../../entities/user-role.enum';
+import { FormulaExpressionInvalidError } from './errors/formula-expression-invalid.error';
 import { FormulaReferencesUnknownVariableError } from './errors/formula-references-unknown-variable.error';
 import { MachineInactiveError } from './errors/machine-inactive.error';
 import { SignalNotFoundError } from './errors/signal-not-found.error';
@@ -116,6 +117,22 @@ describe('UpdateSignalUseCase', () => {
         changes: { signalSource: { expression: 'unknownVar', variables: ['unknownVar'] } },
       }),
     ).rejects.toBeInstanceOf(FormulaReferencesUnknownVariableError);
+    expect(fakes.signalRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('lanza FormulaExpressionInvalidError si la nueva expresión no es sintácticamente válida', async () => {
+    const fakes = createFakes();
+    fakes.signalRepository.findById.mockResolvedValue(FORMULA_SIGNAL);
+    const useCase = createUseCase(fakes);
+
+    await expect(
+      useCase.execute({
+        machineId: 'machine-1',
+        signalId: 'signal-2',
+        requester: REQUESTER,
+        changes: { signalSource: { expression: 'temperature +', variables: ['temperature'] } },
+      }),
+    ).rejects.toBeInstanceOf(FormulaExpressionInvalidError);
     expect(fakes.signalRepository.update).not.toHaveBeenCalled();
   });
 
