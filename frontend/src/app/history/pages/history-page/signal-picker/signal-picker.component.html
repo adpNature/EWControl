@@ -1,0 +1,28 @@
+<div class="signal-picker">
+  @if (maxReached()) {
+    <p class="text-muted" role="status">Máximo {{ 8 }} Signals por comparativa.</p>
+  }
+
+  @if (loading()) {
+    <p class="text-muted">Cargando Signals…</p>
+  } @else if (groups().length === 0) {
+    <p class="text-muted">No hay Signals disponibles.</p>
+  } @else {
+    @for (group of groups(); track group.machineId) {
+      <fieldset class="signal-picker__group">
+        <legend class="form-label">{{ group.machineName }}</legend>
+        @for (signal of group.signals; track signal.id) {
+          <label class="signal-picker__signal">
+            <input
+              type="checkbox"
+              [checked]="isSelected(signal.id)"
+              [disabled]="!isSelected(signal.id) && maxReached()"
+              (change)="toggle(signal.id, $any($event.target).checked)"
+            />
+            {{ signal.name }} <span class="text-muted">({{ signal.unit }})</span>
+          </label>
+        }
+      </fieldset>
+    }
+  }
+</div>

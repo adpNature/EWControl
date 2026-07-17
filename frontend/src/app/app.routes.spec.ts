@@ -18,7 +18,13 @@ describe('routes', () => {
 
     const childPaths = shellRoute?.children?.map((child) => child.path);
     expect(childPaths).toEqual(
-      expect.arrayContaining(['dashboard', 'config', 'alarms', 'account/change-password']),
+      expect.arrayContaining([
+        'dashboard',
+        'config',
+        'alarms',
+        'history',
+        'account/change-password',
+      ]),
     );
   });
 

@@ -1,0 +1,47 @@
+<div class="box history-page">
+  <h1 class="title-xl">Históricos</h1>
+
+  @if (isSuperAdmin()) {
+    <app-select
+      label="Company"
+      [formControl]="companyControl"
+      [options]="[{ value: '', label: 'Selecciona una Company' }, ...companyOptions()]"
+    />
+  }
+
+  @if (canPickSignals()) {
+    <div class="history-page__layout">
+      <app-signal-picker
+        [companyId]="effectiveCompanyId()"
+        [selectedSignalIds]="historyState.selectedSignalIds()"
+        (selectionChange)="onSelectionChange($event)"
+        (catalogChange)="onCatalogChange($event)"
+      />
+
+      <div class="history-page__controls">
+        <app-range-selector [selected]="'hour'" (rangeChange)="onRangeChange($event)" />
+        <button
+          type="button"
+          class="btn-primary"
+          [disabled]="!canSubmit()"
+          (click)="submitCompare()"
+        >
+          Comparar
+        </button>
+      </div>
+
+      @if (historyState.loading()) {
+        <p class="text-muted">Cargando comparativa…</p>
+      } @else if (historyState.error()) {
+        <div class="history-page__error" role="alert">
+          <p class="form-error">No se ha podido cargar la comparativa.</p>
+          <button type="button" class="btn-secondary" (click)="submitCompare()">Reintentar</button>
+        </div>
+      } @else {
+        <app-multi-series-chart [series]="chartSeries()" />
+      }
+    </div>
+  } @else {
+    <p class="text-muted">Selecciona una Company para continuar.</p>
+  }
+</div>

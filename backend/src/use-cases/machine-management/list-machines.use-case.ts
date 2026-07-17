@@ -10,6 +10,8 @@ import { Requester } from './machine-access.resolver';
 
 export type ListMachinesInput = {
   requester: Requester;
+  /** docs/08-frontend-dashboard.md, 8.8: filtro del switcher de Company de un SuperAdmin. Ignorado para AdminCliente. */
+  companyId?: string;
   pagination: { limit: number; offset: number };
 };
 export type ListMachinesResult = {
@@ -32,7 +34,9 @@ export class ListMachinesUseCase {
 
   async execute(input: ListMachinesInput): Promise<ListMachinesResult> {
     const companyId =
-      input.requester.role === UserRole.SuperAdmin ? null : input.requester.companyId;
+      input.requester.role === UserRole.SuperAdmin
+        ? (input.companyId ?? null)
+        : input.requester.companyId;
     const { data, total } = await this.unitOfWork.runInTransaction((ctx) =>
       this.machineRepository.list({ companyId, isActive: true }, input.pagination, ctx),
     );

@@ -27,6 +27,14 @@ describe('MachinesApiService', () => {
     req.flush({ data: [], total: 0, limit: 20, offset: 0 });
   });
 
+  it('list añade companyId solo cuando se indica explícitamente', () => {
+    service.list({ limit: 20, offset: 0, companyId: 'company-1' }).subscribe();
+
+    const req = httpMock.expectOne('/api/v1/machines?limit=20&offset=0&companyId=company-1');
+    expect(req.request.method).toBe('GET');
+    req.flush({ data: [], total: 0, limit: 20, offset: 0 });
+  });
+
   it('get llama a GET /machines/:id', () => {
     service.get('machine-1').subscribe();
 

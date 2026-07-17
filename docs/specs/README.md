@@ -73,12 +73,12 @@ Si una spec no tiene parte de frontend (por ejemplo, funcionalidad de fundación
 | [11-ack-alarmas.md](11-ack-alarmas.md)                                   | Reconocimiento manual de alarmas (ACK)                                                    | Sí                 | Sí                |
 | [12-navegacion-shell.md](12-navegacion-shell.md)                         | Navegación / Shell (Sidebar + Breadcrumbs)                                                | No (solo frontend) | Sí                |
 | [13-motor-formulas-signal-engine.md](13-motor-formulas-signal-engine.md) | Motor de fórmulas del Signal Engine (Signals `FORMULA`)                                   | Sí                 | No (solo backend) |
+| [14-historicos-comparativas.md](14-historicos-comparativas.md)           | Históricos — pantalla independiente y comparativas multi-Signal/Machine                   | Sí                 | Sí                |
 
 ## Pendientes
 
-Specs identificadas pero aún no redactadas — numeración tentativa, correlativa a partir de `14`. El orden sigue el Roadmap del [README](../../README.md#roadmap); la Fase 12 (OPC UA) siempre queda última.
+Specs identificadas pero aún no redactadas — numeración tentativa, correlativa a partir de `15`. El orden sigue el Roadmap del [README](../../README.md#roadmap); la Fase 12 (OPC UA) siempre queda última.
 
 | Nº tentativo | Feature                                                                       | Fase (Roadmap) | Backend | Frontend | Notas                                                                                                                                                                  |
 | ------------ | ----------------------------------------------------------------------------- | -------------- | ------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 14           | Históricos — pantalla independiente y comparativas multi-Signal/Machine       | Fase 10        | Sí      | Sí       | Diferido explícitamente en `08-historicos.md:21`; distinto del widget `CHART` ya implementado.                                                                         |
 | 15           | Observabilidad técnica (health checks, métricas, alerting de infraestructura) | Fase 11        | Sí      | No       | Puramente backend/infra (`docs/07-observabilidad-monitorizacion.md`); no sigue el patrón de feature vertical Back+Front, evaluar si necesita el mismo formato de spec. |

@@ -1,0 +1,34 @@
+.multi-series-chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+
+  &__svg {
+    width: 100%;
+    height: 200px;
+    background: var(--background-color);
+    border-radius: var(--border-radius-md);
+  }
+
+  &__legend {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  &__legend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+  }
+}
+
+.multi-series-chart__swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}

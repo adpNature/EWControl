@@ -15,6 +15,7 @@ const ROUTES = [
   { path: 'config/companies', children: [] },
   { path: 'config/users', children: [] },
   { path: 'alarms', children: [] },
+  { path: 'history', children: [] },
   { path: 'account/change-password', children: [] },
 ];
 
@@ -62,6 +63,14 @@ describe('SidebarComponent', () => {
     const link = screen.getByRole('link', { name: 'Companies' });
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute('href', '/config/companies');
+  });
+
+  it('muestra "Históricos" enlazando a /history', async () => {
+    await renderSidebar('AdminCliente');
+
+    const link = screen.getByRole('link', { name: 'Históricos' });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', '/history');
   });
 
   it('resalta la sección "Configuración" como activa incluso en una ruta anidada', async () => {

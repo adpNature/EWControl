@@ -211,8 +211,8 @@ Detalle completo de capas, componentes y flujo de datos en [docs/02-arquitectura
 | Fase 5  | Feature vertical: Históricos y Alarmas                                        | Completada |
 | Fase 6  | Feature vertical: Gestión de Companies y Users (SuperAdmin)                   | Completada |
 | Fase 7  | Feature vertical: Reconocimiento manual de alarmas (ACK)                      | Completada |
-| Fase 8  | Feature vertical: Navegación (Shell + Sidebar + Breadcrumbs)                  | Pendiente  |
-| Fase 9  | Feature vertical: Motor de fórmulas del Signal Engine (Signals `FORMULA`)     | Pendiente  |
+| Fase 8  | Feature vertical: Navegación (Shell + Sidebar + Breadcrumbs)                  | Completada |
+| Fase 9  | Feature vertical: Motor de fórmulas del Signal Engine (Signals `FORMULA`)     | Completada |
 | Fase 10 | Feature vertical: Históricos — pantalla independiente y comparativas          | Pendiente  |
 | Fase 11 | Observabilidad técnica (health checks, métricas, alerting de infraestructura) | Pendiente  |
 | Fase 12 | Integración OPC UA real                                                       | Pendiente  |

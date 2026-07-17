@@ -47,6 +47,10 @@ export const routes: Routes = [
         loadChildren: () => import('./alarms/alarms.routes').then((m) => m.alarmsRoutes),
       },
       {
+        path: 'history',
+        loadChildren: () => import('./history/history.routes').then((m) => m.historyRoutes),
+      },
+      {
         // docs/specs/10-gestion-companies-users.md: top-level porque auth.routes.ts
         // no lleva guard propio (todo lo que cuelga de `login` es público por diseño).
         path: 'account/change-password',
