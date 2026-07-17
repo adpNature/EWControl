@@ -1,3 +1,9 @@
+# [1.10.0](https://github.com/adpNature/EWControl/compare/v1.9.0...v1.10.0) (2026-07-17)
+
+### Features
+
+- **historicos:** implementa comparativa multi-Signal/Machine (spec 14) ([c174fcf](https://github.com/adpNature/EWControl/commit/c174fcf47130f776330190c18142e6dcbc12d3a5))
+
 # [1.9.0](https://github.com/adpNature/EWControl/compare/v1.8.0...v1.9.0) (2026-07-16)
 
 ### Features
