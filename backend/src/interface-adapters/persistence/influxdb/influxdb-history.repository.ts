@@ -3,6 +3,8 @@ import { InfluxDB, Point } from '@influxdata/influxdb-client';
 import { influxdbConnectionOptions } from '../../../frameworks-drivers/config/influxdb.config';
 import { INFLUXDB_CLIENT } from '../../../frameworks-drivers/database/influxdb.client';
 import {
+  HistoryQueryBatchParams,
+  HistoryQueryBatchPoint,
   HistoryQueryParams,
   HistoryQueryPoint,
   IHistoryReader,
@@ -111,5 +113,44 @@ export class InfluxDbHistoryRepository implements IHistoryWriter, IHistoryReader
       |> sort(columns: ["_time"])`;
     const rows = await queryApi.collectRows<{ _time: string; _value: number }>(flux);
     return rows.map((row) => ({ timestamp: new Date(row._time), value: row._value }));
+  }
+
+  /**
+   * docs/specs/14-historicos-comparativas.md: histórico de varias Signals en una
+   * sola consulta Flux. `range`/`filter` mantienen una tabla por tag-set, así que
+   * `aggregateWindow` sigue agregando cada `signal_id` de forma independiente
+   * aunque el filtro cubra varios a la vez. El filtro por `signal_id` se
+   * construye como una cadena de igualdades (`or`), nunca con `contains()`:
+   * en esta versión de InfluxDB, `contains()` impide el pushdown del
+   * predicado al índice de series y degrada a un escaneo completo del rango
+   * (verificado manualmente: ~40s con `contains()` frente a <1s con `or`
+   * para el mismo rango de 30 días, incluso con una sola Signal).
+   */
+  async queryRangeBatch(params: HistoryQueryBatchParams): Promise<HistoryQueryBatchPoint[]> {
+    const { org, bucket } = influxdbConnectionOptions();
+    const queryApi = this.client.getQueryApi(org);
+    const aggregation =
+      params.resolution === 'raw'
+        ? ''
+        : `|> aggregateWindow(every: ${AGGREGATE_WINDOW_BY_RESOLUTION[params.resolution]}, fn: mean, createEmpty: false)`;
+    const signalIdFilter = params.signalIds
+      .map((signalId) => `r.signal_id == "${signalId}"`)
+      .join(' or ');
+    const flux = `from(bucket: "${bucket}")
+      |> range(start: ${params.from.toISOString()}, stop: ${params.to.toISOString()})
+      |> filter(fn: (r) => r._measurement == "${MEASUREMENT}" and (${signalIdFilter}) and r._field == "value")
+      ${aggregation}
+      |> sort(columns: ["_time"])`;
+    const rows = await queryApi.collectRows<{
+      _time: string;
+      _value: number;
+      // eslint-disable-next-line @typescript-eslint/naming-convention -- tag de InfluxDB, no renombrable
+      signal_id: string;
+    }>(flux);
+    return rows.map((row) => ({
+      signalId: row.signal_id,
+      timestamp: new Date(row._time),
+      value: row._value,
+    }));
   }
 }

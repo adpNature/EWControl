@@ -27,8 +27,8 @@ import {
   ListMachinesUseCase,
 } from '../../../use-cases/machine-management/list-machines.use-case';
 import { UpdateMachineUseCase } from '../../../use-cases/machine-management/update-machine.use-case';
-import { PaginationQueryDto } from '../shared/pagination-query.dto';
 import { CreateMachineDto } from './create-machine.dto';
+import { ListMachinesQueryDto } from './list-machines-query.dto';
 import { UpdateMachineDto } from './update-machine.dto';
 
 const DEFAULT_LIMIT = 20;
@@ -56,11 +56,12 @@ export class MachineController {
 
   @Get()
   list(
-    @Query() query: PaginationQueryDto,
+    @Query() query: ListMachinesQueryDto,
     @currentUser() user: CurrentUser,
   ): Promise<ListMachinesResult> {
     return this.listMachinesUseCase.execute({
       requester: { companyId: user.companyId, role: user.role },
+      companyId: query.companyId,
       pagination: { limit: query.limit ?? DEFAULT_LIMIT, offset: query.offset ?? DEFAULT_OFFSET },
     });
   }

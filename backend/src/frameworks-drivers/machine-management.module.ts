@@ -3,6 +3,7 @@ import { MachineConnectionTypeOrmRepository } from '../interface-adapters/persis
 import { MachineTypeOrmRepository } from '../interface-adapters/persistence/postgres/typeorm/machine.typeorm-repository';
 import { SignalTypeOrmRepository } from '../interface-adapters/persistence/postgres/typeorm/signal.typeorm-repository';
 import { TypeOrmUnitOfWork } from '../interface-adapters/persistence/postgres/typeorm/typeorm-unit-of-work';
+import { SignalsHistoryController } from '../interface-adapters/rest/history/signals-history.controller';
 import { MachineConnectionController } from '../interface-adapters/rest/machine-management/machine-connection.controller';
 import { MachineController } from '../interface-adapters/rest/machine-management/machine.controller';
 import { SignalController } from '../interface-adapters/rest/machine-management/signal.controller';
@@ -27,6 +28,7 @@ import { ReplaceMachineConnectionUseCase } from '../use-cases/machine-management
 import { UpdateMachineUseCase } from '../use-cases/machine-management/update-machine.use-case';
 import { UpdateSignalUseCase } from '../use-cases/machine-management/update-signal.use-case';
 import { GetSignalHistoryUseCase } from '../use-cases/history/get-signal-history.use-case';
+import { GetSignalsHistoryUseCase } from '../use-cases/history/get-signals-history.use-case';
 
 /**
  * Wiring de docs/specs/06-gestion-machines-signals.md: conecta los use-cases de
@@ -35,11 +37,17 @@ import { GetSignalHistoryUseCase } from '../use-cases/history/get-signal-history
  * Importa `DashboardModule` únicamente por `REALTIME_CACHE`, que consume
  * `GetSignalValueUseCase` (docs/specs/07-dashboard-tiempo-real.md), y
  * `HistoryPersistenceModule` por `HISTORY_READER`, que consume
- * `GetSignalHistoryUseCase` (docs/specs/08-historicos.md).
+ * `GetSignalHistoryUseCase` (docs/specs/08-historicos.md) y
+ * `GetSignalsHistoryUseCase` (docs/specs/14-historicos-comparativas.md).
  */
 @Module({
   imports: [DashboardModule, HistoryPersistenceModule],
-  controllers: [MachineController, MachineConnectionController, SignalController],
+  controllers: [
+    MachineController,
+    MachineConnectionController,
+    SignalController,
+    SignalsHistoryController,
+  ],
   providers: [
     MachineAccessResolver,
     CreateMachineUseCase,
@@ -54,6 +62,7 @@ import { GetSignalHistoryUseCase } from '../use-cases/history/get-signal-history
     GetSignalUseCase,
     GetSignalValueUseCase,
     GetSignalHistoryUseCase,
+    GetSignalsHistoryUseCase,
     UpdateSignalUseCase,
     DeleteSignalUseCase,
     { provide: MACHINE_REPOSITORY, useClass: MachineTypeOrmRepository },

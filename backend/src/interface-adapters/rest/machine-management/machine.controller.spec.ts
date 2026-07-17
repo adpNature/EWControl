@@ -99,6 +99,19 @@ describe('MachineController (HTTP)', () => {
     });
   });
 
+  it('GET / pasa companyId al use-case cuando se indica explícitamente', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/machines')
+      .query({ companyId: 'b4ec6402-2d91-441e-a1af-2d179056f066' });
+
+    expect(response.status).toBe(200);
+    expect(listMachinesUseCase.execute).toHaveBeenCalledWith({
+      requester: { companyId: 'company-1', role: UserRole.AdminCliente },
+      companyId: 'b4ec6402-2d91-441e-a1af-2d179056f066',
+      pagination: { limit: 20, offset: 0 },
+    });
+  });
+
   it('GET /:id responde 404 MACHINE_NOT_FOUND si el use-case lo lanza (criterio 6)', async () => {
     getMachineUseCase.execute.mockRejectedValue(new MachineNotFoundError('missing'));
 

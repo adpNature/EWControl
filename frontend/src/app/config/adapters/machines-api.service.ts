@@ -10,8 +10,17 @@ import { CreateMachineRequest, Machine, UpdateMachineRequest } from '../entities
 export class MachinesApiService {
   private readonly api = inject(ApiService);
 
-  list(params: { limit: number; offset: number }): Observable<PaginatedResponse<Machine>> {
-    return this.api.get<PaginatedResponse<Machine>>('/machines', params);
+  list(params: {
+    limit: number;
+    offset: number;
+    /** docs/specs/14-historicos-comparativas.md: switcher de Company de un SuperAdmin. Ignorado para AdminCliente. */
+    companyId?: string;
+  }): Observable<PaginatedResponse<Machine>> {
+    const query: Record<string, string | number> = { limit: params.limit, offset: params.offset };
+    if (params.companyId) {
+      query['companyId'] = params.companyId;
+    }
+    return this.api.get<PaginatedResponse<Machine>>('/machines', query);
   }
 
   get(id: string): Observable<Machine> {

@@ -1,6 +1,7 @@
 import type { IMachineRepository } from '../seed-demo-environment/ports/machine-repository.port';
 import type { ISignalRepository } from '../seed-demo-environment/ports/signal-repository.port';
 import type { TransactionContext } from '../seed-demo-environment/ports/transaction-context';
+import { classifySignalIdsByCompany } from '../shared/classify-signal-ids-by-company';
 import { SignalNotFoundForWidgetError } from './errors/signal-not-found-for-widget.error';
 
 /**
@@ -13,18 +14,7 @@ export async function validateWidgetSignalIds(
   deps: { signalRepository: ISignalRepository; machineRepository: IMachineRepository },
   ctx: TransactionContext,
 ): Promise<void> {
-  const invalid: string[] = [];
-  for (const signalId of signalIds) {
-    const signal = await deps.signalRepository.findById(signalId, ctx);
-    if (!signal || !signal.isActive) {
-      invalid.push(signalId);
-      continue;
-    }
-    const machine = await deps.machineRepository.findById(signal.machineId, ctx);
-    if (!machine || machine.companyId !== companyId) {
-      invalid.push(signalId);
-    }
-  }
+  const { invalid } = await classifySignalIdsByCompany(signalIds, companyId, deps, ctx);
   if (invalid.length > 0) {
     throw new SignalNotFoundForWidgetError(invalid);
   }
