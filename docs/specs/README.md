@@ -58,27 +58,26 @@ Si una spec no tiene parte de frontend (por ejemplo, funcionalidad de fundación
 
 ## Índice
 
-| Spec                                                                     | Feature                                                                                   | Backend            | Frontend          |
-| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- | ------------------ | ----------------- |
-| [01-fundacion-entorno-demo.md](01-fundacion-entorno-demo.md)             | Creación de Company/User/Machine/Signals demo (seed)                                      | Sí                 | No (fundación)    |
-| [02-simulador-generar-lectura.md](02-simulador-generar-lectura.md)       | Generación periódica de lecturas simuladas                                                | Sí                 | No (fundación)    |
-| [03-simulador-forzar-fallo.md](03-simulador-forzar-fallo.md)             | Forzar desconexión/calidad degradada en una máquina demo                                  | Sí                 | No (fundación)    |
-| [04-simulador-seed-historico.md](04-simulador-seed-historico.md)         | Pre-poblado de histórico al provisionar una máquina demo                                  | Sí                 | No (fundación)    |
-| [05-auth-login.md](05-auth-login.md)                                     | Autenticación de usuario (login)                                                          | Sí                 | Sí                |
-| [06-gestion-machines-signals.md](06-gestion-machines-signals.md)         | Gestión de Machines y Signals (CRUD)                                                      | Sí                 | Sí                |
-| [07-dashboard-tiempo-real.md](07-dashboard-tiempo-real.md)               | Dashboard en tiempo real (Signal Engine, Realtime Cache, WebSocket)                       | Sí                 | Sí                |
-| [08-historicos.md](08-historicos.md)                                     | Históricos (persistencia continua a InfluxDB, consulta por rango, widget CHART)           | Sí                 | Sí                |
-| [09-alarmas.md](09-alarmas.md)                                           | Alarmas (`AlarmDefinition`/`AlarmState`, Alarm Engine, notificación web+email)            | Sí                 | Sí                |
-| [10-gestion-companies-users.md](10-gestion-companies-users.md)           | Gestión de Companies y Users (SuperAdmin); cambio/recuperación de contraseña self-service | Sí                 | Sí                |
-| [11-ack-alarmas.md](11-ack-alarmas.md)                                   | Reconocimiento manual de alarmas (ACK)                                                    | Sí                 | Sí                |
-| [12-navegacion-shell.md](12-navegacion-shell.md)                         | Navegación / Shell (Sidebar + Breadcrumbs)                                                | No (solo frontend) | Sí                |
-| [13-motor-formulas-signal-engine.md](13-motor-formulas-signal-engine.md) | Motor de fórmulas del Signal Engine (Signals `FORMULA`)                                   | Sí                 | No (solo backend) |
-| [14-historicos-comparativas.md](14-historicos-comparativas.md)           | Históricos — pantalla independiente y comparativas multi-Signal/Machine                   | Sí                 | Sí                |
+| Spec                                                                     | Feature                                                                                   | Backend            | Frontend                |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- | ------------------ | ----------------------- |
+| [01-fundacion-entorno-demo.md](01-fundacion-entorno-demo.md)             | Creación de Company/User/Machine/Signals demo (seed)                                      | Sí                 | No (fundación)          |
+| [02-simulador-generar-lectura.md](02-simulador-generar-lectura.md)       | Generación periódica de lecturas simuladas                                                | Sí                 | No (fundación)          |
+| [03-simulador-forzar-fallo.md](03-simulador-forzar-fallo.md)             | Forzar desconexión/calidad degradada en una máquina demo                                  | Sí                 | No (fundación)          |
+| [04-simulador-seed-historico.md](04-simulador-seed-historico.md)         | Pre-poblado de histórico al provisionar una máquina demo                                  | Sí                 | No (fundación)          |
+| [05-auth-login.md](05-auth-login.md)                                     | Autenticación de usuario (login)                                                          | Sí                 | Sí                      |
+| [06-gestion-machines-signals.md](06-gestion-machines-signals.md)         | Gestión de Machines y Signals (CRUD)                                                      | Sí                 | Sí                      |
+| [07-dashboard-tiempo-real.md](07-dashboard-tiempo-real.md)               | Dashboard en tiempo real (Signal Engine, Realtime Cache, WebSocket)                       | Sí                 | Sí                      |
+| [08-historicos.md](08-historicos.md)                                     | Históricos (persistencia continua a InfluxDB, consulta por rango, widget CHART)           | Sí                 | Sí                      |
+| [09-alarmas.md](09-alarmas.md)                                           | Alarmas (`AlarmDefinition`/`AlarmState`, Alarm Engine, notificación web+email)            | Sí                 | Sí                      |
+| [10-gestion-companies-users.md](10-gestion-companies-users.md)           | Gestión de Companies y Users (SuperAdmin); cambio/recuperación de contraseña self-service | Sí                 | Sí                      |
+| [11-ack-alarmas.md](11-ack-alarmas.md)                                   | Reconocimiento manual de alarmas (ACK)                                                    | Sí                 | Sí                      |
+| [12-navegacion-shell.md](12-navegacion-shell.md)                         | Navegación / Shell (Sidebar + Breadcrumbs)                                                | No (solo frontend) | Sí                      |
+| [13-motor-formulas-signal-engine.md](13-motor-formulas-signal-engine.md) | Motor de fórmulas del Signal Engine (Signals `FORMULA`)                                   | Sí                 | No (solo backend)       |
+| [14-historicos-comparativas.md](14-historicos-comparativas.md)           | Históricos — pantalla independiente y comparativas multi-Signal/Machine                   | Sí                 | Sí                      |
+| [15-observabilidad-tecnica.md](15-observabilidad-tecnica.md)             | Observabilidad técnica (health checks, métricas, alerting de infraestructura)             | Sí                 | No (solo backend/infra) |
 
 ## Pendientes
 
-Specs identificadas pero aún no redactadas — numeración tentativa, correlativa a partir de `15`. El orden sigue el Roadmap del [README](../../README.md#roadmap); la Fase 12 (OPC UA) siempre queda última.
+Specs identificadas pero aún no redactadas — numeración tentativa, correlativa a partir de `16`. El orden sigue el Roadmap del [README](../../README.md#roadmap); la Fase 12 (OPC UA) siempre queda última.
 
-| Nº tentativo | Feature                                                                       | Fase (Roadmap) | Backend | Frontend | Notas                                                                                                                                                                  |
-| ------------ | ----------------------------------------------------------------------------- | -------------- | ------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 15           | Observabilidad técnica (health checks, métricas, alerting de infraestructura) | Fase 11        | Sí      | No       | Puramente backend/infra (`docs/07-observabilidad-monitorizacion.md`); no sigue el patrón de feature vertical Back+Front, evaluar si necesita el mismo formato de spec. |
+Ninguna spec pendiente identificada por ahora; la Fase 12 (Integración OPC UA real) se especificará cuando le llegue el turno en el Roadmap.

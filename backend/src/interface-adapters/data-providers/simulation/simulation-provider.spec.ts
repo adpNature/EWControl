@@ -67,6 +67,35 @@ describe('SimulationProvider', () => {
     expect(variable.quality).toBe(DataQuality.Good);
   });
 
+  it('asigna un correlationId distinto a cada Variable publicada en el mismo ciclo (spec 15)', async () => {
+    const provider = new SimulationProvider(MULTI_SIGNAL_CONFIG, () => 1);
+    const listener = vi.fn();
+    provider.subscribe(listener);
+    await provider.connect();
+
+    provider.tick();
+
+    const correlationIds = listener.mock.calls.map(
+      ([variable]: [Variable]) => variable.correlationId,
+    );
+    expect(new Set(correlationIds).size).toBe(3);
+    expect(correlationIds.every((id) => typeof id === 'string' && id.length > 0)).toBe(true);
+  });
+
+  it('asigna un correlationId distinto en cada ciclo de tick() (spec 15)', async () => {
+    const provider = new SimulationProvider(SINGLE_SIGNAL_CONFIG);
+    const listener = vi.fn();
+    provider.subscribe(listener);
+    await provider.connect();
+
+    provider.tick();
+    provider.tick();
+
+    const [first] = listener.mock.calls[0] as [Variable];
+    const [second] = listener.mock.calls[1] as [Variable];
+    expect(first.correlationId).not.toBe(second.correlationId);
+  });
+
   it('deja de notificar a un listener tras unsubscribe sin afectar a otros', async () => {
     const provider = new SimulationProvider(SINGLE_SIGNAL_CONFIG);
     const listenerA = vi.fn();

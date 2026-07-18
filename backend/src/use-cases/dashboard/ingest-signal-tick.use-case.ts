@@ -25,6 +25,10 @@ import { type IUnitOfWork, UNIT_OF_WORK } from '../seed-demo-environment/ports/u
 import { CLOCK, type IClock } from '../history/ports/clock.port';
 import { HISTORY_WRITER, type IHistoryWriter } from '../history/ports/history-writer.port';
 import {
+  METRICS_RECORDER,
+  type IMetricsRecorder,
+} from '../observability/ports/metrics-recorder.port';
+import {
   EVENT_PUBLISHER,
   type IEventPublisher,
 } from '../simulator-control/ports/event-publisher.port';
@@ -35,6 +39,8 @@ export type IngestSignalTickInput = {
   value: number | boolean | string;
   quality: SignalQuality;
   timestamp: Date;
+  /** docs/07-observabilidad-monitorizacion.md, apartado 7.6 (spec 15). */
+  correlationId: string;
 };
 
 type ResolvedDirectSignal = { signalId: string; historyEnabled: boolean };
@@ -73,6 +79,7 @@ export class IngestSignalTickUseCase {
     @Inject(UNIT_OF_WORK) private readonly unitOfWork: IUnitOfWork,
     @Inject(CLOCK) private readonly clock: IClock,
     @Inject(HISTORY_WRITER) private readonly historyWriter: IHistoryWriter,
+    @Inject(METRICS_RECORDER) private readonly metricsRecorder: IMetricsRecorder,
   ) {}
 
   async execute(input: IngestSignalTickInput): Promise<void> {
@@ -142,7 +149,13 @@ export class IngestSignalTickUseCase {
       timestamp: input.timestamp,
     });
 
-    this.publishSignalUpdate(directSignal.signalId, input.machineId, companyId, resolvedValue);
+    this.publishSignalUpdate(
+      directSignal.signalId,
+      input.machineId,
+      companyId,
+      resolvedValue,
+      input.correlationId,
+    );
     await this.writeHistoryIfEnabled(
       companyId,
       input.machineId,
@@ -180,12 +193,19 @@ export class IngestSignalTickUseCase {
         input.machineId,
         companyId,
         input.timestamp,
+        input.correlationId,
         error as Error,
       );
       return;
     }
 
-    this.publishSignalUpdate(formulaSignal.signalId, input.machineId, companyId, resolvedValue);
+    this.publishSignalUpdate(
+      formulaSignal.signalId,
+      input.machineId,
+      companyId,
+      resolvedValue,
+      input.correlationId,
+    );
     await this.writeHistoryIfEnabled(
       companyId,
       input.machineId,
@@ -206,20 +226,32 @@ export class IngestSignalTickUseCase {
     machineId: string,
     companyId: string,
     tickTimestamp: Date,
+    correlationId: string,
     error: Error,
   ): void {
-    this.logger.error(`No se pudo evaluar la Signal FORMULA ${signalId}: ${error.message}`);
+    this.logger.error({
+      correlationId,
+      signalId,
+      machineId,
+      msg: `No se pudo evaluar la Signal FORMULA ${signalId}: ${error.message}`,
+    });
 
     const existing = this.realtimeCache.get(signalId);
     if (!existing) {
       return;
     }
 
-    this.publishSignalUpdate(signalId, machineId, companyId, {
-      value: existing.value,
-      quality: SignalQuality.Bad,
-      timestamp: tickTimestamp,
-    });
+    this.publishSignalUpdate(
+      signalId,
+      machineId,
+      companyId,
+      {
+        value: existing.value,
+        quality: SignalQuality.Bad,
+        timestamp: tickTimestamp,
+      },
+      correlationId,
+    );
   }
 
   private publishSignalUpdate(
@@ -227,6 +259,7 @@ export class IngestSignalTickUseCase {
     machineId: string,
     companyId: string,
     resolved: ResolvedSignalValue,
+    correlationId: string,
   ): void {
     const entry: RealtimeCacheEntry = {
       signalId,
@@ -236,6 +269,7 @@ export class IngestSignalTickUseCase {
       quality: resolved.quality,
       timestamp: resolved.timestamp,
       updatedAt: this.clock.now(),
+      correlationId,
     };
     this.realtimeCache.set(entry);
     this.eventPublisher.publish('SignalUpdated', {
@@ -245,6 +279,13 @@ export class IngestSignalTickUseCase {
       value: resolved.value,
       quality: resolved.quality,
       timestamp: resolved.timestamp,
+      correlationId,
+    });
+    this.logger.debug({
+      correlationId,
+      signalId,
+      machineId,
+      msg: 'Signal actualizada en la Realtime Cache',
     });
   }
 
@@ -270,7 +311,9 @@ export class IngestSignalTickUseCase {
       ]);
     } catch {
       // Descarte silencioso (docs/04-persistencia-de-datos.md §4.8, "Tolerancia
-      // a Fallos"): un fallo de InfluxDB no interrumpe el tiempo real.
+      // a Fallos"): un fallo de InfluxDB no interrumpe el tiempo real. Se
+      // registra como métrica (spec 15) para que sea observable en /metrics.
+      this.metricsRecorder.recordHistoryWriteError();
     }
   }
 }

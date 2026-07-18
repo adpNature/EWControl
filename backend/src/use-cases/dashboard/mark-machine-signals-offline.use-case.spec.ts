@@ -15,6 +15,7 @@ function buildEntry(overrides: Partial<Record<string, unknown>> = {}) {
     quality: SignalQuality.Good,
     timestamp: LAST_TIMESTAMP,
     updatedAt: LAST_TIMESTAMP,
+    correlationId: 'correlation-1',
     ...overrides,
   };
 }
@@ -72,6 +73,7 @@ describe('MarkMachineSignalsOfflineUseCase', () => {
       value: 24.8,
       quality: SignalQuality.Offline,
       timestamp: LAST_TIMESTAMP,
+      correlationId: 'correlation-1',
     });
   });
 

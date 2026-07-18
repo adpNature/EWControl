@@ -11,6 +11,7 @@ function buildEntry(overrides: Partial<RealtimeCacheEntry> = {}): RealtimeCacheE
     quality: SignalQuality.Good,
     timestamp: new Date('2026-07-12T10:00:00Z'),
     updatedAt: new Date('2026-07-12T10:00:00Z'),
+    correlationId: 'correlation-1',
     ...overrides,
   };
 }
@@ -49,5 +50,17 @@ describe('InMemoryRealtimeCache', () => {
 
     expect(cache.get('signal-1')?.value).toBe(1);
     expect(cache.get('signal-2')?.value).toBe(2);
+  });
+
+  it('size() refleja el número de Signals con estado actual (spec 15, métrica de Realtime Cache)', () => {
+    const cache = new InMemoryRealtimeCache();
+    expect(cache.size()).toBe(0);
+
+    cache.set(buildEntry({ signalId: 'signal-1' }));
+    cache.set(buildEntry({ signalId: 'signal-2' }));
+    expect(cache.size()).toBe(2);
+
+    cache.set(buildEntry({ signalId: 'signal-1', value: 99 }));
+    expect(cache.size()).toBe(2);
   });
 });

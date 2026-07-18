@@ -1,8 +1,9 @@
-import { Inject } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { OnGatewayConnection, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
 import { TOKEN_SERVICE, type ITokenService } from '../../use-cases/auth/ports/token.port';
+import { PrometheusMetricsService } from '../observability/prometheus-metrics.service';
 import type {
   AlarmAckedPayload,
   AlarmClearedPayload,
@@ -24,8 +25,12 @@ import type {
 @WebSocketGateway({ namespace: 'api/v1/realtime' })
 export class RealtimeGateway implements OnGatewayConnection {
   @WebSocketServer() private readonly server: Server;
+  private readonly logger = new Logger(RealtimeGateway.name);
 
-  constructor(@Inject(TOKEN_SERVICE) private readonly tokenService: ITokenService) {}
+  constructor(
+    @Inject(TOKEN_SERVICE) private readonly tokenService: ITokenService,
+    private readonly metrics: PrometheusMetricsService,
+  ) {}
 
   async handleConnection(client: Socket): Promise<void> {
     const token = this.extractToken(client);
@@ -49,6 +54,14 @@ export class RealtimeGateway implements OnGatewayConnection {
       value: payload.value,
       quality: payload.quality,
       timestamp: payload.timestamp,
+      correlationId: payload.correlationId,
+    });
+    this.metrics.incrementSignalUpdate();
+    this.logger.debug({
+      correlationId: payload.correlationId,
+      signalId: payload.signalId,
+      machineId: payload.machineId,
+      msg: 'SignalUpdated reemitido por WebSocket',
     });
   }
 
@@ -77,6 +90,7 @@ export class RealtimeGateway implements OnGatewayConnection {
       priority: payload.priority,
       timestamp: payload.timestamp,
     });
+    this.metrics.incrementAlarmEvent('AlarmTriggered');
   }
 
   @OnEvent('AlarmCleared')
@@ -87,6 +101,7 @@ export class RealtimeGateway implements OnGatewayConnection {
       signalId: payload.signalId,
       timestamp: payload.timestamp,
     });
+    this.metrics.incrementAlarmEvent('AlarmCleared');
   }
 
   @OnEvent('AlarmAcked')
@@ -99,6 +114,7 @@ export class RealtimeGateway implements OnGatewayConnection {
       ackedByEmail: payload.ackedByEmail,
       ackedAt: payload.ackedAt,
     });
+    this.metrics.incrementAlarmEvent('AlarmAcked');
   }
 
   private roomFor(companyId: string): string {

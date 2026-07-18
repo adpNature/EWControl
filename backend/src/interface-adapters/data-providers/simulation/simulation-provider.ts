@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import type { ConnectionConfig } from '../../../entities/connection-config.vo';
 import type { IDataProvider, VariableListener } from '../data-provider';
 import { DataQuality } from '../data-quality.enum';
@@ -77,6 +78,7 @@ export class SimulationProvider implements IDataProvider {
         type: generator.variableType,
         timestamp,
         quality: this.resolveQuality(generator.variableName),
+        correlationId: randomUUID(),
       };
       for (const listener of this.listeners) {
         listener(variable);

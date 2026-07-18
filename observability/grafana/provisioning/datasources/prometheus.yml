@@ -1,0 +1,11 @@
+# Aprovisiona Prometheus como datasource de Grafana al arrancar el contenedor
+# (docs/07-observabilidad-monitorizacion.md, apartado 7.3; docs/specs/15-observabilidad-tecnica.md).
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false

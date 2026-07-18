@@ -20,11 +20,16 @@ function createTokenService() {
   };
 }
 
+function createMetrics() {
+  return { incrementSignalUpdate: vi.fn(), incrementAlarmEvent: vi.fn() };
+}
+
 function createGateway(tokenService: ReturnType<typeof createTokenService>) {
-  const gateway = new RealtimeGateway(tokenService as never);
+  const metrics = createMetrics();
+  const gateway = new RealtimeGateway(tokenService as never, metrics as never);
   const server = { to: vi.fn().mockReturnThis(), emit: vi.fn() };
   (gateway as unknown as { server: unknown }).server = server;
-  return { gateway, server };
+  return { gateway, server, metrics };
 }
 
 describe('RealtimeGateway', () => {
@@ -89,7 +94,7 @@ describe('RealtimeGateway', () => {
 
   describe('relay de eventos', () => {
     it('reemite SignalUpdated a la sala de la Company del payload', () => {
-      const { gateway, server } = createGateway(createTokenService());
+      const { gateway, server, metrics } = createGateway(createTokenService());
       const timestamp = new Date('2026-07-12T10:00:00Z');
 
       gateway.relaySignalUpdated({
@@ -99,6 +104,7 @@ describe('RealtimeGateway', () => {
         value: 24.8,
         quality: SignalQuality.Good,
         timestamp,
+        correlationId: 'correlation-1',
       });
 
       expect(server.to).toHaveBeenCalledWith('company:company-1');
@@ -108,7 +114,9 @@ describe('RealtimeGateway', () => {
         value: 24.8,
         quality: SignalQuality.Good,
         timestamp,
+        correlationId: 'correlation-1',
       });
+      expect(metrics.incrementSignalUpdate).toHaveBeenCalledTimes(1);
     });
 
     it('reemite MachineConnected/MachineDisconnected a la sala de la Company del payload', () => {
@@ -133,7 +141,7 @@ describe('RealtimeGateway', () => {
     });
 
     it('reemite AlarmTriggered/AlarmCleared a la sala de la Company del payload (docs/specs/09-alarmas.md)', () => {
-      const { gateway, server } = createGateway(createTokenService());
+      const { gateway, server, metrics } = createGateway(createTokenService());
       const timestamp = new Date('2026-07-12T10:00:00Z');
 
       gateway.relayAlarmTriggered({
@@ -167,10 +175,12 @@ describe('RealtimeGateway', () => {
         signalId: 'signal-1',
         timestamp,
       });
+      expect(metrics.incrementAlarmEvent).toHaveBeenCalledWith('AlarmTriggered');
+      expect(metrics.incrementAlarmEvent).toHaveBeenCalledWith('AlarmCleared');
     });
 
     it('reemite AlarmAcked a la sala de la Company del payload (docs/specs/11-ack-alarmas.md)', () => {
-      const { gateway, server } = createGateway(createTokenService());
+      const { gateway, server, metrics } = createGateway(createTokenService());
       const ackedAt = new Date('2026-07-12T10:00:00Z');
 
       gateway.relayAlarmAcked({
@@ -192,6 +202,7 @@ describe('RealtimeGateway', () => {
         ackedByEmail: 'admin@ewcontrol.local',
         ackedAt,
       });
+      expect(metrics.incrementAlarmEvent).toHaveBeenCalledWith('AlarmAcked');
     });
   });
 });

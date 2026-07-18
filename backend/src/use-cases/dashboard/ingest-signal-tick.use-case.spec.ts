@@ -7,6 +7,7 @@ const MACHINE = { id: 'machine-1', companyId: 'company-1', name: 'Demo', isActiv
 const SIGNAL = { id: 'signal-1', machineId: 'machine-1', isActive: true, historyEnabled: true };
 const NOW = new Date('2026-07-12T10:00:05Z');
 const TICK_TIMESTAMP = new Date('2026-07-12T10:00:00Z');
+const CORRELATION_ID = 'correlation-1';
 
 function createFakes() {
   const machineRepository = {
@@ -54,6 +55,7 @@ function createFakes() {
   };
   const clock = { now: vi.fn().mockReturnValue(NOW) };
   const historyWriter = { writeBatch: vi.fn(), hasDataInRange: vi.fn(), deleteRange: vi.fn() };
+  const metricsRecorder = { recordHistoryWriteError: vi.fn() };
   return {
     machineRepository,
     signalRepository,
@@ -63,6 +65,7 @@ function createFakes() {
     unitOfWork,
     clock,
     historyWriter,
+    metricsRecorder,
   };
 }
 
@@ -76,6 +79,7 @@ function createUseCase(fakes: ReturnType<typeof createFakes>) {
     fakes.unitOfWork,
     fakes.clock,
     fakes.historyWriter,
+    fakes.metricsRecorder,
   );
 }
 
@@ -90,6 +94,7 @@ describe('IngestSignalTickUseCase — Signal DIRECT (docs/specs/07-dashboard-tie
       value: 24.8,
       quality: SignalQuality.Good,
       timestamp: TICK_TIMESTAMP,
+      correlationId: CORRELATION_ID,
     });
 
     expect(fakes.realtimeCache.set).toHaveBeenCalledWith({
@@ -100,6 +105,7 @@ describe('IngestSignalTickUseCase — Signal DIRECT (docs/specs/07-dashboard-tie
       quality: SignalQuality.Good,
       timestamp: TICK_TIMESTAMP,
       updatedAt: NOW,
+      correlationId: CORRELATION_ID,
     });
     expect(fakes.eventPublisher.publish).toHaveBeenCalledWith('SignalUpdated', {
       signalId: 'signal-1',
@@ -108,6 +114,7 @@ describe('IngestSignalTickUseCase — Signal DIRECT (docs/specs/07-dashboard-tie
       value: 24.8,
       quality: SignalQuality.Good,
       timestamp: TICK_TIMESTAMP,
+      correlationId: CORRELATION_ID,
     });
     expect(fakes.historyWriter.writeBatch).toHaveBeenCalledWith([
       {
@@ -134,6 +141,7 @@ describe('IngestSignalTickUseCase — Signal DIRECT (docs/specs/07-dashboard-tie
       value: 24.8,
       quality: SignalQuality.Good,
       timestamp: TICK_TIMESTAMP,
+      correlationId: CORRELATION_ID,
     });
 
     expect(fakes.realtimeCache.set).toHaveBeenCalled();
@@ -152,10 +160,12 @@ describe('IngestSignalTickUseCase — Signal DIRECT (docs/specs/07-dashboard-tie
         value: 24.8,
         quality: SignalQuality.Good,
         timestamp: TICK_TIMESTAMP,
+        correlationId: CORRELATION_ID,
       }),
     ).resolves.toBeUndefined();
     expect(fakes.realtimeCache.set).toHaveBeenCalled();
     expect(fakes.eventPublisher.publish).toHaveBeenCalled();
+    expect(fakes.metricsRecorder.recordHistoryWriteError).toHaveBeenCalledTimes(1);
   });
 
   it('descarta el tick silenciosamente si la Machine no existe', async () => {
@@ -169,6 +179,7 @@ describe('IngestSignalTickUseCase — Signal DIRECT (docs/specs/07-dashboard-tie
       value: 1,
       quality: SignalQuality.Good,
       timestamp: TICK_TIMESTAMP,
+      correlationId: CORRELATION_ID,
     });
 
     expect(fakes.realtimeCache.set).not.toHaveBeenCalled();
@@ -187,6 +198,7 @@ describe('IngestSignalTickUseCase — Signal DIRECT (docs/specs/07-dashboard-tie
       value: 1,
       quality: SignalQuality.Good,
       timestamp: TICK_TIMESTAMP,
+      correlationId: CORRELATION_ID,
     });
 
     expect(fakes.realtimeCache.set).not.toHaveBeenCalled();
@@ -204,6 +216,7 @@ describe('IngestSignalTickUseCase — Signal DIRECT (docs/specs/07-dashboard-tie
       value: 1,
       quality: SignalQuality.Good,
       timestamp: TICK_TIMESTAMP,
+      correlationId: CORRELATION_ID,
     });
 
     expect(fakes.realtimeCache.set).not.toHaveBeenCalled();
@@ -223,6 +236,7 @@ describe('IngestSignalTickUseCase — Signal FORMULA (docs/specs/13-motor-formul
       value: 230,
       quality: SignalQuality.Good,
       timestamp: TICK_TIMESTAMP,
+      correlationId: CORRELATION_ID,
     });
 
     expect(fakes.rawVariableCache.set).toHaveBeenCalledWith('machine-1', 'Voltage', {
@@ -256,6 +270,7 @@ describe('IngestSignalTickUseCase — Signal FORMULA (docs/specs/13-motor-formul
       value: 230,
       quality: SignalQuality.Good,
       timestamp: TICK_TIMESTAMP,
+      correlationId: CORRELATION_ID,
     });
 
     expect(fakes.realtimeCache.set).toHaveBeenCalledWith({
@@ -266,6 +281,7 @@ describe('IngestSignalTickUseCase — Signal FORMULA (docs/specs/13-motor-formul
       quality: SignalQuality.Good,
       timestamp: TICK_TIMESTAMP,
       updatedAt: NOW,
+      correlationId: CORRELATION_ID,
     });
     expect(fakes.eventPublisher.publish).toHaveBeenCalledWith('SignalUpdated', {
       signalId: 'signal-power',
@@ -274,6 +290,7 @@ describe('IngestSignalTickUseCase — Signal FORMULA (docs/specs/13-motor-formul
       value: 2760,
       quality: SignalQuality.Good,
       timestamp: TICK_TIMESTAMP,
+      correlationId: CORRELATION_ID,
     });
     expect(fakes.historyWriter.writeBatch).toHaveBeenCalledWith([
       {
@@ -305,6 +322,7 @@ describe('IngestSignalTickUseCase — Signal FORMULA (docs/specs/13-motor-formul
       value: 230,
       quality: SignalQuality.Good,
       timestamp: TICK_TIMESTAMP,
+      correlationId: CORRELATION_ID,
     });
 
     expect(fakes.realtimeCache.set).not.toHaveBeenCalled();
@@ -336,6 +354,7 @@ describe('IngestSignalTickUseCase — Signal FORMULA (docs/specs/13-motor-formul
       value: 230,
       quality: SignalQuality.Good,
       timestamp: TICK_TIMESTAMP,
+      correlationId: CORRELATION_ID,
     });
 
     expect(fakes.realtimeCache.set).toHaveBeenCalledWith(
@@ -367,6 +386,7 @@ describe('IngestSignalTickUseCase — Signal FORMULA (docs/specs/13-motor-formul
       value: 230,
       quality: SignalQuality.Good,
       timestamp: TICK_TIMESTAMP,
+      correlationId: CORRELATION_ID,
     });
     await useCase.execute({
       machineId: 'machine-1',
@@ -374,6 +394,7 @@ describe('IngestSignalTickUseCase — Signal FORMULA (docs/specs/13-motor-formul
       value: 15,
       quality: SignalQuality.Good,
       timestamp: TICK_TIMESTAMP,
+      correlationId: CORRELATION_ID,
     });
 
     expect(fakes.realtimeCache.set).toHaveBeenCalledTimes(2);
@@ -411,6 +432,7 @@ describe('IngestSignalTickUseCase — Signal FORMULA (docs/specs/13-motor-formul
       quality: SignalQuality.Good,
       timestamp: new Date('2026-07-12T09:00:00Z'),
       updatedAt: new Date('2026-07-12T09:00:00Z'),
+      correlationId: 'correlation-previous',
     };
     fakes.realtimeCache.get.mockReturnValue(previousEntry);
     const useCase = createUseCase(fakes);
@@ -421,6 +443,7 @@ describe('IngestSignalTickUseCase — Signal FORMULA (docs/specs/13-motor-formul
       value: 10,
       quality: SignalQuality.Good,
       timestamp: TICK_TIMESTAMP,
+      correlationId: CORRELATION_ID,
     });
 
     expect(fakes.realtimeCache.set).toHaveBeenCalledWith({
@@ -431,6 +454,7 @@ describe('IngestSignalTickUseCase — Signal FORMULA (docs/specs/13-motor-formul
       quality: SignalQuality.Bad,
       timestamp: TICK_TIMESTAMP,
       updatedAt: NOW,
+      correlationId: CORRELATION_ID,
     });
     expect(fakes.eventPublisher.publish).toHaveBeenCalledWith('SignalUpdated', {
       signalId: 'signal-ratio',
@@ -439,6 +463,7 @@ describe('IngestSignalTickUseCase — Signal FORMULA (docs/specs/13-motor-formul
       value: 5,
       quality: SignalQuality.Bad,
       timestamp: TICK_TIMESTAMP,
+      correlationId: CORRELATION_ID,
     });
   });
 
@@ -466,6 +491,7 @@ describe('IngestSignalTickUseCase — Signal FORMULA (docs/specs/13-motor-formul
       value: 10,
       quality: SignalQuality.Good,
       timestamp: TICK_TIMESTAMP,
+      correlationId: CORRELATION_ID,
     });
 
     expect(fakes.realtimeCache.set).not.toHaveBeenCalled();
@@ -490,6 +516,7 @@ describe('IngestSignalTickUseCase — Signal FORMULA (docs/specs/13-motor-formul
       value: 24.8,
       quality: SignalQuality.Good,
       timestamp: TICK_TIMESTAMP,
+      correlationId: CORRELATION_ID,
     });
 
     expect(fakes.realtimeCache.set).toHaveBeenCalledWith(
@@ -497,6 +524,91 @@ describe('IngestSignalTickUseCase — Signal FORMULA (docs/specs/13-motor-formul
     );
     expect(fakes.realtimeCache.set).toHaveBeenCalledWith(
       expect.objectContaining({ signalId: 'signal-double', value: 49.6 }),
+    );
+  });
+});
+
+describe('IngestSignalTickUseCase — correlationId end-to-end (docs/07-observabilidad-monitorizacion.md, spec 15)', () => {
+  it('propaga el mismo correlationId de entrada a la RealtimeCacheEntry y al evento SignalUpdated', async () => {
+    const fakes = createFakes();
+    const useCase = createUseCase(fakes);
+
+    await useCase.execute({
+      machineId: 'machine-1',
+      variableName: 'temperature',
+      value: 24.8,
+      quality: SignalQuality.Good,
+      timestamp: TICK_TIMESTAMP,
+      correlationId: 'correlation-xyz',
+    });
+
+    expect(fakes.realtimeCache.set).toHaveBeenCalledWith(
+      expect.objectContaining({ correlationId: 'correlation-xyz' }),
+    );
+    expect(fakes.eventPublisher.publish).toHaveBeenCalledWith(
+      'SignalUpdated',
+      expect.objectContaining({ correlationId: 'correlation-xyz' }),
+    );
+  });
+
+  it('un tick descartado (Machine inexistente) no propaga su correlationId a ningún componente downstream', async () => {
+    const fakes = createFakes();
+    fakes.machineRepository.findById.mockResolvedValue(null);
+    const useCase = createUseCase(fakes);
+
+    await useCase.execute({
+      machineId: 'missing-machine',
+      variableName: 'temperature',
+      value: 1,
+      quality: SignalQuality.Good,
+      timestamp: TICK_TIMESTAMP,
+      correlationId: 'correlation-discarded',
+    });
+
+    expect(fakes.realtimeCache.set).not.toHaveBeenCalled();
+    expect(fakes.eventPublisher.publish).not.toHaveBeenCalled();
+  });
+
+  it('conserva el correlationId del tick que provocó un error de cálculo de una FORMULA', async () => {
+    const fakes = createFakes();
+    fakes.signalRepository.findActiveDirectByMachineAndVariableName.mockResolvedValue(null);
+    fakes.signalRepository.findActiveFormulasByMachineAndVariableName.mockResolvedValue([
+      {
+        id: 'signal-ratio',
+        machineId: 'machine-1',
+        signalSource: { expression: 'a / b', variables: ['a', 'b'] },
+        historyEnabled: false,
+      },
+    ]);
+    fakes.rawVariableCache.set('machine-1', 'b', {
+      value: 0,
+      quality: SignalQuality.Good,
+      timestamp: TICK_TIMESTAMP,
+    });
+    fakes.realtimeCache.get.mockReturnValue({
+      signalId: 'signal-ratio',
+      machineId: 'machine-1',
+      companyId: 'company-1',
+      value: 5,
+      quality: SignalQuality.Good,
+      timestamp: new Date('2026-07-12T09:00:00Z'),
+      updatedAt: new Date('2026-07-12T09:00:00Z'),
+      correlationId: 'correlation-previous',
+    });
+    const useCase = createUseCase(fakes);
+
+    await useCase.execute({
+      machineId: 'machine-1',
+      variableName: 'a',
+      value: 10,
+      quality: SignalQuality.Good,
+      timestamp: TICK_TIMESTAMP,
+      correlationId: 'correlation-error-tick',
+    });
+
+    expect(fakes.eventPublisher.publish).toHaveBeenCalledWith(
+      'SignalUpdated',
+      expect.objectContaining({ correlationId: 'correlation-error-tick' }),
     );
   });
 });
