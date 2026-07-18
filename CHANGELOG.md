@@ -1,3 +1,9 @@
+# [1.11.0](https://github.com/adpNature/EWControl/compare/v1.10.0...v1.11.0) (2026-07-18)
+
+### Features
+
+- **observabilidad:** implementa health checks, métricas y alerting de infraestructura (spec 15) ([8b27167](https://github.com/adpNature/EWControl/commit/8b27167d4811a9f6782926e862f3a90e0b708d06))
+
 # [1.10.0](https://github.com/adpNature/EWControl/compare/v1.9.0...v1.10.0) (2026-07-17)
 
 ### Features
