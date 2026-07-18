@@ -28,6 +28,7 @@ describe('NestEventEmitterPublisher', () => {
       value: 42,
       quality: 'GOOD' as const,
       timestamp: new Date('2026-01-01T00:00:00Z'),
+      correlationId: 'correlation-1',
     };
 
     publisher.publish('SignalUpdated', payload as never);

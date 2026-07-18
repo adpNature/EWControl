@@ -11,6 +11,7 @@ import { MathRandomSource } from '../interface-adapters/system/math-random-sourc
 import { SystemClock } from '../interface-adapters/system/system-clock';
 import { DashboardModule } from './dashboard.module';
 import { HistoryPersistenceModule } from './history-persistence.module';
+import { MetricsModule } from './metrics.module';
 import { IngestSignalTickUseCase } from '../use-cases/dashboard/ingest-signal-tick.use-case';
 import { CLOCK } from '../use-cases/history/ports/clock.port';
 import { RANDOM_SOURCE } from '../use-cases/history/ports/random-source.port';
@@ -39,7 +40,7 @@ import { SimulatorMachineResolver } from '../use-cases/simulator-control/simulat
  * consume `IngestSignalTickUseCase` para evaluar Signals `FORMULA` multi-variable.
  */
 @Module({
-  imports: [DashboardModule, HistoryPersistenceModule],
+  imports: [DashboardModule, HistoryPersistenceModule, MetricsModule],
   controllers: [SimulatorController],
   providers: [
     ForceDisconnectSimulatorUseCase,

@@ -55,6 +55,12 @@ services:
       - backend_node_modules:/app/node_modules
     ports:
       - "3000:3000"
+    healthcheck:
+      # node:20-alpine (BusyBox) trae wget, no curl (docs/specs/15-observabilidad-tecnica.md).
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     depends_on:
       postgres:
         condition: service_healthy
@@ -80,12 +86,58 @@ services:
       - backend
     networks: [ewcontrol]
 
+  # Observabilidad técnica (docs/07-observabilidad-monitorizacion.md;
+  # docs/specs/15-observabilidad-tecnica.md): Prometheus + Grafana + Alertmanager,
+  # separados del stack de negocio (postgres/influxdb/backend/frontend).
+
+  postgres-exporter:
+    # PostgreSQL no expone /metrics nativo, a diferencia de InfluxDB.
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    env_file:
+      - backend/.env
+    environment:
+      DATA_SOURCE_NAME: "postgresql://$${POSTGRES_USER}:$${POSTGRES_PASSWORD}@postgres:5432/$${POSTGRES_DB}?sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [ewcontrol]
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./observability/prometheus/rules:/etc/prometheus/rules
+    ports:
+      - "9090:9090"
+    networks: [ewcontrol]
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    volumes:
+      - ./observability/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    ports:
+      - "9093:9093"
+    networks: [ewcontrol]
+
+  grafana:
+    image: grafana/grafana-oss:11.3.0
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    ports:
+      # 3001, no 3000: el backend ya usa 3000 en el host.
+      - "3001:3000"
+    depends_on:
+      - prometheus
+    networks: [ewcontrol]
+
 volumes:
   postgres_data:
   influxdb_data:
   influxdb_config:
   backend_node_modules:
   frontend_node_modules:
+  grafana_data:
 
 networks:
   ewcontrol:

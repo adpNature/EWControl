@@ -52,6 +52,7 @@ export class MarkMachineSignalsOfflineUseCase {
         value: entry.value,
         quality: SignalQuality.Offline,
         timestamp: entry.timestamp,
+        correlationId: entry.correlationId,
       });
     }
   }

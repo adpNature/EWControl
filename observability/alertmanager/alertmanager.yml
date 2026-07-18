@@ -1,0 +1,16 @@
+# docs/07-observabilidad-monitorizacion.md, apartado 7.4; docs/specs/15-observabilidad-tecnica.md.
+#
+# `null-receiver` es un placeholder deliberado, sin integración de entrega real
+# (Slack/email/PagerDuty): la spec 15 define las reglas y la agrupación como
+# configuración versionada, y deja la entrega real para una spec futura. No se
+# reutiliza Mailpit: es un canal exclusivo para el equipo operador, distinto
+# del Notification Service de alarmas industriales (Regla 1 de 7.4).
+route:
+  receiver: "null-receiver"
+  group_by: ["alertname"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: "null-receiver"

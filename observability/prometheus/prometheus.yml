@@ -1,0 +1,28 @@
+# docs/07-observabilidad-monitorizacion.md, apartado 7.3; docs/specs/15-observabilidad-tecnica.md
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+rule_files:
+  - "rules/*.yml"
+
+scrape_configs:
+  - job_name: "backend"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["backend:3000"]
+
+  - job_name: "postgres"
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+
+  # InfluxDB 2.x expone su propio endpoint /metrics en formato Prometheus,
+  # sin necesidad de un exporter dedicado (docs/specs/15-observabilidad-tecnica.md).
+  - job_name: "influxdb"
+    static_configs:
+      - targets: ["influxdb:8086"]

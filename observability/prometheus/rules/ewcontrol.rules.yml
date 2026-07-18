@@ -1,0 +1,54 @@
+# Reglas de alerting de infraestructura (docs/07-observabilidad-monitorizacion.md,
+# apartado 7.4; docs/specs/15-observabilidad-tecnica.md, criterio 16).
+#
+# Excluidas explícitamente, por no ser implementables en este entorno de una
+# sola instancia sin alta disponibilidad (docs/05-despliegue-infraestructura.md,
+# líneas 30-35, "diferido hasta que exista la necesidad real"):
+#   - "PostgreSQL realiza un failover": no existe réplica/failover hoy.
+#   - "Uso de disco de InfluxDB > umbral": sin exporter de disco/host desplegado.
+groups:
+  - name: ewcontrol-infraestructura
+    rules:
+      - alert: BackendDown
+        expr: up{job="backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "El Backend no responde a los health checks"
+          description: "up{job=\"backend\"} lleva caído más de 1 minuto."
+
+      - alert: BackendHighLatency
+        expr: histogram_quantile(0.95, sum(rate(ewcontrol_http_request_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 5m
+        labels:
+          severity: high
+        annotations:
+          summary: "Latencia p95 de la API por encima del umbral"
+          description: "El percentil 95 de ewcontrol_http_request_duration_seconds supera 1s durante 5 minutos."
+
+      - alert: DataProviderDisconnected
+        expr: ewcontrol_data_provider_connected == 0
+        for: 5m
+        labels:
+          severity: media
+        annotations:
+          summary: "Un Data Provider permanece desconectado"
+          description: "ewcontrol_data_provider_connected está en 0 para la Machine {{ $labels.machine_id }} durante más de 5 minutos."
+
+      - alert: InfluxDbWriteFailures
+        expr: increase(ewcontrol_history_write_errors_total[5m]) > 0
+        labels:
+          severity: high
+        annotations:
+          summary: "InfluxDB deja de aceptar escrituras de histórico"
+          description: "ewcontrol_history_write_errors_total ha aumentado en los últimos 5 minutos."
+
+      - alert: InfluxDbDown
+        expr: up{job="influxdb"} == 0
+        for: 1m
+        labels:
+          severity: high
+        annotations:
+          summary: "InfluxDB no responde"
+          description: "up{job=\"influxdb\"} lleva caído más de 1 minuto."

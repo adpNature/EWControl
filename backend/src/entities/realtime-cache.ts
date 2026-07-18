@@ -15,11 +15,15 @@ export type RealtimeCacheEntry = {
   quality: SignalQuality;
   timestamp: Date;
   updatedAt: Date;
+  /** docs/07-observabilidad-monitorizacion.md, apartado 7.6 (spec 15). */
+  correlationId: string;
 };
 
 export interface IRealtimeCache {
   get(signalId: string): RealtimeCacheEntry | undefined;
   set(entry: RealtimeCacheEntry): void;
+  /** Número de Signals con estado actual en la cache (spec 15, métrica de Realtime Cache). */
+  size(): number;
 }
 
 /**
@@ -39,5 +43,9 @@ export class InMemoryRealtimeCache implements IRealtimeCache {
 
   set(entry: RealtimeCacheEntry): void {
     this.entries.set(entry.signalId, entry);
+  }
+
+  size(): number {
+    return this.entries.size;
   }
 }

@@ -18,6 +18,12 @@ export type SignalUpdatedPayload = {
   value: number | boolean | string;
   quality: SignalQuality;
   timestamp: Date;
+  /**
+   * docs/07-observabilidad-monitorizacion.md, apartado 7.6 (spec 15). Único
+   * evento que lo transporta: `AlarmTriggered`/`AlarmCleared`/`AlarmAcked` son
+   * eventos de dominio nuevos, no una retransmisión de la Variable original.
+   */
+  correlationId: string;
 };
 /**
  * docs/specs/09-alarmas.md, docs/11-api-rest.md sección "Eventos WebSocket".

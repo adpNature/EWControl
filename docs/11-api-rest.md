@@ -217,14 +217,14 @@ Tras conectar, el cliente recibe únicamente eventos de Machines/Signals de su p
 
 Eventos publicados por el backend (ya descritos como eventos internos en Documento 2, apartado "Sistema de Eventos"; aquí se formalizan como contrato público hacia el Frontend):
 
-| Evento                | Payload                                                                               | Descripción                                               |
-| --------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| `SignalUpdated`       | `{ signalId, machineId, value, quality, timestamp }`                                  | Una Signal ha sido actualizada en la Realtime Cache.      |
-| `MachineConnected`    | `{ machineId, timestamp }`                                                            | La máquina ha establecido conexión.                       |
-| `MachineDisconnected` | `{ machineId, timestamp }`                                                            | La máquina ha perdido la comunicación.                    |
-| `AlarmTriggered`      | `{ alarmStateId, alarmDefinitionId, signalId, priority, timestamp }`                  | Se ha activado una alarma.                                |
-| `AlarmCleared`        | `{ alarmStateId, alarmDefinitionId, signalId, timestamp }`                            | Una alarma ha vuelto a estado normal.                     |
-| `AlarmAcked`          | `{ alarmStateId, alarmDefinitionId, signalId, ackedByUserId, ackedByEmail, ackedAt }` | Una alarma ha sido reconocida manualmente (ACK, spec 11). |
+| Evento                | Payload                                                                               | Descripción                                                                                                                                                           |
+| --------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SignalUpdated`       | `{ signalId, machineId, value, quality, timestamp, correlationId }`                   | Una Signal ha sido actualizada en la Realtime Cache. `correlationId` permite trazar el dato hasta su origen en el Data Provider (spec 15, Documento 7, apartado 7.6). |
+| `MachineConnected`    | `{ machineId, timestamp }`                                                            | La máquina ha establecido conexión.                                                                                                                                   |
+| `MachineDisconnected` | `{ machineId, timestamp }`                                                            | La máquina ha perdido la comunicación.                                                                                                                                |
+| `AlarmTriggered`      | `{ alarmStateId, alarmDefinitionId, signalId, priority, timestamp }`                  | Se ha activado una alarma.                                                                                                                                            |
+| `AlarmCleared`        | `{ alarmStateId, alarmDefinitionId, signalId, timestamp }`                            | Una alarma ha vuelto a estado normal.                                                                                                                                 |
+| `AlarmAcked`          | `{ alarmStateId, alarmDefinitionId, signalId, ackedByUserId, ackedByEmail, ackedAt }` | Una alarma ha sido reconocida manualmente (ACK, spec 11).                                                                                                             |
 
 El cliente no publica eventos de negocio por WebSocket: toda escritura se hace vía REST. El WebSocket es unidireccional (servidor → cliente).
 

@@ -9,6 +9,7 @@ const HTTP_STATUS_CODE_NAMES = new Map<number, string>([
   [409, 'CONFLICT'],
   [422, 'UNPROCESSABLE_ENTITY'],
   [500, 'INTERNAL_ERROR'],
+  [503, 'SERVICE_UNAVAILABLE'],
 ]);
 
 type NormalizedError = { code: string; message: string; details?: unknown };

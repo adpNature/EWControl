@@ -32,7 +32,8 @@ function createFakes(
     runInTransaction: vi.fn((work: (ctx: unknown) => Promise<unknown>) => work(Symbol('ctx'))),
   };
   const ingestSignalTick = { execute: vi.fn().mockResolvedValue(undefined) };
-  return { machineConnectionRepository, unitOfWork, ingestSignalTick };
+  const metrics = { setDataProviderConnected: vi.fn() };
+  return { machineConnectionRepository, unitOfWork, ingestSignalTick, metrics };
 }
 
 function createRegistry(fakes: ReturnType<typeof createFakes>) {
@@ -40,6 +41,7 @@ function createRegistry(fakes: ReturnType<typeof createFakes>) {
     fakes.machineConnectionRepository,
     fakes.unitOfWork,
     fakes.ingestSignalTick as never,
+    fakes.metrics as never,
   );
 }
 
@@ -102,6 +104,20 @@ describe('SimulationProviderRegistry', () => {
     expect(registry.isConnected('machine-1')).toBe(true);
   });
 
+  it('actualiza ewcontrol_data_provider_connected en onModuleInit/connect/disconnect (spec 15)', async () => {
+    const fakes = createFakes([{ machineId: 'machine-1', connectionConfig: CONFIG }]);
+    const registry = createRegistry(fakes);
+
+    await registry.onModuleInit();
+    expect(fakes.metrics.setDataProviderConnected).toHaveBeenCalledWith('machine-1', true);
+
+    await registry.disconnect('machine-1');
+    expect(fakes.metrics.setDataProviderConnected).toHaveBeenCalledWith('machine-1', false);
+
+    await registry.connect('machine-1');
+    expect(fakes.metrics.setDataProviderConnected).toHaveBeenLastCalledWith('machine-1', true);
+  });
+
   it('forceSignalQuality mapea ForcedSignalQuality.Uncertain a DataQuality.Uncertain', async () => {
     const fakes = createFakes([{ machineId: 'machine-1', connectionConfig: CONFIG }]);
     const registry = createRegistry(fakes);
@@ -137,6 +153,19 @@ describe('SimulationProviderRegistry', () => {
         quality: SignalQuality.Good,
       }),
     );
+  });
+
+  it('reenvía el correlationId de la Variable del Data Provider a IngestSignalTickUseCase (spec 15)', async () => {
+    const fakes = createFakes([{ machineId: 'machine-1', connectionConfig: CONFIG }]);
+    const registry = createRegistry(fakes);
+    await registry.onModuleInit();
+
+    vi.advanceTimersByTime(1000);
+    await Promise.resolve();
+
+    const [input] = fakes.ingestSignalTick.execute.mock.calls[0] as [{ correlationId: string }];
+    expect(typeof input.correlationId).toBe('string');
+    expect(input.correlationId.length).toBeGreaterThan(0);
   });
 
   it('un fallo de IngestSignalTickUseCase no detiene el intervalo del provider', async () => {

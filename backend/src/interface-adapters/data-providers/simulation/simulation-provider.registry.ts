@@ -2,6 +2,7 @@ import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { ForcedSignalQuality } from '../../../entities/forced-signal-quality.enum';
 import { ProviderType } from '../../../entities/provider-type.enum';
 import { SignalQuality } from '../../../entities/signal-quality.enum';
+import { PrometheusMetricsService } from '../../observability/prometheus-metrics.service';
 import { IngestSignalTickUseCase } from '../../../use-cases/dashboard/ingest-signal-tick.use-case';
 import {
   type IMachineConnectionRepository,
@@ -57,6 +58,7 @@ export class SimulationProviderRegistry implements ISimulatorRuntime, OnModuleIn
     private readonly machineConnectionRepository: IMachineConnectionRepository,
     @Inject(UNIT_OF_WORK) private readonly unitOfWork: IUnitOfWork,
     private readonly ingestSignalTick: IngestSignalTickUseCase,
+    private readonly metrics: PrometheusMetricsService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -69,6 +71,7 @@ export class SimulationProviderRegistry implements ISimulatorRuntime, OnModuleIn
       await provider.connect();
       provider.startScheduler();
       this.providers.set(connection.machineId, provider);
+      this.metrics.setDataProviderConnected(connection.machineId, true);
     }
   }
 
@@ -85,6 +88,7 @@ export class SimulationProviderRegistry implements ISimulatorRuntime, OnModuleIn
         value: variable.value,
         quality: toSignalQuality(variable.quality),
         timestamp: variable.timestamp,
+        correlationId: variable.correlationId,
       })
       .catch(() => undefined);
   }
@@ -93,12 +97,14 @@ export class SimulationProviderRegistry implements ISimulatorRuntime, OnModuleIn
     return this.require(machineId).isConnected();
   }
 
-  connect(machineId: string): Promise<void> {
-    return this.require(machineId).connect();
+  async connect(machineId: string): Promise<void> {
+    await this.require(machineId).connect();
+    this.metrics.setDataProviderConnected(machineId, true);
   }
 
-  disconnect(machineId: string): Promise<void> {
-    return this.require(machineId).disconnect();
+  async disconnect(machineId: string): Promise<void> {
+    await this.require(machineId).disconnect();
+    this.metrics.setDataProviderConnected(machineId, false);
   }
 
   forceSignalQuality(

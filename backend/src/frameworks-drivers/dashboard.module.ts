@@ -31,6 +31,7 @@ import { MACHINE_REPOSITORY } from '../use-cases/seed-demo-environment/ports/mac
 import { SIGNAL_REPOSITORY } from '../use-cases/seed-demo-environment/ports/signal-repository.port';
 import { UNIT_OF_WORK } from '../use-cases/seed-demo-environment/ports/unit-of-work.port';
 import { EVENT_PUBLISHER } from '../use-cases/simulator-control/ports/event-publisher.port';
+import { MetricsModule } from './metrics.module';
 
 /**
  * Wiring de docs/specs/07-dashboard-tiempo-real.md. Dueño único de `REALTIME_CACHE`
@@ -40,7 +41,7 @@ import { EVENT_PUBLISHER } from '../use-cases/simulator-control/ports/event-publ
  * y `MachineManagementModule` importan este módulo únicamente por ese token.
  */
 @Module({
-  imports: [JwtModule.register({})],
+  imports: [JwtModule.register({}), MetricsModule],
   controllers: [DashboardController, DashboardWidgetController],
   providers: [
     { provide: REALTIME_CACHE, useClass: InMemoryRealtimeCache },

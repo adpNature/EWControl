@@ -213,8 +213,8 @@ Detalle completo de capas, componentes y flujo de datos en [docs/02-arquitectura
 | Fase 7  | Feature vertical: Reconocimiento manual de alarmas (ACK)                      | Completada |
 | Fase 8  | Feature vertical: Navegación (Shell + Sidebar + Breadcrumbs)                  | Completada |
 | Fase 9  | Feature vertical: Motor de fórmulas del Signal Engine (Signals `FORMULA`)     | Completada |
-| Fase 10 | Feature vertical: Históricos — pantalla independiente y comparativas          | Pendiente  |
-| Fase 11 | Observabilidad técnica (health checks, métricas, alerting de infraestructura) | Pendiente  |
+| Fase 10 | Feature vertical: Históricos — pantalla independiente y comparativas          | Completada |
+| Fase 11 | Observabilidad técnica (health checks, métricas, alerting de infraestructura) | Completada |
 | Fase 12 | Integración OPC UA real                                                       | Pendiente  |
 
 Cada fase a partir de la 2 se especifica en `docs/specs/` antes de implementarse (Documento 0). La Fase 11 es la única puramente backend/infraestructura, sin feature vertical Back+Front asociada.

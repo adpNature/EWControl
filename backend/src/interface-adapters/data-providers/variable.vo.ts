@@ -12,4 +12,10 @@ export type Variable = {
   type: VariableType;
   timestamp: Date;
   quality: DataQuality;
+  /**
+   * Identificador de correlación único por Variable y ciclo de generación
+   * (docs/07-observabilidad-monitorizacion.md, apartado 7.6), propagado sin
+   * descartarse por todo el flujo de ingesta (spec 15).
+   */
+  correlationId: string;
 };

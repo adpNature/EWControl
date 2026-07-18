@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import type { SignalUpdatedPayload } from '../../use-cases/simulator-control/ports/event-publisher.port';
 import { EvaluateAlarmRulesUseCase } from '../../use-cases/alarms/evaluate-alarm-rules.use-case';
@@ -10,10 +10,17 @@ import { EvaluateAlarmRulesUseCase } from '../../use-cases/alarms/evaluate-alarm
  */
 @Injectable()
 export class AlarmEvaluationListener {
+  private readonly logger = new Logger(AlarmEvaluationListener.name);
+
   constructor(private readonly evaluateAlarmRules: EvaluateAlarmRulesUseCase) {}
 
   @OnEvent('SignalUpdated')
   handle(payload: SignalUpdatedPayload): Promise<void> {
+    this.logger.debug({
+      correlationId: payload.correlationId,
+      signalId: payload.signalId,
+      msg: 'Evaluando AlarmDefinitions para SignalUpdated',
+    });
     return this.evaluateAlarmRules.execute({
       signalId: payload.signalId,
       companyId: payload.companyId,
