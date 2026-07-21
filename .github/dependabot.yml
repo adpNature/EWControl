@@ -18,6 +18,9 @@ updates:
         patterns:
           - typescript
           - "@types/node"
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: npm
     directory: /frontend
@@ -30,6 +33,9 @@ updates:
         patterns:
           - typescript
           - "@types/node"
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
