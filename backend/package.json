@@ -60,7 +60,7 @@
     "@types/express": "^5.0.0",
     "@types/node": "^24.0.0",
     "@types/nodemailer": "^8.0.1",
-    "@types/supertest": "^7.0.0",
+    "@types/supertest": "^7.2.1",
     "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^10.7.0",
     "eslint-config-prettier": "^10.0.1",
