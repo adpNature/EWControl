@@ -29,6 +29,9 @@ export class IconComponent implements OnChanges {
    */
   @Input() label?: string;
 
+  /** Ancho/alto en píxeles, sobrescribiendo el 24x24 por defecto del SVG descargado. */
+  @Input() size?: number;
+
   private readonly http = inject(HttpClient);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly elementRef = inject(ElementRef<HTMLElement>);
@@ -53,6 +56,11 @@ export class IconComponent implements OnChanges {
 
     const svgEl = host.querySelector('svg');
     if (!svgEl) return;
+
+    if (this.size) {
+      svgEl.setAttribute('width', String(this.size));
+      svgEl.setAttribute('height', String(this.size));
+    }
 
     if (this.label) {
       svgEl.setAttribute('role', 'img');

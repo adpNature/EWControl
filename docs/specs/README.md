@@ -76,9 +76,10 @@ Si una spec no tiene parte de frontend (por ejemplo, funcionalidad de fundación
 | [14-historicos-comparativas.md](14-historicos-comparativas.md)           | Históricos — pantalla independiente y comparativas multi-Signal/Machine                                   | Sí                 | Sí                      |
 | [15-observabilidad-tecnica.md](15-observabilidad-tecnica.md)             | Observabilidad técnica (health checks, métricas, alerting de infraestructura)                             | Sí                 | No (solo backend/infra) |
 | [16-pulido-visual-frontend.md](16-pulido-visual-frontend.md)             | Pulido visual y UX (identidad de marca, botones, tablas, grid del Dashboard, tooltips/ejes de históricos) | No (solo frontend) | Sí                      |
+| [17-landing-page.md](17-landing-page.md)                                 | Landing page pública (bienvenida), en `/`, con navegación scroll-to y CTA de login                        | No (solo frontend) | Sí                      |
 
 ## Pendientes
 
-Specs identificadas pero aún no redactadas — numeración tentativa, correlativa a partir de `17`. El orden sigue el Roadmap del [README](../../README.md#roadmap); la Fase 12 (OPC UA) siempre queda última.
+Specs identificadas pero aún no redactadas — numeración tentativa, correlativa a partir de `18`. El orden sigue el Roadmap del [README](../../README.md#roadmap); la Fase 12 (OPC UA) siempre queda última.
 
 Ninguna spec pendiente identificada por ahora; la Fase 12 (Integración OPC UA real) se especificará cuando le llegue el turno en el Roadmap.

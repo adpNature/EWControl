@@ -1,0 +1,110 @@
+@use 'breakpoints' as *;
+
+.landing-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+
+  // Glassmorphism: translúcido + blur en vez de opaco, ya que la cabecera
+  // permanece fija sobre el contenido al hacer scroll.
+  background: color-mix(in srgb, var(--background-color) 65%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent);
+}
+
+.landing-header__bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-sm) var(--spacing-md);
+
+  @include respond(md) {
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-lg);
+  }
+}
+
+.landing-header__logo img {
+  display: block;
+  height: 28px;
+
+  @include respond(md) {
+    height: 36px;
+  }
+}
+
+.landing-header__nav {
+  display: none;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: color-mix(in srgb, var(--background-color) 85%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent);
+
+  &--open {
+    display: flex;
+  }
+
+  @include respond(md) {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    position: static;
+    padding: 0;
+    border-bottom: none;
+    background: none;
+    backdrop-filter: none;
+  }
+}
+
+.landing-header__link {
+  color: var(--text-color);
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--primary-color);
+  }
+}
+
+.landing-header__login {
+  flex-shrink: 0;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-size-sm);
+
+  @include respond(md) {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: var(--font-size-md);
+  }
+}
+
+.landing-header__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  padding: var(--spacing-xs);
+  cursor: pointer;
+  color: var(--text-color);
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+
+  @include respond(md) {
+    display: none;
+  }
+}

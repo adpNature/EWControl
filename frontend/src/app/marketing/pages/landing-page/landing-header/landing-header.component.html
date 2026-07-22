@@ -1,0 +1,43 @@
+<header class="landing-header">
+  <div class="landing-header__bar">
+    <a href="#inicio" class="landing-header__logo" (click)="scrollToSection($event, 'inicio')">
+      <img src="gfx/logoEnergyWinders.png" alt="EWControl" />
+    </a>
+
+    <nav
+      id="landing-header-nav"
+      class="landing-header__nav"
+      [class.landing-header__nav--open]="mobileOpen()"
+      aria-label="Navegación de la página"
+    >
+      <a href="#que-es" class="landing-header__link" (click)="scrollToSection($event, 'que-es')"
+        >Qué es</a
+      >
+      <a
+        href="#ventajas"
+        class="landing-header__link"
+        (click)="scrollToSection($event, 'ventajas')"
+        >Ventajas</a
+      >
+      <a
+        href="#para-quien"
+        class="landing-header__link"
+        (click)="scrollToSection($event, 'para-quien')"
+        >Para quién es</a
+      >
+    </nav>
+
+    <a routerLink="/login" class="btn-primary landing-header__login">Iniciar sesión</a>
+
+    <button
+      type="button"
+      class="landing-header__toggle"
+      [attr.aria-expanded]="mobileOpen()"
+      aria-controls="landing-header-nav"
+      [attr.aria-label]="mobileOpen() ? 'Cerrar menú' : 'Abrir menú'"
+      (click)="toggleMobile()"
+    >
+      <app-icon name="menu" />
+    </button>
+  </div>
+</header>

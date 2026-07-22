@@ -36,6 +36,15 @@ describe('LoginPage', () => {
     expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument();
   });
 
+  it('muestra un enlace para volver a la landing pública', async () => {
+    await renderPage();
+
+    expect(screen.getByRole('link', { name: /volver a la página principal/i })).toHaveAttribute(
+      'href',
+      '/',
+    );
+  });
+
   it('no llama al backend si el formulario es inválido y muestra el error de campo', async () => {
     await renderPage();
 

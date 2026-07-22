@@ -1,7 +1,16 @@
 import { authGuard } from './core/guards/auth.guard';
+import { redirectIfAuthenticatedGuard } from './core/guards/redirect-if-authenticated.guard';
 import { routes } from './app.routes';
 
 describe('routes', () => {
+  it('monta la landing pública en la raíz exacta ("/"), con redirectIfAuthenticatedGuard', () => {
+    const landingRoute = routes.find((route) => route.path === '' && !route.children);
+
+    expect(landingRoute).toBeTruthy();
+    expect(landingRoute?.pathMatch).toBe('full');
+    expect(landingRoute?.canActivate).toEqual([redirectIfAuthenticatedGuard]);
+  });
+
   it('mantiene login/forgot-password/reset-password como rutas públicas top-level, fuera del shell', () => {
     const publicPaths = routes.map((route) => route.path);
 

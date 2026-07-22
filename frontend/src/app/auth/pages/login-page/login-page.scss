@@ -8,6 +8,8 @@
   justify-content: center;
   padding: var(--spacing-lg);
   background: linear-gradient(180deg, #1c1c1c4d 0%, #003b4a1a 100%), #fff;
+  flex-direction: column;
+  gap: 2rem;
 }
 
 .login-box {
@@ -25,4 +27,17 @@ form {
   display: inline-block;
   margin-top: var(--spacing-md);
   font-size: var(--font-size-sm);
+}
+
+.login-box__back {
+  display: inline-block;
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted-color);
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--primary-color);
+  }
 }
