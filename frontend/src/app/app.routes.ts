@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { AppShellComponent } from './core/layout/app-shell/app-shell.component';
 import { authGuard } from './core/guards/auth.guard';
+import { redirectIfAuthenticatedGuard } from './core/guards/redirect-if-authenticated.guard';
 import { BreadcrumbCrumb } from './shared/ui/breadcrumb/breadcrumb.model';
 
 /** docs/specs/12-navegacion-shell.md: el breadcrumb se muestra en toda la zona privada. */
@@ -8,6 +9,16 @@ const dashboardBreadcrumb: BreadcrumbCrumb[] = [{ label: 'Dashboard' }];
 const changePasswordBreadcrumb: BreadcrumbCrumb[] = [{ label: 'Cuenta' }];
 
 export const routes: Routes = [
+  {
+    // docs/specs/17-landing-page.md: landing pública de bienvenida. `pathMatch:
+    // 'full'` para que solo intercepte la URL raíz exacta; el resto de rutas
+    // (`/dashboard`, `/config/*`...) siguen cayendo en el shell guardado de abajo.
+    path: '',
+    pathMatch: 'full',
+    canActivate: [redirectIfAuthenticatedGuard],
+    loadComponent: () =>
+      import('./marketing/pages/landing-page/landing-page').then((m) => m.LandingPage),
+  },
   { path: 'login', loadChildren: () => import('./auth/auth.routes').then((m) => m.authRoutes) },
   {
     // docs/specs/10-gestion-companies-users.md, decisión de diseño 9: top-level

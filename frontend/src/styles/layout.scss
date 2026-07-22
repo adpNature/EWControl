@@ -3,6 +3,13 @@
 
 @use 'breakpoints' as *;
 
+.title-xxl {
+  font-size: var(--font-size-xxl);
+  font-weight: 700;
+  color: var(--text-color);
+  margin: 0;
+}
+
 .title-xl {
   font-size: var(--font-size-xl);
   font-weight: 700;

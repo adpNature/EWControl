@@ -1,0 +1,91 @@
+<app-landing-header />
+
+<main class="landing-page">
+  <section id="inicio" class="landing-page__hero" aria-labelledby="hero-title">
+    <h1 id="hero-title" class="landing-page__hero-title">
+      Supervisa tus máquinas desde cualquier lugar
+    </h1>
+    <p class="landing-page__hero-subtitle">
+      EWControl te muestra en tiempo real cómo va tu maquinaria, guarda el histórico y te avisa
+      en cuanto algo se sale de lo normal, sin instalar nada complicado.
+    </p>
+    <a routerLink="/login" class="btn-primary landing-page__hero-cta">Iniciar sesión</a>
+  </section>
+
+  <section id="que-es" class="landing-page__section" aria-labelledby="que-es-title">
+    <div class="landing-page__que-es">
+      <div class="landing-page__que-es-intro">
+        <p class="landing-page__eyebrow">Sin vueltas</p>
+        <h2 id="que-es-title" class="title-xxl">Qué es EWControl</h2>
+        <p class="text-body">
+          EWControl es la ventana que te faltaba para ver qué hacen tus máquinas sin liarte.
+          Nada de cuadros de mando imposibles ni instalaciones interminables: abres el móvil o
+          el ordenador y ya sabes cómo va todo, así de simple.
+        </p>
+      </div>
+
+      <blockquote class="landing-page__pull-quote">
+        No venimos a sustituir un centro de control industrial. Venimos a darte justo lo que
+        necesitas, sin más.
+      </blockquote>
+    </div>
+  </section>
+
+  <div class="landing-page__showcase">
+    <div class="landing-page__browser-frame">
+      <div class="landing-page__browser-bar">
+        <span class="landing-page__browser-dot landing-page__browser-dot--red"></span>
+        <span class="landing-page__browser-dot landing-page__browser-dot--yellow"></span>
+        <span class="landing-page__browser-dot landing-page__browser-dot--green"></span>
+        <span class="landing-page__browser-url">app.ewcontrol.com/dashboard</span>
+      </div>
+      <img
+        src="gfx/dashboard-screenshot.png"
+        alt="Panel de EWControl mostrando el estado en tiempo real de una máquina, su histórico de lecturas y la tabla de últimos valores"
+        class="landing-page__browser-screenshot"
+      />
+    </div>
+  </div>
+
+  <section id="ventajas" class="landing-page__section" aria-labelledby="ventajas-title">
+    <h2 id="ventajas-title" class="title-xl">Por qué elegir EWControl</h2>
+    <p class="landing-page__section-subtitle">
+      Nada de funciones de relleno: esto es justo lo que vas a usar cada día para no perder de
+      vista tus máquinas.
+    </p>
+    <div class="landing-page__cards">
+      @for (ventaja of ventajas; track ventaja.title) {
+        <article class="box landing-page__card">
+          <app-icon [name]="ventaja.icon" [size]="60" class="landing-page__card-icon" />
+          <h3 class="title-lg">{{ ventaja.title }}</h3>
+          <p class="text-body">{{ ventaja.description }}</p>
+        </article>
+      }
+    </div>
+  </section>
+
+  <section id="para-quien" class="landing-page__section" aria-labelledby="para-quien-title">
+    <h2 id="para-quien-title" class="title-xl">Para quién es</h2>
+    <p class="landing-page__section-subtitle">
+      Pensado para quien vive el día a día de la planta, no para un departamento de IT.
+    </p>
+
+    <div class="landing-page__audience">
+      @for (perfil of publico; track perfil.title) {
+        <div class="landing-page__audience-row">
+          <div class="landing-page__audience-text">
+            <h3 class="title-lg">{{ perfil.title }}</h3>
+            <p class="text-body">{{ perfil.description }}</p>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <footer class="landing-page__footer">
+    <img src="gfx/logoEnergyWinders.png" alt="EWControl" class="landing-page__footer-logo" />
+    <p class="text-muted">Una forma sencilla de tener tus máquinas bajo control.</p>
+    <a routerLink="/login" class="landing-page__footer-login">Iniciar sesión</a>
+    <p class="text-muted">© 2026 EWControl</p>
+  </footer>
+</main>

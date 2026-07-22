@@ -1,0 +1,261 @@
+@use 'breakpoints' as *;
+
+.landing-page {
+  display: flex;
+  flex-direction: column;
+}
+
+.landing-page__hero {
+  // Compensa la altura de la cabecera sticky (`LandingHeaderComponent`) para
+  // que el scroll-to no deje la sección tapada debajo de ella.
+  scroll-margin-top: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl) var(--spacing-lg);
+  min-height: 420px;
+  text-align: center;
+  color: #fff;
+
+  // Degradado oscuro por encima de la foto para que el texto en blanco
+  // mantenga contraste WCAG AA sin depender del contenido de la imagen
+  // (mismo recurso que ya usa login-page.scss para su propio fondo).
+  background:
+    linear-gradient(rgb(15 15 15 / 90%), rgb(15 15 15 / 65%)),
+    url('/gfx/sliderEnergyWiders.jpg') center / cover no-repeat;
+
+  @include respond(md) {
+    min-height: 600px;
+  }
+}
+
+.landing-page__hero-title {
+  margin: 0;
+  font-size: var(--font-size-xxl);
+  font-weight: 700;
+  color: #fff;
+  max-width: 40rem;
+
+  @include respond(md) {
+    font-size: var(--font-size-xxxl);
+  }
+}
+
+.landing-page__hero-subtitle {
+  margin: 0;
+  max-width: 36rem;
+  font-size: var(--font-size-xl);
+  color: rgb(255 255 255 / 85%);
+}
+
+.landing-page__section {
+  scroll-margin-top: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-xl) var(--spacing-lg);
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  align-items: center;
+}
+
+.landing-page__section-subtitle {
+  margin: 0;
+  max-width: 42rem;
+  font-size: var(--font-size-lg);
+  color: var(--text-muted-color);
+  text-align: center;
+}
+
+.landing-page__que-es {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+
+  @include respond(lg) {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--spacing-xl);
+  }
+}
+
+.landing-page__que-es-intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+
+  @include respond(lg) {
+    flex: 1.2;
+  }
+
+  .text-body {
+    font-size: var(--font-size-lg);
+  }
+}
+
+.landing-page__eyebrow {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary-color);
+}
+
+.landing-page__pull-quote {
+  margin: 0;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-left: 4px solid var(--primary-color);
+  background: var(--surface-color);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-lg);
+  font-style: italic;
+  color: var(--text-color);
+
+  @include respond(lg) {
+    flex: 1;
+  }
+}
+
+.landing-page__showcase {
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--spacing-lg) var(--spacing-xl);
+}
+
+.landing-page__browser-frame {
+  width: 100%;
+  max-width: 960px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: 0 20px 50px rgb(0 0 0 / 12%);
+}
+
+.landing-page__browser-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.landing-page__browser-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+
+  // Colores convencionales de los "semáforos" de una ventana de navegador:
+  // son un símbolo reconocible, no forman parte de la paleta de marca.
+  &--red {
+    background: #ff5f57;
+  }
+
+  &--yellow {
+    background: #febc2e;
+  }
+
+  &--green {
+    background: #28c840;
+  }
+}
+
+.landing-page__browser-url {
+  margin-left: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted-color);
+}
+
+.landing-page__browser-screenshot {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.landing-page__cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+.landing-page__card {
+  width: 100%;
+
+  @include respond(md) {
+    width: calc((100% - var(--spacing-md)) / 2);
+  }
+
+  @include respond(lg) {
+    width: calc((100% - var(--spacing-md) * 3) / 4);
+  }
+}
+
+.landing-page__card-icon {
+  width: 60px;
+  height: 60px;
+  align-self: center;
+  color: var(--primary-color);
+}
+
+.landing-page__card .text-body {
+  font-size: var(--font-size-md);
+}
+
+.landing-page__audience {
+  display: flex;
+  flex-direction: row;
+  gap: var(--spacing-lg);
+}
+
+.landing-page__audience-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-xl);
+  background: #c8421f24;
+  border-radius: var(--border-radius-lg);
+}
+
+.landing-page__audience-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+
+  .text-body {
+    font-size: var(--font-size-md);
+  }
+}
+
+.landing-page__footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xl) var(--spacing-lg);
+  border-top: 1px solid var(--border-color);
+  text-align: center;
+
+  .text-muted {
+    font-size: var(--font-size-md);
+  }
+}
+
+.landing-page__footer-logo {
+  height: 32px;
+}
+
+.landing-page__footer-login {
+  color: var(--primary-color);
+  font-weight: 500;
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: underline;
+  }
+}
