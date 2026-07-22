@@ -1,44 +1,46 @@
 <div class="box widget">
-  <table>
-    <thead>
-      <tr>
-        <th scope="col">Signal</th>
-        @if (columns.includes('value')) {
-          <th scope="col">Valor</th>
-        }
-        @if (columns.includes('quality')) {
-          <th scope="col">Calidad</th>
-        }
-        @if (columns.includes('timestamp')) {
-          <th scope="col">Fecha</th>
-        }
-      </tr>
-    </thead>
-    <tbody>
-      @for (row of rows(); track row.signal.id) {
+  <div class="table-scroll">
+    <table>
+      <thead>
         <tr>
-          <td>{{ row.signal.name }}</td>
+          <th scope="col">Signal</th>
           @if (columns.includes('value')) {
-            <td>
-              @if (row.value !== null) {
-                {{ formatValue(row.value) }} <span class="text-muted">{{ row.signal.unit }}</span>
-              } @else {
-                <span class="text-muted">Sin datos</span>
-              }
-            </td>
+            <th scope="col">Valor</th>
           }
           @if (columns.includes('quality')) {
-            <td>
-              @if (row.quality) {
-                <app-signal-quality-badge [quality]="row.quality" />
-              }
-            </td>
+            <th scope="col">Calidad</th>
           }
           @if (columns.includes('timestamp')) {
-            <td>{{ row.timestamp }}</td>
+            <th scope="col">Fecha</th>
           }
         </tr>
-      }
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.signal.id) {
+          <tr>
+            <td>{{ row.signal.name }}</td>
+            @if (columns.includes('value')) {
+              <td>
+                @if (row.value !== null) {
+                  {{ formatValue(row.value) }} <span class="text-muted">{{ row.signal.unit }}</span>
+                } @else {
+                  <span class="text-muted">Sin datos</span>
+                }
+              </td>
+            }
+            @if (columns.includes('quality')) {
+              <td>
+                @if (row.quality) {
+                  <app-signal-quality-badge [quality]="row.quality" />
+                }
+              </td>
+            }
+            @if (columns.includes('timestamp')) {
+              <td>{{ row.timestamp }}</td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 </div>

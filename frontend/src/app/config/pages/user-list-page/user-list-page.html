@@ -19,7 +19,7 @@
   />
 
   <ng-template #actions let-user>
-    <a [routerLink]="[user.id, 'edit']">Editar</a>
+    <button type="button" class="btn-edit" (click)="editUser(user)">Editar</button>
     @if (!user.isActive) {
       <button type="button" class="btn-primary" (click)="reactivate(user)">Reactivar</button>
     } @else if (isSelf(user)) {

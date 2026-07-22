@@ -71,6 +71,28 @@ describe('MachineDetailPage', () => {
     expect(screen.getByText('Temperatura')).toBeInTheDocument();
   });
 
+  it('click en "Editar" (Machine) navega a la edición de la Machine', async () => {
+    await renderPage();
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'Editar' })[0]);
+
+    expect(router.navigate).toHaveBeenCalledWith(['/config/machines', 'machine-1', 'edit']);
+  });
+
+  it('click en "Editar" (Signal) navega a la edición de la Signal', async () => {
+    await renderPage();
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'Editar' })[1]);
+
+    expect(router.navigate).toHaveBeenCalledWith([
+      '/config/machines',
+      'machine-1',
+      'signals',
+      'signal-1',
+      'edit',
+    ]);
+  });
+
   it('confirmar "Eliminar Machine" llama a remove() y navega al listado', async () => {
     await renderPage();
 

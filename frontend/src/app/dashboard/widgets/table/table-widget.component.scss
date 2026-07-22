@@ -1,9 +1,18 @@
+// El host es un custom element sin estilo propio: sin esto, es él (no el
+// div.box.widget interno) quien actúa de flex item en .dashboard-page__grid,
+// e ignora el ancho responsive de .widget (styles/layout.scss).
+:host {
+  display: contents;
+}
+
+// Un widget TABLE siempre ocupa la fila entera, en cualquier breakpoint:
+// pisa el ancho responsive de la clase global .widget (styles/layout.scss).
 .widget {
-  min-width: 260px;
+  width: 100%;
 }
 
 table {
-  width: 100%;
+  min-width: 100%;
   border-collapse: collapse;
 }
 

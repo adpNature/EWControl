@@ -38,7 +38,7 @@
           <button type="button" class="btn-secondary" (click)="submitCompare()">Reintentar</button>
         </div>
       } @else {
-        <app-multi-series-chart [series]="chartSeries()" />
+        <app-multi-series-chart [series]="chartSeries()" [range]="currentRange()" />
       }
     </div>
   } @else {

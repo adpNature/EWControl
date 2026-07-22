@@ -104,15 +104,16 @@ Los componentes consumen siempre la Custom Property (`var(--primary-color)`), nu
 | --------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | Color                 | `$primaryColor`, `$textColor`, `$backgroundColor`, `$surfaceColor`, `$borderColor`                         | `--primary-color`, `--text-color`, `--background-color`, `--surface-color`, `--border-color` |
 | Color de estado       | `$successColor/Background`, `$warningColor/Background`, `$dangerColor/Background`, `$infoColor/Background` | `--success-color/-background`, `--warning-...`, `--danger-...`, `--info-...`                 |
+| Color de edición      | `$editColor`, `$editColorHover`                                                                            | `--edit-color`, `--edit-color-hover`                                                         |
 | Tipografía            | `$fontFamilyBase`, `$fontSizeSm/Md/Lg/Xl`                                                                  | `--font-family-base`, `--font-size-sm/md/lg/xl`                                              |
 | Border-radius         | `$borderRadiusSm/Md/Lg`                                                                                    | `--border-radius-sm/md/lg`                                                                   |
 | Spacing (padding/gap) | `$spacingXs/Sm/Md/Lg/Xl`                                                                                   | `--spacing-xs/sm/md/lg/xl`                                                                   |
 
 ### Paleta de marca
 
-Colores de marca aportados por el usuario: primario `#FF6B35` (naranja) y texto `#1d1d1b`. A partir de ellos se propone la paleta de estado completa de la tabla anterior, elegida para diferenciarse claramente del naranja primario (evitando que "warning" se confunda con el color de marca) y para funcionar bien junto a él: verde `#2F9E44` (éxito), ámbar `#E8A400` (advertencia, desplazado hacia el amarillo para no solaparse con el naranja primario), rojo `#DC3545` (error, con más componente magenta que el naranja para distinguirse a simple vista) y azul `#2F80ED` (información, como contraste frío frente a una paleta de marca cálida).
+Colores de marca aportados por el usuario: primario `#c8421f` (naranja/rojizo) y texto `#1d1d1b`. A partir de ellos se propone la paleta de estado completa de la tabla anterior, elegida para diferenciarse claramente del primario (evitando que "warning" se confunda con el color de marca) y para funcionar bien junto a él: verde `#2F9E44` (éxito), ámbar `#E8A400` (advertencia, desplazado hacia el amarillo para no solaparse con el primario), rojo `#DC3545` (error, con más componente magenta que el primario para distinguirse a simple vista) y azul `#2F80ED` (información, como contraste frío frente a una paleta de marca cálida). Para la acción "Editar" (docs/specs/16-pulido-visual-frontend.md) se añade un quinto tono, azul más oscuro que el de información: `$editColor` (`#1565c0`).
 
-**Hallazgo de contraste**: `#FF6B35` con texto blanco encima da un contraste de ~2.8:1, por debajo del mínimo de 4.5:1 exigido por WCAG 2.1 AA (apartado 12.6) incluso para texto grande. Por eso, en cualquier superficie sólida en `$primaryColor` (botones primarios, badges), el texto se pinta con `$textColor` (`#1d1d1b`), que sobre ese naranja alcanza ~5.96:1 — cumple AA con margen. El blanco sobre `$primaryColor` no se usa para texto, solo para iconografía monocromo si su tamaño y contexto lo permiten.
+**Hallazgo de contraste**: `#c8421f` con texto blanco encima da un contraste de ~4.94:1, por encima del mínimo de 4.5:1 exigido por WCAG 2.1 AA (apartado 12.6) — por eso `.btn-primary` (`buttons.scss`) sí pinta su texto en blanco. El resto de superficies sólidas en `$primaryColor` que no han verificado su contraste individualmente (badges, navegación activa) siguen pintando el texto con `$textColor` (`#1d1d1b`) por defecto, que sobre ese color alcanza contraste de sobra. `$infoColor` (`#2F80ED`) con blanco encima solo da ~3.9:1 — no cumple AA — por eso el botón "Editar" no reutiliza ese color: usa `$editColor` (`#1565c0`), que con blanco llega a ~5.7:1.
 
 Para los estados (éxito/advertencia/error/info) se usa el patrón "fondo tintado + texto oscuro fijo": el texto de un mensaje de estado siempre usa `$textColor`, y el color semántico se reserva para el fondo tintado, el borde o el icono — así el contraste del texto nunca depende de qué estado se muestre.
 
@@ -126,19 +127,22 @@ Familia tipográfica: **Fira Sans**, cargada como _web font_ con los pesos Regul
 
 No toda pieza reutilizable necesita ser un Angular Component. La regla es según complejidad:
 
-| Pieza                         | Implementación                                                                                | Motivo                                                                                                                                                                                         |
-| ----------------------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Títulos (`h1`-`h4`)           | Clases CSS globales (`.title-xl`, `.title-lg`...) sobre etiquetas HTML nativas                | Sin lógica ni estado; un componente sería sobrecoste innecesario.                                                                                                                              |
-| Párrafos / texto              | Clases CSS globales (`.text-body`, `.text-muted`...)                                          | Igual que títulos.                                                                                                                                                                             |
-| Box / contenedor              | Clase CSS global (`.box`)                                                                     | Puramente visual (padding, border-radius, sombra); sin comportamiento.                                                                                                                         |
-| Label                         | Clase CSS global (`.form-label`) sobre `<label>` nativo                                       | Sin lógica propia.                                                                                                                                                                             |
-| Input / campo de formulario   | Angular Component (`InputComponent`, integrado con Reactive Forms via `ControlValueAccessor`) | Tiene estado (valor, validación, error) y comportamiento (eventos, accesibilidad de errores).                                                                                                  |
-| Formulario completo           | Angular Component (`FormFieldComponent`, orquestando Inputs/Labels)                           | Coordina validación y layout de varios campos.                                                                                                                                                 |
-| Tabla                         | Angular Component (`TableComponent`)                                                          | Tiene estado (orden, paginación) y lógica de renderizado por columnas.                                                                                                                         |
-| Notificación / Toast          | Angular Component (`ToastComponent`) + `ToastService`                                         | Tiene estado compartido entre toda la aplicación (cola de mensajes activos) y comportamiento temporal (auto-dismiss); ver detalle abajo.                                                       |
-| Diálogo de confirmación       | Angular Component (`ConfirmDialogComponent`)                                                  | Tiene estado (abierto/cerrado) y comportamiento (foco al abrir, cierre por Escape/backdrop) — imprescindible antes de una acción destructiva (docs/specs/06-gestion-machines-signals.md).      |
-| Sidebar / Shell de navegación | Angular Component (shell de layout de la zona privada)                                        | Tiene estado (colapsado/expandido persistido, sección activa) y comportamiento (drawer off-canvas en móvil con foco atrapado, cierre por Escape/backdrop) — docs/specs/12-navegacion-shell.md. |
-| Breadcrumb                    | Angular Component (`BreadcrumbComponent`)                                                     | Deriva el trail de navegación del `ActivatedRoute` anidado (lógica), no es solo presentación estática — docs/specs/12-navegacion-shell.md.                                                     |
+| Pieza                           | Implementación                                                                                                                           | Motivo                                                                                                                                                                                         |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Títulos (`h1`-`h4`)             | Clases CSS globales (`.title-xl`, `.title-lg`...) sobre etiquetas HTML nativas                                                           | Sin lógica ni estado; un componente sería sobrecoste innecesario.                                                                                                                              |
+| Párrafos / texto                | Clases CSS globales (`.text-body`, `.text-muted`...)                                                                                     | Igual que títulos.                                                                                                                                                                             |
+| Box / contenedor                | Clase CSS global (`.box`)                                                                                                                | Puramente visual (padding, border-radius, degradado); sin comportamiento.                                                                                                                      |
+| Botón (acción)                  | Clases CSS globales (`.btn-primary`, `.btn-secondary`, `.btn-danger`, `.btn-edit`, `styles/buttons.scss`) sobre `<button>`/`<a>` nativos | Sin estado propio más allá del nativo del elemento — docs/specs/16-pulido-visual-frontend.md.                                                                                                  |
+| Label                           | Clase CSS global (`.form-label`) sobre `<label>` nativo                                                                                  | Sin lógica propia.                                                                                                                                                                             |
+| Input / campo de formulario     | Angular Component (`InputComponent`, integrado con Reactive Forms via `ControlValueAccessor`)                                            | Tiene estado (valor, validación, error) y comportamiento (eventos, accesibilidad de errores).                                                                                                  |
+| Formulario completo             | Angular Component (`FormFieldComponent`, orquestando Inputs/Labels)                                                                      | Coordina validación y layout de varios campos.                                                                                                                                                 |
+| Tabla                           | Angular Component (`TableComponent`), envuelta en `.table-scroll` (clase CSS global, `overflow-x: auto`)                                 | Tiene estado (orden, paginación) y lógica de renderizado por columnas; el scroll horizontal es puramente visual, sin estado propio.                                                            |
+| Widget del Dashboard (tamaño)   | Clase CSS global (`.widget`, `styles/layout.scss`), ancho responsive por breakpoint                                                      | Puramente visual (tamaño uniforme entre widgets); sin comportamiento — docs/specs/16-pulido-visual-frontend.md.                                                                                |
+| Anuncio para lector de pantalla | Clase CSS global (`.visually-hidden`, `styles/layout.scss`) sobre una región `aria-live`                                                 | Puramente visual (oculta el texto sin quitarlo del árbol de accesibilidad); sin comportamiento propio — docs/specs/16-pulido-visual-frontend.md.                                               |
+| Notificación / Toast            | Angular Component (`ToastComponent`) + `ToastService`                                                                                    | Tiene estado compartido entre toda la aplicación (cola de mensajes activos) y comportamiento temporal (auto-dismiss); ver detalle abajo.                                                       |
+| Diálogo de confirmación         | Angular Component (`ConfirmDialogComponent`)                                                                                             | Tiene estado (abierto/cerrado) y comportamiento (foco al abrir, cierre por Escape/backdrop) — imprescindible antes de una acción destructiva (docs/specs/06-gestion-machines-signals.md).      |
+| Sidebar / Shell de navegación   | Angular Component (shell de layout de la zona privada)                                                                                   | Tiene estado (colapsado/expandido persistido, sección activa) y comportamiento (drawer off-canvas en móvil con foco atrapado, cierre por Escape/backdrop) — docs/specs/12-navegacion-shell.md. |
+| Breadcrumb                      | Angular Component (`BreadcrumbComponent`)                                                                                                | Deriva el trail de navegación del `ActivatedRoute` anidado (lógica), no es solo presentación estática — docs/specs/12-navegacion-shell.md.                                                     |
 
 Todas estas piezas —con o sin componente Angular— se maquetan siempre con **Flexbox** (`display: flex`), nunca con `float` ni posicionamiento absoluto para layout, salvo casos justificados (overlays, tooltips).
 
@@ -153,12 +157,13 @@ Todas estas piezas —con o sin componente Angular— se maquetan siempre con **
 ```scss
 // layout.scss
 .box {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
   padding: var(--spacing-lg);
   border-radius: var(--border-radius-md);
-  background: var(--background-color);
+  background: linear-gradient(175deg, #1d1d1b33 0%, #ffffff29 100%), #fff;
 }
 
 .table-flex {
@@ -202,6 +207,7 @@ Breakpoints estándar:
 | `md`   | 768px        | Tablet                        |
 | `lg`   | 1024px       | Portátil / escritorio pequeño |
 | `xl`   | 1280px       | Escritorio                    |
+| `xxl`  | 1400px       | Escritorio grande             |
 
 ```scss
 // breakpoints.scss
@@ -212,6 +218,7 @@ $breakpoints: (
   md: 768px,
   lg: 1024px,
   xl: 1280px,
+  xxl: 1400px,
 );
 
 @mixin respond($breakpoint) {

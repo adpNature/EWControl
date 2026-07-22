@@ -15,7 +15,7 @@
   />
 
   <ng-template #actions let-company>
-    <a [routerLink]="[company.id, 'edit']">Editar</a>
+    <button type="button" class="btn-edit" (click)="editCompany(company)">Editar</button>
     @if (company.isActive) {
       <button type="button" class="btn-danger" (click)="companyToDeactivate.set(company)">
         Dar de baja

@@ -4,7 +4,7 @@
       <h1 class="title-xl">{{ m.name }}</h1>
       @if (canConfigure()) {
         <div class="machine-detail-page__actions">
-          <a [routerLink]="['/config/machines', m.id, 'edit']" class="btn-secondary">Editar</a>
+          <button type="button" class="btn-edit" (click)="editMachine(m.id)">Editar</button>
           <button type="button" class="btn-danger" (click)="deleteMachineDialogOpen.set(true)">
             Eliminar Machine
           </button>
@@ -31,7 +31,7 @@
   />
 
   <ng-template #signalActions let-signal>
-    <a [routerLink]="['/config/machines', machineId, 'signals', signal.id, 'edit']">Editar</a>
+    <button type="button" class="btn-edit" (click)="editSignal(signal.id)">Editar</button>
     <button type="button" class="btn-danger" (click)="signalToDelete.set(signal)">Eliminar</button>
   </ng-template>
 </div>

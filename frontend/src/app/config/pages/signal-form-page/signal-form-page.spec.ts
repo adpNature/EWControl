@@ -170,6 +170,47 @@ describe('SignalFormPage', () => {
     expect(alarmDefinitionsState.load).toHaveBeenCalledWith('signal-1');
   });
 
+  it('click en "Editar" de una regla de alarma navega a su edición', async () => {
+    signalsApi.get.mockReturnValue(
+      of({
+        id: 'signal-1',
+        machineId: 'machine-1',
+        name: 'Temperatura',
+        signalType: 'DIRECT',
+        signalSource: { variableName: 'temperature' },
+        unit: '°C',
+        historyEnabled: false,
+      }),
+    );
+    alarmDefinitionsState.definitions.mockReturnValue([
+      {
+        id: 'def-1',
+        signalId: 'signal-1',
+        operator: '>',
+        threshold: 80,
+        priority: 'HIGH',
+        notifyByEmail: true,
+        showOnDashboard: true,
+        isActive: true,
+      },
+    ]);
+
+    await renderPage('signal-1');
+    await screen.findByText('Reglas de alarma');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Editar' }));
+
+    expect(router.navigate).toHaveBeenCalledWith([
+      '/config/machines',
+      'machine-1',
+      'signals',
+      'signal-1',
+      'alarm-definitions',
+      'def-1',
+      'edit',
+    ]);
+  });
+
   it('un 422 FORMULA_REFERENCES_UNKNOWN_VARIABLE asocia el error al campo variables sin perder el formulario', async () => {
     signalsState.create.mockReturnValue(
       throwError(() => ({

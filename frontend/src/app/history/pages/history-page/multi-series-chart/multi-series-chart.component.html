@@ -2,25 +2,93 @@
   @if (series.length === 0) {
     <p class="text-muted">Selecciona al menos una Signal para comparar.</p>
   } @else {
-    <svg
-      class="multi-series-chart__svg"
-      [attr.viewBox]="viewBox"
-      preserveAspectRatio="none"
-      role="img"
-      aria-label="Comparativa de históricos"
-    >
-      @for (item of renderedSeries; track item.signalId) {
-        @if (item.hasEnoughPointsToPlot) {
-          <path
-            [attr.d]="item.pathD"
-            fill="none"
-            [attr.stroke]="item.color"
-            stroke-width="1.5"
-            vector-effect="non-scaling-stroke"
-          />
-        }
+    <div class="multi-series-chart__chart">
+      <div class="multi-series-chart__row">
+        <div class="multi-series-chart__y-axis">
+          @for (tick of yAxisTicks; track tick) {
+            <span>{{ tick }}</span>
+          }
+        </div>
+
+        <div class="multi-series-chart__plot">
+          <svg
+            class="multi-series-chart__svg"
+            [attr.viewBox]="viewBox"
+            preserveAspectRatio="none"
+            role="img"
+            aria-label="Comparativa de históricos. Con foco, usa las flechas izquierda/derecha para explorar los valores."
+            tabindex="0"
+            (mousemove)="onSvgMouseMove($event)"
+            (mouseleave)="onSvgMouseLeave()"
+            (focus)="onSvgFocus()"
+            (blur)="onSvgBlur()"
+            (keydown)="onSvgKeyDown($event)"
+          >
+            @for (tick of yAxisTicks; track $index) {
+              <line
+                x1="0"
+                [attr.x2]="viewBoxWidth"
+                [attr.y1]="($index / (yAxisTicks.length - 1)) * viewBoxHeight"
+                [attr.y2]="($index / (yAxisTicks.length - 1)) * viewBoxHeight"
+                stroke="var(--border-color)"
+                stroke-width="0.5"
+                vector-effect="non-scaling-stroke"
+              />
+            }
+            @for (item of renderedSeries; track item.signalId) {
+              @if (item.hasEnoughPointsToPlot) {
+                <path
+                  [attr.d]="item.pathD"
+                  fill="none"
+                  [attr.stroke]="item.color"
+                  stroke-width="1.5"
+                  vector-effect="non-scaling-stroke"
+                />
+              }
+            }
+            @if (hoveredFraction(); as fraction) {
+              <line
+                [attr.x1]="fraction * viewBoxWidth"
+                [attr.x2]="fraction * viewBoxWidth"
+                y1="0"
+                [attr.y2]="viewBoxHeight"
+                stroke="var(--border-color)"
+                stroke-width="0.5"
+                vector-effect="non-scaling-stroke"
+              />
+            }
+          </svg>
+
+          @if (hoveredSeries.length > 0) {
+            <div
+              class="multi-series-chart__tooltip"
+              [class.multi-series-chart__tooltip--flip]="hoveredFraction()! > 0.5"
+              [style.left.%]="hoveredFraction()! * 100"
+            >
+              @for (item of hoveredSeries; track item.signalId) {
+                <p class="multi-series-chart__tooltip-row">
+                  <span class="multi-series-chart__swatch" [style.background]="item.color"></span>
+                  <span>{{ item.label }}: {{ formattedValue(item.value) }} {{ item.unit }}</span>
+                </p>
+              }
+            </div>
+          }
+
+          <div class="visually-hidden" aria-live="polite">{{ hoveredSummary }}</div>
+        </div>
+      </div>
+
+      @if (xAxisTicks.length > 0) {
+        <div class="multi-series-chart__row">
+          <div class="multi-series-chart__y-axis-spacer"></div>
+          <div class="multi-series-chart__x-axis">
+            @for (tick of xAxisTicks; track $index) {
+              <span>{{ tick }}</span>
+            }
+          </div>
+        </div>
       }
-    </svg>
+    </div>
 
     <ul class="multi-series-chart__legend">
       @for (item of renderedSeries; track item.signalId) {

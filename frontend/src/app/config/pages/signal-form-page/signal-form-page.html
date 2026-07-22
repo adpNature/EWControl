@@ -56,19 +56,9 @@
     />
 
     <ng-template #alarmDefinitionActions let-definition>
-      <a
-        [routerLink]="[
-          '/config/machines',
-          machineId,
-          'signals',
-          signalId,
-          'alarm-definitions',
-          definition.id,
-          'edit',
-        ]"
-      >
+      <button type="button" class="btn-edit" (click)="editAlarmDefinition(signalId, definition.id)">
         Editar
-      </a>
+      </button>
       @if (definition.isActive) {
         <button type="button" class="btn-danger" (click)="alarmDefinitionToDeactivate.set(definition)">
           Desactivar

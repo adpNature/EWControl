@@ -20,7 +20,7 @@ Three tiers, per `docs/00-metodologia-y-calidad.md` ("Pirámide de Testing") —
 
 **No feature is coded without a spec first.** This is enforced process, not a suggestion:
 
-1. Write/update the spec in `docs/specs/NN-<feature-name>.md` using the template in `docs/specs/README.md`, `NN` correlative to the next unused number (currently up to `05`) — never reuse or renumber. New features are **vertical**: one spec covers backend and frontend together.
+1. Write/update the spec in `docs/specs/NN-<feature-name>.md` using the template in `docs/specs/README.md`, `NN` correlative to the next unused number (currently up to `16`) — never reuse or renumber. New features are **vertical**: one spec covers backend and frontend together.
 2. Get the spec reviewed before touching code. The spec is the source of truth — if it's wrong or incomplete during implementation, fix the spec first, then the code.
 3. Write tests from the spec's acceptance criteria (red).
 4. Implement the minimum code to make them pass (green), then refactor.

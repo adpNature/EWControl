@@ -14,6 +14,10 @@ const iconCache = new Map<string, Promise<string>>();
   selector: 'app-icon',
   standalone: true,
   template: '',
+  // `:host` es inline por defecto (elemento custom sin UA stylesheet): el SVG
+  // interno queda en flujo inline y arrastra el hueco de descendente bajo la
+  // línea base, dejando el host en 24x28 en vez de los 24x24 reales del SVG.
+  styles: ':host { display: inline-flex; }',
 })
 export class IconComponent implements OnChanges {
   /** Nombre del fichero sin extensión, ej. "alert-circle" para public/icons/alert-circle.svg. */

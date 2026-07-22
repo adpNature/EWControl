@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthStateService } from '../../../auth/use-cases/auth.state';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
 import { TableColumn, TableComponent } from '../../../shared/ui/table/table.component';
@@ -26,6 +26,8 @@ const COLUMNS: TableColumn<Company>[] = [
   styleUrl: './company-list-page.scss',
 })
 export class CompanyListPage implements OnInit {
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly authState = inject(AuthStateService);
   private readonly toastService = inject(ToastService);
   protected readonly companiesState = inject(CompaniesState);
@@ -41,6 +43,10 @@ export class CompanyListPage implements OnInit {
 
   canManageCompanies(): boolean {
     return canManageCompanies(this.authState.currentUser()?.role);
+  }
+
+  editCompany(company: Company): void {
+    this.router.navigate([company.id, 'edit'], { relativeTo: this.route });
   }
 
   confirmDeactivate(): void {

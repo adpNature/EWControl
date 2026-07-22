@@ -21,6 +21,8 @@ const DEFAULT_MAX_POINTS = 50;
 const VIEWBOX_WIDTH = 100;
 const VIEWBOX_HEIGHT = 40;
 const DEFAULT_RANGE_HOURS = 1;
+/** Paso de ←/→ como fracción del ancho (WCAG 2.1 AA 2.1.1/1.4.13: equivalente por teclado del hover). */
+const KEYBOARD_STEP = 0.02;
 
 function defaultRange(): HistoryRange {
   const to = new Date();
@@ -50,6 +52,11 @@ export class ChartWidgetComponent implements OnInit, OnDestroy {
 
   readonly points = signal<Point[]>([]);
   readonly latestQuality = signal<SignalQuality | null>(null);
+
+  /** Posición del cursor sobre el SVG, como fracción [0, 1] de su ancho; `null` si no hay hover. */
+  readonly hoveredFraction = signal<number | null>(null);
+  readonly viewBoxWidth = VIEWBOX_WIDTH;
+  readonly viewBoxHeight = VIEWBOX_HEIGHT;
 
   get signalRef() {
     return this.widget.signals[0];
@@ -140,6 +147,74 @@ export class ChartWidgetComponent implements OnInit, OnDestroy {
   get formattedLatestValue(): string {
     const value = this.latestValue;
     return value === undefined ? '' : formatSignalValue(value);
+  }
+
+  /** Punto bajo el cursor (posición relativa, igual criterio que `multi-series-chart`). */
+  get hoveredPoint(): Point | null {
+    const fraction = this.hoveredFraction();
+    const points = this.points();
+    if (fraction === null || points.length === 0) {
+      return null;
+    }
+    const index = Math.round(fraction * (points.length - 1));
+    return points[index];
+  }
+
+  get formattedHoveredValue(): string {
+    const point = this.hoveredPoint;
+    return point === null ? '' : formatSignalValue(point.v);
+  }
+
+  /** Anunciado por una región `aria-live` oculta: mismo contenido que el tooltip visual. */
+  get hoveredSummary(): string {
+    if (this.hoveredPoint === null) {
+      return '';
+    }
+    return `${this.formattedHoveredValue} ${this.signalRef?.unit ?? ''}`;
+  }
+
+  onSvgMouseMove(event: MouseEvent): void {
+    const rect = (event.currentTarget as SVGSVGElement).getBoundingClientRect();
+    const fraction = (event.clientX - rect.left) / rect.width;
+    this.hoveredFraction.set(Math.min(1, Math.max(0, fraction)));
+  }
+
+  onSvgMouseLeave(): void {
+    this.hoveredFraction.set(null);
+  }
+
+  /** Al entrar por teclado (Tab), revela el tooltip igual que el hover — sin esperar a una tecla más. */
+  onSvgFocus(): void {
+    this.hoveredFraction.update((current) => current ?? 0);
+  }
+
+  onSvgBlur(): void {
+    this.hoveredFraction.set(null);
+  }
+
+  /** Equivalente por teclado del hover con el ratón (WCAG 2.1 AA 2.1.1 Keyboard / 1.4.13). */
+  onSvgKeyDown(event: KeyboardEvent): void {
+    const current = this.hoveredFraction() ?? 0;
+    switch (event.key) {
+      case 'ArrowRight':
+        this.hoveredFraction.set(Math.min(1, current + KEYBOARD_STEP));
+        break;
+      case 'ArrowLeft':
+        this.hoveredFraction.set(Math.max(0, current - KEYBOARD_STEP));
+        break;
+      case 'Home':
+        this.hoveredFraction.set(0);
+        break;
+      case 'End':
+        this.hoveredFraction.set(1);
+        break;
+      case 'Escape':
+        this.hoveredFraction.set(null);
+        return;
+      default:
+        return;
+    }
+    event.preventDefault();
   }
 
   private pushPoint(t: number, v: number): void {

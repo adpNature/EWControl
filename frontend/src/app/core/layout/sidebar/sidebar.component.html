@@ -19,7 +19,9 @@
   aria-label="Navegación principal"
 >
   <div class="sidebar__top">
-    <a routerLink="/dashboard" class="sidebar__logo">EWControl</a>
+    <a routerLink="/dashboard" class="sidebar__logo">
+      <img src="gfx/logoEnergyWinders.png" alt="EWControl" />
+    </a>
 
     <button
       type="button"
@@ -134,7 +136,7 @@
 
   <div class="sidebar__footer">
     <p class="text-body sidebar__email">{{ currentUser()?.email }}</p>
-    <button type="button" class="btn-secondary sidebar__logout" (click)="logout()">
+    <button type="button" class="btn-primary sidebar__logout" (click)="logout()">
       <app-icon name="logout" />
       <span>Cerrar sesión</span>
     </button>

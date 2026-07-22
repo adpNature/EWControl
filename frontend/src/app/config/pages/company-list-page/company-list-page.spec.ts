@@ -1,4 +1,5 @@
-import { provideRouter } from '@angular/router';
+import { TestBed } from '@angular/core/testing';
+import { Router, provideRouter } from '@angular/router';
 import { render, screen, within } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
 import { of } from 'rxjs';
@@ -56,6 +57,18 @@ describe('CompanyListPage', () => {
     await renderPage('AdminCliente');
 
     expect(screen.queryByRole('link', { name: 'Nueva Company' })).not.toBeInTheDocument();
+  });
+
+  it('click en "Editar" navega a la edición de la Company (ruta relativa)', async () => {
+    await renderPage('SuperAdmin');
+    const router = TestBed.inject(Router);
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'Editar' })[0]);
+
+    expect(navigateSpy).toHaveBeenCalledWith(['company-1', 'edit'], {
+      relativeTo: expect.anything(),
+    });
   });
 
   it('da de baja una Company tras confirmar el diálogo', async () => {
