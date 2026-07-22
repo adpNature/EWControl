@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/angular';
+import { fireEvent, render, screen } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
 import { Subject, of, throwError } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -27,6 +27,21 @@ function createSignalsApi(historyPoints: { timestamp: string; value: number }[] 
       .fn()
       .mockReturnValue(of({ signalId: 'signal-1', resolution: 'raw', points: historyPoints })),
   };
+}
+
+/** jsdom no calcula layout real: fijamos el rect del SVG para que la fracción hover sea determinista. */
+function mockSvgRect(svg: Element, width = 100): void {
+  vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+    left: 0,
+    width,
+    top: 0,
+    height: 80,
+    right: width,
+    bottom: 80,
+    x: 0,
+    y: 0,
+    toJSON: () => ({}),
+  } as DOMRect);
 }
 
 describe('ChartWidgetComponent', () => {
@@ -166,5 +181,136 @@ describe('ChartWidgetComponent', () => {
       { t: new Date('2026-07-12T10:00:02Z').getTime(), v: 30 },
       { t: new Date('2026-07-12T10:00:03Z').getTime(), v: 40 },
     ]);
+  });
+
+  describe('tooltip al pasar el ratón', () => {
+    async function renderWithHistory() {
+      const signalsApi = createSignalsApi([
+        { timestamp: '2026-07-12T11:30:00Z', value: 22.5 },
+        { timestamp: '2026-07-12T11:45:00Z', value: 24.8 },
+      ]);
+      const realtimeSocket = { signalUpdates$: new Subject<SignalUpdatedEvent>() };
+
+      return render(ChartWidgetComponent, {
+        inputs: { widget: WIDGET },
+        providers: [
+          { provide: SignalsApiService, useValue: signalsApi },
+          { provide: RealtimeSocketService, useValue: realtimeSocket },
+        ],
+      });
+    }
+
+    it('no muestra tooltip sin hover', async () => {
+      const { container } = await renderWithHistory();
+
+      expect(container.querySelector('.chart-plot__tooltip')).not.toBeInTheDocument();
+    });
+
+    it('al pasar el ratón cerca del inicio, muestra el valor de ese punto', async () => {
+      const { container } = await renderWithHistory();
+      const svg = screen.getByRole('img', { name: /Temperatura/ });
+      mockSvgRect(svg);
+
+      fireEvent.mouseMove(svg, { clientX: 0 });
+
+      const tooltip = container.querySelector('.chart-plot__tooltip');
+      expect(tooltip).toHaveTextContent('22,50 °C');
+      expect(tooltip).not.toHaveClass('chart-plot__tooltip--flip');
+    });
+
+    it('al pasar el ratón cerca del final, muestra el último valor y abre el tooltip hacia la izquierda', async () => {
+      const { container } = await renderWithHistory();
+      const svg = screen.getByRole('img', { name: /Temperatura/ });
+      mockSvgRect(svg);
+
+      fireEvent.mouseMove(svg, { clientX: 99 });
+
+      const tooltip = container.querySelector('.chart-plot__tooltip');
+      expect(tooltip).toHaveTextContent('24,80 °C');
+      expect(tooltip).toHaveClass('chart-plot__tooltip--flip');
+    });
+
+    it('al salir el ratón del gráfico, oculta el tooltip', async () => {
+      const { container } = await renderWithHistory();
+      const svg = screen.getByRole('img', { name: /Temperatura/ });
+      mockSvgRect(svg);
+
+      fireEvent.mouseMove(svg, { clientX: 0 });
+      expect(container.querySelector('.chart-plot__tooltip')).toBeInTheDocument();
+
+      fireEvent.mouseLeave(svg);
+      expect(container.querySelector('.chart-plot__tooltip')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('equivalente por teclado del tooltip (WCAG 2.1 AA 2.1.1 / 1.4.13)', () => {
+    async function renderWithHistory() {
+      const signalsApi = createSignalsApi([
+        { timestamp: '2026-07-12T11:30:00Z', value: 22.5 },
+        { timestamp: '2026-07-12T11:45:00Z', value: 24.8 },
+      ]);
+      const realtimeSocket = { signalUpdates$: new Subject<SignalUpdatedEvent>() };
+
+      return render(ChartWidgetComponent, {
+        inputs: { widget: WIDGET },
+        providers: [
+          { provide: SignalsApiService, useValue: signalsApi },
+          { provide: RealtimeSocketService, useValue: realtimeSocket },
+        ],
+      });
+    }
+
+    it('al enfocar el gráfico (Tab), muestra el tooltip en la primera posición', async () => {
+      const { container } = await renderWithHistory();
+      const svg = screen.getByRole('img', { name: /Temperatura/ });
+
+      fireEvent.focus(svg);
+
+      expect(container.querySelector('.chart-plot__tooltip')).toHaveTextContent('22,50 °C');
+    });
+
+    it('la flecha derecha avanza la posición', async () => {
+      const { fixture } = await renderWithHistory();
+      const svg = screen.getByRole('img', { name: /Temperatura/ });
+      fireEvent.focus(svg);
+      expect(fixture.componentInstance.hoveredFraction()).toBe(0);
+
+      fireEvent.keyDown(svg, { key: 'ArrowRight' });
+
+      expect(fixture.componentInstance.hoveredFraction()).toBeCloseTo(0.02);
+    });
+
+    it('End salta al último punto y la región aria-live anuncia el valor', async () => {
+      const { container } = await renderWithHistory();
+      const svg = screen.getByRole('img', { name: /Temperatura/ });
+      fireEvent.focus(svg);
+
+      fireEvent.keyDown(svg, { key: 'End' });
+
+      expect(container.querySelector('.chart-plot__tooltip')).toHaveTextContent('24,80 °C');
+      expect(container.querySelector('[aria-live="polite"]')).toHaveTextContent('24,80 °C');
+    });
+
+    it('Escape oculta el tooltip sin perder el foco', async () => {
+      const { container } = await renderWithHistory();
+      const svg = screen.getByRole('img', { name: /Temperatura/ });
+      fireEvent.focus(svg);
+      expect(container.querySelector('.chart-plot__tooltip')).toBeInTheDocument();
+
+      fireEvent.keyDown(svg, { key: 'Escape' });
+
+      expect(container.querySelector('.chart-plot__tooltip')).not.toBeInTheDocument();
+    });
+
+    it('al perder el foco (blur), oculta el tooltip', async () => {
+      const { container } = await renderWithHistory();
+      const svg = screen.getByRole('img', { name: /Temperatura/ });
+      fireEvent.focus(svg);
+      expect(container.querySelector('.chart-plot__tooltip')).toBeInTheDocument();
+
+      fireEvent.blur(svg);
+
+      expect(container.querySelector('.chart-plot__tooltip')).not.toBeInTheDocument();
+    });
   });
 });

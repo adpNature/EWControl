@@ -1,40 +1,42 @@
-<table class="table">
-  <thead>
-    <tr>
-      @for (column of columns; track column.key) {
-        <th scope="col" [attr.aria-sort]="column.sortable ? ariaSortFor(column.key) : null">
-          @if (column.sortable) {
-            <button type="button" class="table__sort-button" (click)="onSort(column.key)">
-              {{ column.header }}
-            </button>
-          } @else {
-            {{ column.header }}
-          }
-        </th>
-      }
-      @if (actionsTemplate) {
-        <th scope="col">Acciones</th>
-      }
-    </tr>
-  </thead>
-  <tbody>
-    @if (rows.length === 0) {
+<div class="table-scroll">
+  <table class="table">
+    <thead>
       <tr>
-        <td [attr.colspan]="totalColumns">{{ emptyMessage }}</td>
+        @for (column of columns; track column.key) {
+          <th scope="col" [attr.aria-sort]="column.sortable ? ariaSortFor(column.key) : null">
+            @if (column.sortable) {
+              <button type="button" class="table__sort-button" (click)="onSort(column.key)">
+                {{ column.header }}
+              </button>
+            } @else {
+              {{ column.header }}
+            }
+          </th>
+        }
+        @if (actionsTemplate) {
+          <th scope="col" class="table__actions-header">Acciones</th>
+        }
       </tr>
-    } @else {
-      @for (row of rows; track rowKey(row)) {
+    </thead>
+    <tbody>
+      @if (rows.length === 0) {
         <tr>
-          @for (column of columns; track column.key) {
-            <td>{{ cellValue(column, row) }}</td>
-          }
-          @if (actionsTemplate) {
-            <td>
-              <ng-container *ngTemplateOutlet="actionsTemplate; context: { $implicit: row }" />
-            </td>
-          }
+          <td [attr.colspan]="totalColumns">{{ emptyMessage }}</td>
         </tr>
+      } @else {
+        @for (row of rows; track rowKey(row)) {
+          <tr>
+            @for (column of columns; track column.key) {
+              <td>{{ cellValue(column, row) }}</td>
+            }
+            @if (actionsTemplate) {
+              <td class="table__actions">
+                <ng-container *ngTemplateOutlet="actionsTemplate; context: { $implicit: row }" />
+              </td>
+            }
+          </tr>
+        }
       }
-    }
-  </tbody>
-</table>
+    </tbody>
+  </table>
+</div>

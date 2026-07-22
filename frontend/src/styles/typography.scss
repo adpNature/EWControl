@@ -6,6 +6,8 @@ $fontSizeSm: 0.875rem;
 $fontSizeMd: 1rem;
 $fontSizeLg: 1.25rem;
 $fontSizeXl: 1.75rem;
+$fontSizeXXl: 2.5rem;
+$fontSizeXXXl: 3rem;
 
 :root {
   --font-family-base: #{$fontFamilyBase};
@@ -13,4 +15,6 @@ $fontSizeXl: 1.75rem;
   --font-size-md: #{$fontSizeMd};
   --font-size-lg: #{$fontSizeLg};
   --font-size-xl: #{$fontSizeXl};
+  --font-size-xxl: #{$fontSizeXXl};
+  --font-size-xxxl: #{$fontSizeXXXl};
 }

@@ -2,9 +2,46 @@
   <p class="text-body widget__label">{{ signalRef?.name }}</p>
   <app-range-selector (rangeChange)="onRangeChange($event)" />
   @if (points().length > 0) {
-    <svg class="chart" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" [attr.aria-label]="config.yAxisLabel ?? signalRef?.name">
-      <path [attr.d]="pathD" fill="none" stroke="var(--primary-color)" stroke-width="1.5" vector-effect="non-scaling-stroke" />
-    </svg>
+    <div class="chart-plot">
+      <svg
+        class="chart"
+        viewBox="0 0 100 40"
+        preserveAspectRatio="none"
+        role="img"
+        [attr.aria-label]="(config.yAxisLabel ?? signalRef?.name) + '. Con foco, usa las flechas izquierda/derecha para explorar los valores.'"
+        tabindex="0"
+        (mousemove)="onSvgMouseMove($event)"
+        (mouseleave)="onSvgMouseLeave()"
+        (focus)="onSvgFocus()"
+        (blur)="onSvgBlur()"
+        (keydown)="onSvgKeyDown($event)"
+      >
+        <path [attr.d]="pathD" fill="none" stroke="var(--primary-color)" stroke-width="1.5" vector-effect="non-scaling-stroke" />
+        @if (hoveredFraction(); as fraction) {
+          <line
+            [attr.x1]="fraction * viewBoxWidth"
+            [attr.x2]="fraction * viewBoxWidth"
+            y1="0"
+            [attr.y2]="viewBoxHeight"
+            stroke="var(--border-color)"
+            stroke-width="0.5"
+            vector-effect="non-scaling-stroke"
+          />
+        }
+      </svg>
+
+      @if (hoveredPoint; as point) {
+        <div
+          class="chart-plot__tooltip"
+          [class.chart-plot__tooltip--flip]="hoveredFraction()! > 0.5"
+          [style.left.%]="hoveredFraction()! * 100"
+        >
+          {{ formattedHoveredValue }} <span class="text-muted">{{ signalRef?.unit }}</span>
+        </div>
+      }
+
+      <div class="visually-hidden" aria-live="polite">{{ hoveredSummary }}</div>
+    </div>
     <p class="widget__value">{{ formattedLatestValue }} <span class="text-muted">{{ signalRef?.unit }}</span></p>
     @if (latestQuality(); as quality) {
       <app-signal-quality-badge [quality]="quality" />

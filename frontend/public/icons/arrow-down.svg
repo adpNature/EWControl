@@ -1,0 +1,9 @@
+<!-- arrow-left.svg rotado -90º (styles/form.scss, flecha del <select> nativo). No
+     viene de app-icon (fetch + currentColor), así que el stroke va fijo en
+     $textMutedColor en vez de currentColor. -->
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g transform="rotate(-90 12 12)">
+<path d="M11.19 7.94043L8.56999 10.5604C7.79999 11.3304 7.79999 12.5904 8.56999 13.3604L15.09 19.8804" stroke="#6b6b69" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M15.09 4.04004L14.05 5.08004" stroke="#6b6b69" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</svg>

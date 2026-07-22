@@ -1,13 +1,98 @@
+// Ancho de la columna del eje Y — compartido por el propio eje y por el
+// espaciador que alinea el eje X (fila aparte) bajo el plot, no bajo esa columna.
+$yAxisWidth: 2.5rem;
+
 .multi-series-chart {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
 
+  &__chart {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  &__row {
+    display: flex;
+    gap: var(--spacing-sm);
+  }
+
+  // Etiquetas relativas (spec: cada serie normalizada a su propio min/max, sin
+  // magnitud absoluta compartida — un eje con valores reales no tendría sentido).
+  &__y-axis {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex-shrink: 0;
+    width: $yAxisWidth;
+    height: 400px;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted-color);
+    text-align: right;
+  }
+
+  &__y-axis-spacer {
+    flex-shrink: 0;
+    width: $yAxisWidth;
+  }
+
+  &__x-axis {
+    display: flex;
+    justify-content: space-between;
+    flex: 1;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted-color);
+  }
+
+  &__plot {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+  }
+
   &__svg {
+    display: block;
     width: 100%;
-    height: 200px;
+    height: 400px;
     background: var(--background-color);
     border-radius: var(--border-radius-md);
+    cursor: crosshair;
+
+    &:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+  }
+
+  // Por defecto se abre hacia la derecha del cursor (borde izquierdo pegado a
+  // él); pasado el 50% del ancho (--flip) se abre hacia la izquierda en vez
+  // de desbordar el borde derecho y provocar scroll lateral.
+  &__tooltip {
+    position: absolute;
+    top: var(--spacing-sm);
+    transform: translateX(var(--spacing-sm));
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    background: var(--background-color);
+    border: 1px solid var(--border-color);
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+    pointer-events: none;
+
+    &--flip {
+      transform: translateX(calc(-100% - var(--spacing-sm)));
+    }
+  }
+
+  &__tooltip-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    margin: 0;
   }
 
   &__legend {

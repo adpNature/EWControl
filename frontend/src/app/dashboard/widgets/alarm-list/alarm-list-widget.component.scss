@@ -1,5 +1,8 @@
-.widget {
-  min-width: 200px;
+// El host es un custom element sin estilo propio: sin esto, es él (no el
+// div.box.widget interno) quien actúa de flex item en .dashboard-page__grid,
+// e ignora el ancho responsive de .widget (styles/layout.scss).
+:host {
+  display: contents;
 }
 
 .alarm-list-widget__list {

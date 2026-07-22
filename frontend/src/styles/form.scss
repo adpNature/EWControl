@@ -32,6 +32,18 @@
   }
 }
 
+// El navegador ancla la flecha nativa del <select> a una distancia fija del
+// borde, ignorando el padding-right — desactivamos ese appearance y dibujamos
+// la propia public/icons/arrow-down.svg (arrow-left.svg, la misma que usa
+// app-icon, rotada -90º), separada del borde con background-position.
+select.form-input {
+  appearance: none;
+  padding-right: var(--spacing-xl);
+  background-image: url('/icons/arrow-down.svg');
+  background-repeat: no-repeat;
+  background-position: right var(--spacing-sm) center;
+}
+
 .form-error {
   font-size: var(--font-size-sm);
   color: var(--danger-color);

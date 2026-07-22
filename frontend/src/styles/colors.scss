@@ -2,8 +2,8 @@
 // Fuente de verdad en SCSS ($variables camelCase); expuestas como Custom Properties
 // en :root para permitir cambio de tema en runtime (ej. modo oscuro futuro).
 
-$primaryColor: #ff6b35;
-$primaryColorHover: #e85a28;
+$primaryColor: #c8421f;
+$primaryColorHover: #be3614;
 $textColor: #1d1d1b;
 $textMutedColor: #6b6b69;
 $backgroundColor: #fff;
@@ -17,6 +17,12 @@ $dangerColor: #dc3545;
 $dangerBackground: #fbe9ea;
 $infoColor: #2f80ed;
 $infoBackground: #eaf2fe;
+
+// Azul más oscuro que $infoColor (reservado a estados/badges): con blanco encima
+// $infoColor solo da ~3.9:1, por debajo del 4.5:1 de WCAG AA (mismo criterio que
+// el hallazgo de contraste de 12.3). Este tono sí llega a ~5.7:1 con texto blanco.
+$editColor: #1565c0;
+$editColorHover: #0d47a1;
 
 :root {
   --primary-color: #{$primaryColor};
@@ -34,4 +40,6 @@ $infoBackground: #eaf2fe;
   --danger-background: #{$dangerBackground};
   --info-color: #{$infoColor};
   --info-background: #{$infoBackground};
+  --edit-color: #{$editColor};
+  --edit-color-hover: #{$editColorHover};
 }

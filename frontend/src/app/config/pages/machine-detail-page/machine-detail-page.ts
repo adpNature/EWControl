@@ -63,6 +63,14 @@ export class MachineDetailPage implements OnInit {
     return canConfigure(this.authState.currentUser()?.role);
   }
 
+  editMachine(machineId: string): void {
+    this.router.navigate(['/config/machines', machineId, 'edit']);
+  }
+
+  editSignal(signalId: string): void {
+    this.router.navigate(['/config/machines', this.machineId, 'signals', signalId, 'edit']);
+  }
+
   confirmDeleteMachine(): void {
     this.deleteMachineDialogOpen.set(false);
     this.machinesState.remove(this.machineId).subscribe({

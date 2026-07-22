@@ -1,4 +1,5 @@
-import { provideRouter } from '@angular/router';
+import { TestBed } from '@angular/core/testing';
+import { Router, provideRouter } from '@angular/router';
 import { render, screen, within } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
 import { of } from 'rxjs';
@@ -87,6 +88,18 @@ describe('UserListPage', () => {
     );
 
     expect(usersState.remove).toHaveBeenCalledWith('user-2');
+  });
+
+  it('click en "Editar" navega a la edición del User (ruta relativa)', async () => {
+    await renderPage('user-1', 'AdminCliente');
+    const router = TestBed.inject(Router);
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'Editar' })[0]);
+
+    expect(navigateSpy).toHaveBeenCalledWith(['user-1', 'edit'], {
+      relativeTo: expect.anything(),
+    });
   });
 
   it('muestra la columna Estado con Activo/Inactivo', async () => {

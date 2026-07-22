@@ -1,6 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthStateService } from '../../../auth/use-cases/auth.state';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
 import { SelectComponent, SelectOption } from '../../../shared/ui/select/select.component';
@@ -37,6 +37,8 @@ const COLUMNS: TableColumn<ManagedUser>[] = [
   styleUrl: './user-list-page.scss',
 })
 export class UserListPage implements OnInit {
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly authState = inject(AuthStateService);
   private readonly toastService = inject(ToastService);
   protected readonly companiesState = inject(CompaniesState);
@@ -76,6 +78,10 @@ export class UserListPage implements OnInit {
 
   isSelf(user: ManagedUser): boolean {
     return user.id === this.authState.currentUser()?.id;
+  }
+
+  editUser(user: ManagedUser): void {
+    this.router.navigate([user.id, 'edit'], { relativeTo: this.route });
   }
 
   confirmDeactivate(): void {

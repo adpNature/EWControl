@@ -155,6 +155,18 @@ export class SignalFormPage implements OnInit {
     });
   }
 
+  editAlarmDefinition(signalId: string, definitionId: string): void {
+    this.router.navigate([
+      '/config/machines',
+      this.machineId,
+      'signals',
+      signalId,
+      'alarm-definitions',
+      definitionId,
+      'edit',
+    ]);
+  }
+
   confirmDeactivateAlarmDefinition(): void {
     const definition = this.alarmDefinitionToDeactivate();
     this.alarmDefinitionToDeactivate.set(null);

@@ -2,7 +2,7 @@
 // una tabla real de datos usa <table> semántica, no .table-flex.
 
 .table {
-  width: 100%;
+  min-width: 100%;
   border-collapse: collapse;
   font-size: var(--font-size-md);
   color: var(--text-color);
@@ -17,6 +17,28 @@
   th {
     font-weight: 500;
     color: var(--text-muted-color);
+  }
+
+  // Calificado con `th` (no solo la clase) para superar la especificidad de
+  // `th, td { text-align: left; }` de arriba — compilan a `.table th`, más
+  // específico que una clase sola.
+  th.table__actions-header {
+    text-align: right;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--spacing-sm);
+
+    .btn-primary,
+    .btn-edit,
+    .btn-danger,
+    .btn-secondary {
+      padding: var(--spacing-xs) var(--spacing-md);
+      font-size: var(--font-size-sm);
+    }
   }
 
   &__sort-button {
