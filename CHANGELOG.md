@@ -1,3 +1,9 @@
+# [1.13.0](https://github.com/adpNature/EWControl/compare/v1.12.0...v1.13.0) (2026-07-22)
+
+### Features
+
+- implementa landing page pública de bienvenida (spec 17) ([d6a7b50](https://github.com/adpNature/EWControl/commit/d6a7b508f9f8db49945bf422ddbfde173e6018b4))
+
 # [1.12.0](https://github.com/adpNature/EWControl/compare/v1.11.0...v1.12.0) (2026-07-22)
 
 ### Features
