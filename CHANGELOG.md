@@ -1,3 +1,9 @@
+# [1.12.0](https://github.com/adpNature/EWControl/compare/v1.11.0...v1.12.0) (2026-07-22)
+
+### Features
+
+- pulido visual y UX de la plataforma (spec 16) ([5ca5013](https://github.com/adpNature/EWControl/commit/5ca50134e88d3dc56fb0951c03cfbe5a24d71354))
+
 # [1.11.0](https://github.com/adpNature/EWControl/compare/v1.10.0...v1.11.0) (2026-07-18)
 
 ### Features
