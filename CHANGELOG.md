@@ -1,3 +1,9 @@
+## [1.13.1](https://github.com/adpNature/EWControl/compare/v1.13.0...v1.13.1) (2026-07-23)
+
+### Bug Fixes
+
+- **e2e:** actualiza título esperado en smoke test ([892d9a6](https://github.com/adpNature/EWControl/commit/892d9a65d8dd50edf206e7d56d30b474afa04486))
+
 # [1.13.0](https://github.com/adpNature/EWControl/compare/v1.12.0...v1.13.0) (2026-07-22)
 
 ### Features
