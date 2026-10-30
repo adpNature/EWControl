@@ -1,3 +1,9 @@
+# [1.15.0](https://github.com/adpNature/EWControl/compare/v1.14.0...v1.15.0) (2026-10-30)
+
+### Features
+
+- añade el rol Operador y permisos por rol en toda la API (spec 19) ([9a4102a](https://github.com/adpNature/EWControl/commit/9a4102a35b69b1d815ea69cbb8733ffa13bb0cac))
+
 # [1.14.0](https://github.com/adpNature/EWControl/compare/v1.13.1...v1.14.0) (2026-10-30)
 
 ### Features
