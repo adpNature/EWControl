@@ -29,11 +29,17 @@ function createFakes() {
   const unitOfWork = {
     runInTransaction: vi.fn((work: (ctx: unknown) => Promise<unknown>) => work(FAKE_CTX)),
   };
-  return { resolver, userRepository, unitOfWork };
+  const refreshTokenRepository = { revokeAllActiveForUser: vi.fn().mockResolvedValue(undefined) };
+  return { resolver, userRepository, refreshTokenRepository, unitOfWork };
 }
 
 function createUseCase(fakes: ReturnType<typeof createFakes>) {
-  return new UpdateUserUseCase(fakes.resolver as never, fakes.userRepository, fakes.unitOfWork);
+  return new UpdateUserUseCase(
+    fakes.resolver as never,
+    fakes.userRepository,
+    fakes.refreshTokenRepository as never,
+    fakes.unitOfWork,
+  );
 }
 
 describe('UpdateUserUseCase', () => {
@@ -97,5 +103,34 @@ describe('UpdateUserUseCase', () => {
     });
 
     expect(result.role).toBe(UserRole.SuperAdmin);
+  });
+
+  it('un AdminCliente puede pasar un User a Operador y se revocan sus sesiones (spec 19, criterio 6)', async () => {
+    const fakes = createFakes();
+    fakes.userRepository.update.mockResolvedValue({ ...USER, role: UserRole.Operador });
+    const useCase = createUseCase(fakes);
+
+    const result = await useCase.execute({
+      userId: 'user-1',
+      requester: { companyId: 'company-1', role: UserRole.AdminCliente },
+      role: UserRole.Operador,
+    });
+
+    expect(result.role).toBe(UserRole.Operador);
+    expect(fakes.refreshTokenRepository.revokeAllActiveForUser).toHaveBeenCalledWith(
+      'user-1',
+      FAKE_CTX,
+    );
+  });
+
+  it('no revoca sesiones si el rol no cambia o no se envía', async () => {
+    const fakes = createFakes();
+    const useCase = createUseCase(fakes);
+    const requester = { companyId: 'company-1', role: UserRole.AdminCliente };
+
+    await useCase.execute({ userId: 'user-1', requester, email: 'nuevo@ewcontrol.local' });
+    await useCase.execute({ userId: 'user-1', requester, role: UserRole.AdminCliente });
+
+    expect(fakes.refreshTokenRepository.revokeAllActiveForUser).not.toHaveBeenCalled();
   });
 });

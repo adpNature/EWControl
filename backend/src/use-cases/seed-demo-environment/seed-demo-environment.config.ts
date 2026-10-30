@@ -15,6 +15,10 @@ export const SEED_USER_ROLE = UserRole.AdminCliente;
 export const SEED_SUPERADMIN_EMAIL = 'superadmin@ewcontrol.local';
 export const SEED_SUPERADMIN_PASSWORD = 'SuperAdmin1234!';
 export const SEED_SUPERADMIN_ROLE = UserRole.SuperAdmin;
+/** docs/specs/19-rol-operador.md, criterio backend 8: User demo para probar el rol Operador. */
+export const SEED_OPERADOR_EMAIL = 'operador@ewcontrol.local';
+export const SEED_OPERADOR_PASSWORD = 'Operador1234!';
+export const SEED_OPERADOR_ROLE = UserRole.Operador;
 export const SEED_MACHINE_NAME = 'Bobinadora Demo 1';
 export const SEED_MACHINE_PROVIDER_TYPE = ProviderType.Simulator;
 

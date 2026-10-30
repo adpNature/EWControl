@@ -15,6 +15,7 @@ import {
   Query,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { CONFIGURATION_ROLES, roles } from '../../auth-guard/roles.decorator';
 import { RealtimeCacheEntry } from '../../../entities/realtime-cache';
 import { Signal } from '../../../entities/signal.entity';
 import type { CurrentUser } from '../../auth-guard/current-user';
@@ -60,6 +61,7 @@ export class SignalController {
     private readonly getSignalHistoryUseCase: GetSignalHistoryUseCase,
   ) {}
 
+  @roles(...CONFIGURATION_ROLES)
   @Post()
   async create(
     @Param('machineId') machineId: string,
@@ -155,6 +157,7 @@ export class SignalController {
     }
   }
 
+  @roles(...CONFIGURATION_ROLES)
   @Patch(':id')
   async update(
     @Param('machineId') machineId: string,
@@ -174,6 +177,7 @@ export class SignalController {
     }
   }
 
+  @roles(...CONFIGURATION_ROLES)
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(

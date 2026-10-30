@@ -1,4 +1,9 @@
-import { canConfigure, canManageCompanies, canManageUsers } from './config-permissions';
+import {
+  canConfigure,
+  canManageCompanies,
+  canManageUsers,
+  canAccessConfig,
+} from './config-permissions';
 
 describe('canConfigure', () => {
   it('permite AdminCliente', () => {
@@ -39,5 +44,20 @@ describe('canManageUsers', () => {
 
   it('deniega si no hay rol', () => {
     expect(canManageUsers(undefined)).toBe(false);
+  });
+});
+
+describe('rol Operador (docs/specs/19-rol-operador.md)', () => {
+  it('no puede configurar, gestionar Users ni Companies, ni entrar en /config', () => {
+    expect(canConfigure('Operador')).toBe(false);
+    expect(canManageUsers('Operador')).toBe(false);
+    expect(canManageCompanies('Operador')).toBe(false);
+    expect(canAccessConfig('Operador')).toBe(false);
+  });
+
+  it('canAccessConfig permite a AdminCliente y SuperAdmin', () => {
+    expect(canAccessConfig('AdminCliente')).toBe(true);
+    expect(canAccessConfig('SuperAdmin')).toBe(true);
+    expect(canAccessConfig(undefined)).toBe(false);
   });
 });

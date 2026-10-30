@@ -8,6 +8,7 @@ import {
   Param,
   Post,
 } from '@nestjs/common';
+import { CONFIGURATION_ROLES, roles } from '../../auth-guard/roles.decorator';
 import { AlarmDefinition } from '../../../entities/alarm-definition.entity';
 import type { CurrentUser } from '../../auth-guard/current-user';
 import { currentUser } from '../../auth-guard/current-user.decorator';
@@ -24,6 +25,7 @@ export class AlarmDefinitionController {
     private readonly listAlarmDefinitionsUseCase: ListAlarmDefinitionsUseCase,
   ) {}
 
+  @roles(...CONFIGURATION_ROLES)
   @Post()
   async create(
     @Param('signalId') signalId: string,

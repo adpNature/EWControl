@@ -56,46 +56,48 @@
       </a>
     </li>
 
-    <li>
-      <a
-        routerLink="/config"
-        routerLinkActive="sidebar__link--active"
-        ariaCurrentWhenActive="page"
-        class="sidebar__link"
-      >
-        <app-icon name="setting" />
-        <span>Configuración</span>
-      </a>
+    @if (showConfig()) {
+      <li>
+        <a
+          routerLink="/config"
+          routerLinkActive="sidebar__link--active"
+          ariaCurrentWhenActive="page"
+          class="sidebar__link"
+        >
+          <app-icon name="setting" />
+          <span>Configuración</span>
+        </a>
 
-      <ul class="sidebar__subnav">
-        <li>
-          <a
-            routerLink="/config/machines"
-            routerLinkActive="sidebar__sublink--active"
-            class="sidebar__sublink"
-            >Machines</a
-          >
-        </li>
-        <li>
-          <a
-            routerLink="/config/users"
-            routerLinkActive="sidebar__sublink--active"
-            class="sidebar__sublink"
-            >Users</a
-          >
-        </li>
-        @if (showCompanies()) {
+        <ul class="sidebar__subnav">
           <li>
             <a
-              routerLink="/config/companies"
+              routerLink="/config/machines"
               routerLinkActive="sidebar__sublink--active"
               class="sidebar__sublink"
-              >Companies</a
+              >Machines</a
             >
           </li>
-        }
-      </ul>
-    </li>
+          <li>
+            <a
+              routerLink="/config/users"
+              routerLinkActive="sidebar__sublink--active"
+              class="sidebar__sublink"
+              >Users</a
+            >
+          </li>
+          @if (showCompanies()) {
+            <li>
+              <a
+                routerLink="/config/companies"
+                routerLinkActive="sidebar__sublink--active"
+                class="sidebar__sublink"
+                >Companies</a
+              >
+            </li>
+          }
+        </ul>
+      </li>
+    }
 
     <li>
       <a

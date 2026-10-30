@@ -23,6 +23,8 @@ import {
 } from '../src/use-cases/seed-demo-environment/ports/password-hasher.port';
 import {
   SEED_COMPANY_NAME,
+  SEED_OPERADOR_EMAIL,
+  SEED_OPERADOR_PASSWORD,
   SEED_SUPERADMIN_EMAIL,
   SEED_SUPERADMIN_PASSWORD,
   SEED_USER_EMAIL,
@@ -63,14 +65,14 @@ describe('SeedDemoEnvironmentUseCase (integration)', () => {
     await app.close();
   });
 
-  it('crea exactamente 1 Company, 2 Users (AdminCliente + SuperAdmin), 1 Machine, 1 MachineConnection y 6 Signals', async () => {
+  it('crea exactamente 1 Company, 3 Users (AdminCliente + SuperAdmin + Operador), 1 Machine, 1 MachineConnection y 6 Signals', async () => {
     const useCase = app.get(SeedDemoEnvironmentUseCase);
 
     const result = await useCase.execute();
 
     expect(result).toEqual({ created: true });
     expect(await countRows(dataSource, 'companies')).toBe(1);
-    expect(await countRows(dataSource, 'users')).toBe(2);
+    expect(await countRows(dataSource, 'users')).toBe(3);
     expect(await countRows(dataSource, 'machines')).toBe(1);
     expect(await countRows(dataSource, 'machine_connections')).toBe(1);
     expect(await countRows(dataSource, 'signals')).toBe(6);
@@ -105,6 +107,15 @@ describe('SeedDemoEnvironmentUseCase (integration)', () => {
     await expect(
       passwordHasher.compare(SEED_SUPERADMIN_PASSWORD, superAdmin.password_hash),
     ).resolves.toBe(true);
+
+    const [operador] = await dataSource.query(
+      'SELECT email, password_hash, role FROM users WHERE email = $1',
+      [SEED_OPERADOR_EMAIL],
+    );
+    expect(operador.role).toBe('Operador');
+    await expect(
+      passwordHasher.compare(SEED_OPERADOR_PASSWORD, operador.password_hash),
+    ).resolves.toBe(true);
   });
 
   it('es idempotente: ejecutar el seed dos veces no duplica ninguna entidad', async () => {
@@ -116,7 +127,7 @@ describe('SeedDemoEnvironmentUseCase (integration)', () => {
     expect(first).toEqual({ created: true });
     expect(second).toEqual({ created: false });
     expect(await countRows(dataSource, 'companies')).toBe(1);
-    expect(await countRows(dataSource, 'users')).toBe(2);
+    expect(await countRows(dataSource, 'users')).toBe(3);
     expect(await countRows(dataSource, 'machines')).toBe(1);
     expect(await countRows(dataSource, 'machine_connections')).toBe(1);
     expect(await countRows(dataSource, 'signals')).toBe(6);

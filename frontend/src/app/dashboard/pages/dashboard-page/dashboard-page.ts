@@ -1,9 +1,11 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AuthStateService } from '../../../auth/use-cases/auth.state';
 import { MachinesApiService } from '../../../config/adapters/machines-api.service';
 import { SignalsApiService } from '../../../config/adapters/signals-api.service';
 import { Machine } from '../../../config/entities/machine.model';
 import { Signal } from '../../../config/entities/signal.model';
+import { canConfigure } from '../../../config/use-cases/config-permissions';
 import { WidgetType } from '../../entities/dashboard.model';
 import { WidgetConfig } from '../../entities/widget-config.model';
 import { DashboardState } from '../../use-cases/dashboard.state';
@@ -37,6 +39,7 @@ const WIDGET_TYPES: WidgetType[] = ['VALUE', 'GAUGE', 'CHART', 'TABLE', 'ALARM_L
   styleUrl: './dashboard-page.scss',
 })
 export class DashboardPage implements OnInit {
+  private readonly authState = inject(AuthStateService);
   private readonly machinesApi = inject(MachinesApiService);
   private readonly signalsApi = inject(SignalsApiService);
   protected readonly dashboardState = inject(DashboardState);
@@ -59,6 +62,11 @@ export class DashboardPage implements OnInit {
     gaugeMin: new FormControl(0, { nonNullable: true }),
     gaugeMax: new FormControl(100, { nonNullable: true }),
   });
+
+  /** docs/specs/19-rol-operador.md, criterio frontend 4: el `Operador` no crea ni edita Dashboards. */
+  canEdit(): boolean {
+    return canConfigure(this.authState.currentUser()?.role);
+  }
 
   ngOnInit(): void {
     this.dashboardState.loadDashboards().subscribe((dashboards) => {

@@ -16,6 +16,7 @@ import {
   Query,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { ALL_ROLES, CONFIGURATION_ROLES, roles } from '../../auth-guard/roles.decorator';
 import type { CurrentUser } from '../../auth-guard/current-user';
 import { currentUser } from '../../auth-guard/current-user.decorator';
 import { ChangePasswordUseCase } from '../../../use-cases/auth/change-password.use-case';
@@ -44,9 +45,11 @@ type ListUsersResponse = { data: UserResponse[]; total: number; limit: number; o
 
 /**
  * docs/specs/10-gestion-companies-users.md, docs/11-api-rest.md sección "User".
- * Sin `@roles()`: tanto `AdminCliente` como `SuperAdmin` entran, el alcance lo
+ * `@roles(...CONFIGURATION_ROLES)` (docs/specs/19-rol-operador.md): el `Operador`
+ * solo puede usar `PATCH me/password`. Entre `AdminCliente` y `SuperAdmin` el alcance lo
  * resuelve `UserAccessResolver`/cada use-case, no un gate de rol a nivel de clase.
  */
+@roles(...CONFIGURATION_ROLES)
 @Controller('users')
 export class UserController {
   constructor(
@@ -104,6 +107,7 @@ export class UserController {
     }
   }
 
+  @roles(...ALL_ROLES)
   @Patch('me/password')
   @HttpCode(HttpStatus.OK)
   async changePassword(

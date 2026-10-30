@@ -78,9 +78,11 @@ Si una spec no tiene parte de frontend (por ejemplo, funcionalidad de fundación
 | [16-pulido-visual-frontend.md](16-pulido-visual-frontend.md)             | Pulido visual y UX (identidad de marca, botones, tablas, grid del Dashboard, tooltips/ejes de históricos) | No (solo frontend) | Sí                      |
 | [17-landing-page.md](17-landing-page.md)                                 | Landing page pública (bienvenida), en `/`, con navegación scroll-to y CTA de login                        | No (solo frontend) | Sí                      |
 | [18-integracion-opc-ua.md](18-integracion-opc-ua.md)                     | Integración OPC UA real (`OpcUaProvider`, exploración de nodos, modalidad local en planta)                | Sí                 | Sí                      |
+| [19-rol-operador.md](19-rol-operador.md)                                 | Rol `Operador`: ver la planta y reconocer alarmas sin configurar; permisos por rol en toda la API         | Sí                 | Sí                      |
+| [20-paquetes-escritura-opc-ua.md](20-paquetes-escritura-opc-ua.md)       | Escritura en el PLC: variables escribibles, paquetes (recetas cerradas), ejecución y auditoría            | Sí                 | Sí                      |
 
 ## Pendientes
 
-Specs identificadas pero aún no redactadas — numeración tentativa, correlativa a partir de `19`.
+Specs identificadas pero aún no redactadas — numeración tentativa, correlativa a partir de `21`.
 
 - Modalidad remota de OPC UA (Data Provider en el edge → Backend en la nube, mTLS, buffer local) — continuación de [18-integracion-opc-ua.md](18-integracion-opc-ua.md).

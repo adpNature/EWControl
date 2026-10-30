@@ -263,7 +263,7 @@ Las dos últimas filas de la tabla anterior (Company, User) están especificadas
 
 ## Reglas Arquitectónicas
 
-**Regla 1.** Toda operación de configuración respeta los roles definidos en el Documento 3 (`UserRole`); el Frontend oculta las opciones no autorizadas, pero el Backend las rechaza igualmente si se solicitan.
+**Regla 1.** Toda operación de configuración respeta los roles definidos en el Documento 3 (`UserRole`); el Frontend oculta las opciones no autorizadas, pero el Backend las rechaza igualmente si se solicitan. El rol `Operador` ([docs/specs/19-rol-operador.md](specs/19-rol-operador.md)) no tiene ninguna operación de esta tabla: no ve la sección "Configuración" (el `configGuard` le devuelve al Dashboard) ni los controles de edición del Dashboard, y un `403` de la API se le notifica con un toast.
 
 **Regla 2.** Ninguna validación de negocio se considera definitiva en el Frontend; el Backend es siempre la última autoridad.
 

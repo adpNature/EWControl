@@ -21,6 +21,9 @@ import {
   SEED_SIGNAL_HISTORY_ENABLED,
   SEED_SIGNAL_TYPE,
   SEED_SIGNALS,
+  SEED_OPERADOR_EMAIL,
+  SEED_OPERADOR_PASSWORD,
+  SEED_OPERADOR_ROLE,
   SEED_SUPERADMIN_EMAIL,
   SEED_SUPERADMIN_PASSWORD,
   SEED_SUPERADMIN_ROLE,
@@ -75,6 +78,17 @@ export class SeedDemoEnvironmentUseCase {
           email: SEED_SUPERADMIN_EMAIL,
           passwordHash: superAdminPasswordHash,
           role: SEED_SUPERADMIN_ROLE,
+        },
+        ctx,
+      );
+
+      const operadorPasswordHash = await this.passwordHasher.hash(SEED_OPERADOR_PASSWORD);
+      await this.userRepository.create(
+        {
+          companyId: company.id,
+          email: SEED_OPERADOR_EMAIL,
+          passwordHash: operadorPasswordHash,
+          role: SEED_OPERADOR_ROLE,
         },
         ctx,
       );

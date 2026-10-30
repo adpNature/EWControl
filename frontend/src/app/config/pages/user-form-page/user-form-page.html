@@ -23,6 +23,7 @@
     }
 
     <app-select formControlName="role" label="Rol" [options]="roleOptions()" />
+    <p class="text-muted" aria-live="polite">{{ roleHelp() }}</p>
 
     @if (formError()) {
       <p class="form-error" role="alert">{{ formError() }}</p>

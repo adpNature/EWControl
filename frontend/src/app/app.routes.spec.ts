@@ -1,4 +1,5 @@
 import { authGuard } from './core/guards/auth.guard';
+import { configGuard } from './core/guards/config.guard';
 import { redirectIfAuthenticatedGuard } from './core/guards/redirect-if-authenticated.guard';
 import { routes } from './app.routes';
 
@@ -41,8 +42,15 @@ describe('routes', () => {
     const shellRoute = routes.find((route) => route.path === '' && route.children);
 
     for (const child of shellRoute?.children ?? []) {
-      expect(child.canActivate).toBeUndefined();
+      expect(child.canActivate ?? []).not.toContain(authGuard);
     }
+  });
+
+  it('protege /config con configGuard (docs/specs/19-rol-operador.md, criterio frontend 3)', () => {
+    const shellRoute = routes.find((route) => route.path === '' && route.children);
+    const configRoute = shellRoute?.children?.find((route) => route.path === 'config');
+
+    expect(configRoute?.canActivate).toEqual([configGuard]);
   });
 
   it('sigue redirigiendo rutas desconocidas a dashboard', () => {

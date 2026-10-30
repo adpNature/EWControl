@@ -1,7 +1,7 @@
 import { Component, ElementRef, HostListener, ViewChild, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthStateService } from '../../../auth/use-cases/auth.state';
-import { canManageCompanies } from '../../../config/use-cases/config-permissions';
+import { canAccessConfig, canManageCompanies } from '../../../config/use-cases/config-permissions';
 import { IconComponent } from '../../../shared/ui/icon/icon.component';
 import { SidebarCollapseState } from './sidebar-collapse.state';
 
@@ -33,6 +33,11 @@ export class SidebarComponent {
   readonly currentUser = this.authState.currentUser;
   readonly collapsed = this.collapseState.collapsed;
   readonly mobileOpen = signal(false);
+
+  /** docs/specs/19-rol-operador.md, criterio frontend 2: el `Operador` no ve "Configuración". */
+  showConfig(): boolean {
+    return canAccessConfig(this.currentUser()?.role);
+  }
 
   showCompanies(): boolean {
     return canManageCompanies(this.currentUser()?.role);

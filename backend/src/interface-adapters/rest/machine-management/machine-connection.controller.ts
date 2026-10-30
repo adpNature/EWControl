@@ -14,6 +14,7 @@ import {
   Put,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { CONFIGURATION_ROLES, roles } from '../../auth-guard/roles.decorator';
 import { MachineConnection } from '../../../entities/machine-connection.entity';
 import type { CurrentUser } from '../../auth-guard/current-user';
 import { currentUser } from '../../auth-guard/current-user.decorator';
@@ -41,6 +42,7 @@ import { ReplaceMachineConnectionDto } from './replace-machine-connection.dto';
  * docs/11-api-rest.md sección "MachineConnection". Se gestiona siempre en el
  * contexto de su Machine.
  */
+@roles(...CONFIGURATION_ROLES)
 @Controller('machines/:machineId/connection')
 export class MachineConnectionController {
   constructor(
