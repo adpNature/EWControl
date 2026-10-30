@@ -13,6 +13,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { CONFIGURATION_ROLES, roles } from '../../auth-guard/roles.decorator';
 import { Dashboard } from '../../../entities/dashboard.entity';
 import type { CurrentUser } from '../../auth-guard/current-user';
 import { currentUser } from '../../auth-guard/current-user.decorator';
@@ -46,6 +47,7 @@ export class DashboardController {
     private readonly deleteDashboardUseCase: DeleteDashboardUseCase,
   ) {}
 
+  @roles(...CONFIGURATION_ROLES)
   @Post()
   async create(
     @Body() dto: CreateDashboardDto,
@@ -88,6 +90,7 @@ export class DashboardController {
     }
   }
 
+  @roles(...CONFIGURATION_ROLES)
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -105,6 +108,7 @@ export class DashboardController {
     }
   }
 
+  @roles(...CONFIGURATION_ROLES)
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string, @currentUser() user: CurrentUser): Promise<void> {

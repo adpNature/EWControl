@@ -3,6 +3,7 @@ import { AppShellComponent } from './core/layout/app-shell/app-shell.component';
 import { authGuard } from './core/guards/auth.guard';
 import { redirectIfAuthenticatedGuard } from './core/guards/redirect-if-authenticated.guard';
 import { BreadcrumbCrumb } from './shared/ui/breadcrumb/breadcrumb.model';
+import { configGuard } from './core/guards/config.guard';
 
 /** docs/specs/12-navegacion-shell.md: el breadcrumb se muestra en toda la zona privada. */
 const dashboardBreadcrumb: BreadcrumbCrumb[] = [{ label: 'Dashboard' }];
@@ -51,6 +52,7 @@ export const routes: Routes = [
       },
       {
         path: 'config',
+        canActivate: [configGuard],
         loadChildren: () => import('./config/config.routes').then((m) => m.configRoutes),
       },
       {

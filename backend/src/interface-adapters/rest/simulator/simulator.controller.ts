@@ -11,6 +11,7 @@ import {
   Post,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { CONFIGURATION_ROLES, roles } from '../../auth-guard/roles.decorator';
 import { HistoryAlreadySeededError } from '../../../use-cases/history/errors/history-already-seeded.error';
 import {
   SeedHistoryUseCase,
@@ -31,6 +32,7 @@ import { SeedHistoryDto } from './seed-history.dto';
  * 05-auth-login.md registrará el Auth Guard como interceptor global (Documento 2,
  * "Auth Guard"), que protegerá automáticamente estos endpoints sin cambios aquí.
  */
+@roles(...CONFIGURATION_ROLES)
 @Controller('machines/:machineId/simulator')
 export class SimulatorController {
   constructor(

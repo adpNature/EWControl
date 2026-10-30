@@ -12,6 +12,7 @@ import {
   Post,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { CONFIGURATION_ROLES, roles } from '../../auth-guard/roles.decorator';
 import { DashboardWidget } from '../../../entities/dashboard-widget.entity';
 import type { CurrentUser } from '../../auth-guard/current-user';
 import { currentUser } from '../../auth-guard/current-user.decorator';
@@ -25,6 +26,7 @@ import { CreateWidgetDto } from './create-widget.dto';
 import { UpdateWidgetDto } from './update-widget.dto';
 
 /** docs/specs/07-dashboard-tiempo-real.md, docs/11-api-rest.md sección "Dashboard / DashboardWidget". */
+@roles(...CONFIGURATION_ROLES)
 @Controller('dashboards/:dashboardId/widgets')
 export class DashboardWidgetController {
   constructor(

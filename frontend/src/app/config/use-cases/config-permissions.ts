@@ -3,11 +3,11 @@ import { UserRole } from '../../auth/entities/user.model';
 const CONFIG_ROLES: readonly UserRole[] = ['AdminCliente', 'SuperAdmin'];
 
 /**
- * docs/08-frontend-dashboard.md, apartado 8.6, Regla 1: hoy ambos roles tienen
- * acceso a la gestión de Machines/Signals — no hay ningún rol excluido
- * todavía, así que esto solo deja la regla preparada para ocultar acciones en
- * cuanto exista un rol sin permiso. El Backend sigue siendo la autoridad
- * final (Regla 2); esta función nunca sustituye su validación.
+ * docs/08-frontend-dashboard.md, apartado 8.6, Regla 1: solo `AdminCliente` y
+ * `SuperAdmin` configuran (Machines, Signals, reglas de alarma, Dashboards);
+ * el `Operador` (docs/specs/19-rol-operador.md) queda excluido. El Backend
+ * sigue siendo la autoridad final (Regla 2, `RolesGuard`); esta función nunca
+ * sustituye su validación, solo oculta lo que el rol no puede hacer.
  */
 export function canConfigure(role: UserRole | undefined): boolean {
   return !!role && CONFIG_ROLES.includes(role);
@@ -29,4 +29,12 @@ export function canManageCompanies(role: UserRole | undefined): boolean {
  */
 export function canManageUsers(role: UserRole | undefined): boolean {
   return !!role && CONFIG_ROLES.includes(role);
+}
+
+/**
+ * docs/specs/19-rol-operador.md, criterios de aceptación frontend 2 y 3: si la
+ * sección "Configuración" (todo `/config/**`) es accesible para el rol.
+ */
+export function canAccessConfig(role: UserRole | undefined): boolean {
+  return canConfigure(role);
 }

@@ -10,6 +10,7 @@ import {
   Param,
   Patch,
 } from '@nestjs/common';
+import { CONFIGURATION_ROLES, roles } from '../../auth-guard/roles.decorator';
 import { AlarmDefinition } from '../../../entities/alarm-definition.entity';
 import type { CurrentUser } from '../../auth-guard/current-user';
 import { currentUser } from '../../auth-guard/current-user.decorator';
@@ -24,6 +25,7 @@ import { UpdateAlarmDefinitionDto } from './update-alarm-definition.dto';
  * en una clase distinta a `AlarmDefinitionController` porque Nest no admite
  * dos prefijos `@Controller()` en una misma clase.
  */
+@roles(...CONFIGURATION_ROLES)
 @Controller('alarm-definitions')
 export class AlarmDefinitionMutationController {
   constructor(

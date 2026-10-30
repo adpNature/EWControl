@@ -78,6 +78,14 @@ describe('UserFormPage', () => {
     expect(screen.queryByRole('option', { name: 'SuperAdmin' })).not.toBeInTheDocument();
   });
 
+  it('el selector de rol ofrece Operador con su texto de ayuda (spec 19, criterio frontend 1)', async () => {
+    await renderPage(null, 'AdminCliente');
+
+    expect(screen.getByRole('option', { name: 'Operador' })).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText('Rol'), 'Operador');
+    expect(screen.getByText(/reconoce alarmas; no configura nada/)).toBeInTheDocument();
+  });
+
   it('el selector de rol ofrece SuperAdmin cuando el requester es SuperAdmin', async () => {
     await renderPage(null, 'SuperAdmin');
 

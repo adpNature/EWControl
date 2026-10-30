@@ -1517,7 +1517,7 @@ Este apartado formaliza las enumeraciones utilizadas por las entidades del domin
 
 | Enumeración    | Valores                                | Utilizada por     |
 | -------------- | -------------------------------------- | ----------------- |
-| UserRole       | SuperAdmin, AdminCliente               | User              |
+| UserRole       | SuperAdmin, AdminCliente, Operador     | User              |
 | ProviderType   | Simulator, OpcUa, Mqtt, ModbusTcp      | MachineConnection |
 | SignalType     | DIRECT, FORMULA                        | Signal            |
 | AlarmPriority  | LOW, MEDIUM, HIGH, CRITICAL            | AlarmDefinition   |
@@ -1607,7 +1607,7 @@ Este apartado consolida las líneas de evolución ya apuntadas en cada entidad, 
 ## Líneas de Evolución
 
 - Incorporación de una entidad `Site` para representar varias plantas dentro de una misma Company.
-- Nuevos roles de usuario (Operador, Técnico de mantenimiento, Supervisor, Solo lectura) y autenticación multifactor.
+- Nuevos roles de usuario (Técnico de mantenimiento, Supervisor, Solo lectura) y autenticación multifactor. El rol `Operador` ya está implementado ([docs/specs/19-rol-operador.md](specs/19-rol-operador.md)).
 - Nuevos valores de `ProviderType` (MQTT, Modbus TCP) sin modificar MachineConnection.
 - Signals derivadas de fórmulas más complejas o dependientes de otras Machines.
 - Condiciones de alarma compuestas entre varias Signals y políticas de escalado.

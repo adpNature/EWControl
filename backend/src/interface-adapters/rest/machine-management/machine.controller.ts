@@ -14,6 +14,7 @@ import {
   Query,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { CONFIGURATION_ROLES, roles } from '../../auth-guard/roles.decorator';
 import { Machine } from '../../../entities/machine.entity';
 import type { CurrentUser } from '../../auth-guard/current-user';
 import { currentUser } from '../../auth-guard/current-user.decorator';
@@ -45,6 +46,7 @@ export class MachineController {
     private readonly deleteMachineUseCase: DeleteMachineUseCase,
   ) {}
 
+  @roles(...CONFIGURATION_ROLES)
   @Post()
   async create(@Body() dto: CreateMachineDto, @currentUser() user: CurrentUser): Promise<Machine> {
     const { machine } = await this.createMachineUseCase.execute({
@@ -78,6 +80,7 @@ export class MachineController {
     }
   }
 
+  @roles(...CONFIGURATION_ROLES)
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -95,6 +98,7 @@ export class MachineController {
     }
   }
 
+  @roles(...CONFIGURATION_ROLES)
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string, @currentUser() user: CurrentUser): Promise<void> {

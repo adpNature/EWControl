@@ -14,7 +14,16 @@ import { userFormErrorMessage } from './user-form-error-message';
 
 const ADMIN_CLIENTE_ROLE_OPTIONS: SelectOption[] = [
   { value: 'AdminCliente', label: 'AdminCliente' },
+  { value: 'Operador', label: 'Operador' },
 ];
+
+/** docs/specs/19-rol-operador.md, flujo principal frontend: qué puede hacer cada rol. */
+const ROLE_HELP: Record<UserRole, string> = {
+  ['SuperAdmin']: 'Gestiona todas las Companies de la plataforma y todo lo de cada una.',
+  ['AdminCliente']: 'Configura Machines, Signals, alarmas, Dashboards y Users de su Company.',
+  ['Operador']:
+    'Ve Dashboards, Históricos y Alarmas de su Company y reconoce alarmas; no configura nada.',
+};
 const SUPERADMIN_ROLE_OPTIONS: SelectOption[] = [
   ...ADMIN_CLIENTE_ROLE_OPTIONS,
   { value: 'SuperAdmin', label: 'SuperAdmin' },
@@ -67,6 +76,10 @@ export class UserFormPage implements OnInit {
       ? SUPERADMIN_ROLE_OPTIONS
       : ADMIN_CLIENTE_ROLE_OPTIONS,
   );
+
+  roleHelp(): string {
+    return ROLE_HELP[this.form.controls.role.value] ?? '';
+  }
 
   readonly companyOptions = computed<SelectOption[]>(() => [
     COMPANY_PLACEHOLDER_OPTION,

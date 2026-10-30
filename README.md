@@ -139,12 +139,15 @@ La información de despliegue (contenedores, orquestación, entornos) vive dentr
 
 ## f. Usuario y contraseña de prueba
 
-El script de seed (sección c) crea el siguiente usuario de demo, con rol `AdminCliente`:
+El script de seed (sección c) crea estos usuarios de demo en la misma Company:
 
-```
-Email:      demo@ewcontrol.local
-Contraseña: Demo1234!
-```
+| Rol            | Email                        | Contraseña        |
+| -------------- | ---------------------------- | ----------------- |
+| `AdminCliente` | `demo@ewcontrol.local`       | `Demo1234!`       |
+| `SuperAdmin`   | `superadmin@ewcontrol.local` | `SuperAdmin1234!` |
+| `Operador`     | `operador@ewcontrol.local`   | `Operador1234!`   |
+
+El `Operador` ve Dashboard, Históricos y Alarmas y reconoce alarmas, pero no configura nada ([docs/specs/19-rol-operador.md](docs/specs/19-rol-operador.md)).
 
 Válido tanto para el login del Frontend como para obtener un token directamente contra `POST /api/v1/auth/login` (Documento 11). Detalle completo del flujo en [docs/specs/05-auth-login.md](docs/specs/05-auth-login.md).
 

@@ -91,7 +91,7 @@ Ver spec completa en [docs/specs/05-auth-login.md](specs/05-auth-login.md). El a
 
 ## Company
 
-Solo accesible por `SuperAdmin` (una Company se crea al dar de alta un cliente, Documento 3 apartado 3.2.1). Ver spec completa en [docs/specs/10-gestion-companies-users.md](specs/10-gestion-companies-users.md).
+Solo accesible por `SuperAdmin` (una Company se crea al dar de alta un cliente, Documento 3 apartado 3.2.1). Ver spec completa en [docs/specs/10-gestion-companies-users.md](specs/10-gestion-companies-users.md). Un `Operador` ([docs/specs/19-rol-operador.md](specs/19-rol-operador.md)) solo puede usar `PATCH /api/v1/users/me/password`; el resto de rutas de esta sección le responde `403`, igual que cualquier otra operación de configuración.
 
 | Método | Ruta                               | Descripción                                                                                                             |
 | ------ | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
@@ -113,7 +113,7 @@ Ver spec completa en [docs/specs/10-gestion-companies-users.md](specs/10-gestion
 | ------ | ------------------------------ | ------------------------------------------------------------------------------------------------- |
 | GET    | `/api/v1/users`                | Lista los Users de la Company del usuario autenticado, activos e inactivos (`SuperAdmin`: todos). |
 | GET    | `/api/v1/users/:id`            | Detalle de un User (activo o inactivo).                                                           |
-| POST   | `/api/v1/users`                | Crea un User dentro de la Company (rol `AdminCliente` o `SuperAdmin`).                            |
+| POST   | `/api/v1/users`                | Crea un User dentro de la Company (rol `AdminCliente`, `Operador` o `SuperAdmin`).                |
 | PATCH  | `/api/v1/users/:id`            | Actualiza un User.                                                                                |
 | DELETE | `/api/v1/users/:id`            | Baja lógica de un User (invalida sus refresh tokens, Documento 6).                                |
 | POST   | `/api/v1/users/:id/reactivate` | Reactiva un User dado de baja.                                                                    |

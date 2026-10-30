@@ -28,7 +28,7 @@ function createCollapseState(collapsed = false) {
 }
 
 async function renderSidebar(
-  role: 'AdminCliente' | 'SuperAdmin' | undefined,
+  role: 'AdminCliente' | 'SuperAdmin' | 'Operador' | undefined,
   collapseState = createCollapseState(),
 ) {
   const authState = {
@@ -190,5 +190,21 @@ describe('SidebarComponent', () => {
 
       expect(document.activeElement).toBe(last);
     });
+  });
+
+  it('oculta "Configuración" a un Operador y mantiene Dashboard, Alarmas, Históricos y Cuenta (spec 19)', async () => {
+    await renderSidebar('Operador');
+
+    expect(screen.queryByRole('link', { name: 'Configuración' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Machines' })).not.toBeInTheDocument();
+    for (const name of ['Dashboard', 'Alarmas', 'Históricos', 'Cuenta']) {
+      expect(screen.getByRole('link', { name })).toBeInTheDocument();
+    }
+  });
+
+  it('muestra "Configuración" a un AdminCliente', async () => {
+    await renderSidebar('AdminCliente');
+
+    expect(screen.getByRole('link', { name: 'Configuración' })).toBeInTheDocument();
   });
 });

@@ -85,6 +85,7 @@ Full local environment: `docker compose up -d` (PostgreSQL, InfluxDB, backend, f
 
 Demo login (after seed): `demo@ewcontrol.local` / `Demo1234!`, role `AdminCliente`.
 Demo SuperAdmin login (after seed): `superadmin@ewcontrol.local` / `SuperAdmin1234!`, role `SuperAdmin`, same demo Company.
+Demo Operador login (after seed): `operador@ewcontrol.local` / `Operador1234!`, role `Operador` (read + alarm ACK, no configuration), same demo Company. Every configuration route must carry `@roles(...CONFIGURATION_ROLES)`; `route-permissions.spec.ts` fails if a new route doesn't make an explicit decision about the `Operador`.
 
 ## Frontend conventions (full detail: `docs/12-convenciones-frontend.md`)
 

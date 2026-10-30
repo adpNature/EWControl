@@ -9,6 +9,8 @@ import {
   SEED_CONNECTION_CONFIG,
   SEED_MACHINE_NAME,
   SEED_SIGNALS,
+  SEED_OPERADOR_EMAIL,
+  SEED_OPERADOR_PASSWORD,
   SEED_SUPERADMIN_EMAIL,
   SEED_SUPERADMIN_PASSWORD,
   SEED_USER_EMAIL,
@@ -18,6 +20,7 @@ import { SeedDemoEnvironmentUseCase } from './seed-demo-environment.use-case';
 
 const HASHED_PASSWORD = 'hashed:Demo1234!';
 const HASHED_SUPERADMIN_PASSWORD = 'hashed:SuperAdmin1234!';
+const HASHED_OPERADOR_PASSWORD = 'hashed:Operador1234!';
 const FAKE_CTX = Symbol('tx-ctx');
 
 function createFakes() {
@@ -53,7 +56,11 @@ function createFakes() {
   const passwordHasher = {
     hash: vi.fn((plain: string) =>
       Promise.resolve(
-        plain === SEED_SUPERADMIN_PASSWORD ? HASHED_SUPERADMIN_PASSWORD : HASHED_PASSWORD,
+        plain === SEED_SUPERADMIN_PASSWORD
+          ? HASHED_SUPERADMIN_PASSWORD
+          : plain === SEED_OPERADOR_PASSWORD
+            ? HASHED_OPERADOR_PASSWORD
+            : HASHED_PASSWORD,
       ),
     ),
     compare: vi.fn(),
@@ -97,7 +104,7 @@ describe('SeedDemoEnvironmentUseCase', () => {
     fakes = createFakes();
   });
 
-  it('crea Company, dos Users (AdminCliente + SuperAdmin), Machine, MachineConnection y 6 Signals dentro de la misma transacción', async () => {
+  it('crea Company, tres Users (AdminCliente + SuperAdmin + Operador), Machine, MachineConnection y 6 Signals dentro de la misma transacción', async () => {
     const useCase = createUseCase(fakes);
 
     const result = await useCase.execute();
@@ -110,7 +117,7 @@ describe('SeedDemoEnvironmentUseCase', () => {
     );
 
     expect(fakes.passwordHasher.hash).toHaveBeenCalledWith(SEED_USER_PASSWORD);
-    expect(fakes.userRepository.create).toHaveBeenCalledTimes(2);
+    expect(fakes.userRepository.create).toHaveBeenCalledTimes(3);
     expect(fakes.userRepository.create).toHaveBeenCalledWith(
       {
         companyId: 'company-1',
@@ -128,6 +135,17 @@ describe('SeedDemoEnvironmentUseCase', () => {
         email: SEED_SUPERADMIN_EMAIL,
         passwordHash: HASHED_SUPERADMIN_PASSWORD,
         role: UserRole.SuperAdmin,
+      },
+      FAKE_CTX,
+    );
+
+    expect(fakes.passwordHasher.hash).toHaveBeenCalledWith(SEED_OPERADOR_PASSWORD);
+    expect(fakes.userRepository.create).toHaveBeenCalledWith(
+      {
+        companyId: 'company-1',
+        email: SEED_OPERADOR_EMAIL,
+        passwordHash: HASHED_OPERADOR_PASSWORD,
+        role: UserRole.Operador,
       },
       FAKE_CTX,
     );

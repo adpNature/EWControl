@@ -1,11 +1,15 @@
 import { render, screen } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
 import { of } from 'rxjs';
+import { AuthStateService } from '../../../auth/use-cases/auth.state';
 import { MachinesApiService } from '../../../config/adapters/machines-api.service';
 import { SignalsApiService } from '../../../config/adapters/signals-api.service';
 import { DashboardDetail, DashboardWidget } from '../../entities/dashboard.model';
 import { DashboardState } from '../../use-cases/dashboard.state';
 import { DashboardPage } from './dashboard-page';
+
+const ADMIN_AUTH_STATE = { currentUser: () => ({ role: 'AdminCliente' }), accessToken: () => null };
+const OPERADOR_AUTH_STATE = { currentUser: () => ({ role: 'Operador' }), accessToken: () => null };
 
 function createDashboardState(overrides: Record<string, unknown> = {}) {
   return {
@@ -26,6 +30,7 @@ describe('DashboardPage', () => {
   it('sin Dashboards, muestra el formulario para crear uno', async () => {
     await render(DashboardPage, {
       providers: [
+        { provide: AuthStateService, useValue: ADMIN_AUTH_STATE },
         { provide: MachinesApiService, useValue: { list: vi.fn() } },
         { provide: SignalsApiService, useValue: { list: vi.fn() } },
         { provide: DashboardState, useValue: createDashboardState() },
@@ -42,6 +47,7 @@ describe('DashboardPage', () => {
 
     await render(DashboardPage, {
       providers: [
+        { provide: AuthStateService, useValue: ADMIN_AUTH_STATE },
         { provide: MachinesApiService, useValue: { list: vi.fn() } },
         { provide: SignalsApiService, useValue: { list: vi.fn() } },
         { provide: DashboardState, useValue: createDashboardState({ createDashboard, open }) },
@@ -81,6 +87,7 @@ describe('DashboardPage', () => {
 
     await render(DashboardPage, {
       providers: [
+        { provide: AuthStateService, useValue: ADMIN_AUTH_STATE },
         {
           provide: MachinesApiService,
           useValue: { list: vi.fn().mockReturnValue(of({ data: [] })) },
@@ -145,6 +152,7 @@ describe('DashboardPage', () => {
 
     await render(DashboardPage, {
       providers: [
+        { provide: AuthStateService, useValue: ADMIN_AUTH_STATE },
         { provide: MachinesApiService, useValue: machinesApi },
         { provide: SignalsApiService, useValue: signalsApi },
         {
@@ -163,5 +171,43 @@ describe('DashboardPage', () => {
       'dashboard-1',
       expect.objectContaining({ widgetType: 'VALUE', signalIds: ['signal-1'] }),
     );
+  });
+
+  it('un Operador sin Dashboards no ve el formulario de creación (spec 19, criterio frontend 4)', async () => {
+    await render(DashboardPage, {
+      providers: [
+        { provide: AuthStateService, useValue: OPERADOR_AUTH_STATE },
+        { provide: MachinesApiService, useValue: { list: vi.fn() } },
+        { provide: SignalsApiService, useValue: { list: vi.fn() } },
+        { provide: DashboardState, useValue: createDashboardState() },
+      ],
+    });
+
+    expect(screen.getByText(/Pide a un administrador/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Crear Dashboard' })).not.toBeInTheDocument();
+  });
+
+  it('un Operador ve los widgets pero no el botón "Añadir widget" (spec 19, criterio frontend 4)', async () => {
+    const detail: DashboardDetail = {
+      id: 'dashboard-1',
+      companyId: 'company-1',
+      name: 'Planta 1',
+      widgets: [],
+    };
+
+    await render(DashboardPage, {
+      providers: [
+        { provide: AuthStateService, useValue: OPERADOR_AUTH_STATE },
+        { provide: MachinesApiService, useValue: { list: vi.fn() } },
+        { provide: SignalsApiService, useValue: { list: vi.fn() } },
+        {
+          provide: DashboardState,
+          useValue: createDashboardState({ activeDashboard: () => detail }),
+        },
+      ],
+    });
+
+    expect(screen.getByRole('heading', { name: 'Planta 1' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Añadir widget' })).not.toBeInTheDocument();
   });
 });

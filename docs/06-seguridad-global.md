@@ -79,12 +79,15 @@ Vida útil de **7 días**. Se entrega en una cookie `httpOnly`, `Secure`, `SameS
 
 ## Roles y Alcance
 
-Los roles ya definidos en el Documento 3 (`UserRole`: SuperAdmin, AdminCliente) determinan el alcance de cada token:
+Los roles definidos en el Documento 3 (`UserRole`: SuperAdmin, AdminCliente, Operador) determinan el alcance de cada token:
 
-| Rol          | Alcance del token                                    |
-| ------------ | ---------------------------------------------------- |
-| SuperAdmin   | Acceso a cualquier Company de la plataforma          |
-| AdminCliente | Acceso exclusivo a los recursos de su propia Company |
+| Rol          | Alcance del token                                                                                         |
+| ------------ | --------------------------------------------------------------------------------------------------------- |
+| SuperAdmin   | Acceso a cualquier Company de la plataforma                                                               |
+| AdminCliente | Acceso exclusivo a los recursos de su propia Company                                                      |
+| Operador     | Lectura de su propia Company, ACK de alarmas y ejecución de paquetes; sin configuración (`403`) — spec 19 |
+
+Además de la Company, el `RolesGuard` restringe por rol: toda operación de configuración lleva `@roles(...CONFIGURATION_ROLES)` (SuperAdmin y AdminCliente). La matriz completa está en [docs/specs/19-rol-operador.md](specs/19-rol-operador.md), y un test (`route-permissions.spec.ts`) la verifica leyendo los metadatos de todos los controllers, de modo que una ruta nueva sin decisión explícita sobre el `Operador` hace fallar el CI.
 
 Ningún token de tipo AdminCliente puede ampliarse en tiempo de ejecución para acceder a otra Company; el alcance queda fijado en el momento de la emisión.
 

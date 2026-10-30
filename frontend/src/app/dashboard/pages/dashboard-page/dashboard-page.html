@@ -2,12 +2,14 @@
   @if (dashboardState.activeDashboard(); as dashboard) {
     <div class="dashboard-page__toolbar">
       <h1 class="title-xl">{{ dashboard.name }}</h1>
-      <button type="button" class="btn-primary" (click)="toggleAddWidgetForm()">
-        {{ showAddWidgetForm() ? 'Cancelar' : 'Añadir widget' }}
-      </button>
+      @if (canEdit()) {
+        <button type="button" class="btn-primary" (click)="toggleAddWidgetForm()">
+          {{ showAddWidgetForm() ? 'Cancelar' : 'Añadir widget' }}
+        </button>
+      }
     </div>
 
-    @if (showAddWidgetForm()) {
+    @if (canEdit() && showAddWidgetForm()) {
       <form
         class="box add-widget-form"
         [formGroup]="addWidgetForm"
@@ -116,18 +118,22 @@
     <div class="box">
       <h1 class="title-xl">Dashboard</h1>
       <p class="text-body">Todavía no tienes ningún Dashboard.</p>
-      <form
-        class="dashboard-page__create-form"
-        [formGroup]="newDashboardForm"
-        (ngSubmit)="createDashboard()"
-        novalidate
-      >
-        <div class="form-field">
-          <label class="form-label" for="new-dashboard-name">Nombre del Dashboard</label>
-          <input id="new-dashboard-name" type="text" class="form-input" formControlName="name" />
-        </div>
-        <button type="submit" class="btn-primary">Crear Dashboard</button>
-      </form>
+      @if (!canEdit()) {
+        <p class="text-muted">Pide a un administrador de tu empresa que cree uno.</p>
+      } @else {
+        <form
+          class="dashboard-page__create-form"
+          [formGroup]="newDashboardForm"
+          (ngSubmit)="createDashboard()"
+          novalidate
+        >
+          <div class="form-field">
+            <label class="form-label" for="new-dashboard-name">Nombre del Dashboard</label>
+            <input id="new-dashboard-name" type="text" class="form-input" formControlName="name" />
+          </div>
+          <button type="submit" class="btn-primary">Crear Dashboard</button>
+        </form>
+      }
     </div>
   }
 </div>
