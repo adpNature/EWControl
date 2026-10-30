@@ -1,3 +1,9 @@
+# [1.14.0](https://github.com/adpNature/EWControl/compare/v1.13.1...v1.14.0) (2026-10-30)
+
+### Features
+
+- implementa integración OPC UA real en modalidad local (spec 18) ([7f70841](https://github.com/adpNature/EWControl/commit/7f7084105bcc926124f6173e79c328ce5e558053))
+
 ## [1.13.1](https://github.com/adpNature/EWControl/compare/v1.13.0...v1.13.1) (2026-07-23)
 
 ### Bug Fixes
