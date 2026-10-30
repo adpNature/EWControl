@@ -53,7 +53,8 @@ function createFakes() {
   const unitOfWork = {
     runInTransaction: vi.fn((work: (ctx: unknown) => Promise<unknown>) => work(FAKE_CTX)),
   };
-  return { resolver, machineConnectionRepository, signalRepository, unitOfWork };
+  const eventPublisher = { publish: vi.fn() };
+  return { resolver, machineConnectionRepository, signalRepository, unitOfWork, eventPublisher };
 }
 
 function createUseCase(fakes: ReturnType<typeof createFakes>) {
@@ -62,6 +63,7 @@ function createUseCase(fakes: ReturnType<typeof createFakes>) {
     fakes.machineConnectionRepository,
     fakes.signalRepository,
     fakes.unitOfWork,
+    fakes.eventPublisher,
   );
 }
 
@@ -165,5 +167,22 @@ describe('UpdateSignalUseCase', () => {
       }),
     ).rejects.toBeInstanceOf(MachineInactiveError);
     expect(fakes.signalRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('publica MachineSignalsChanged tras actualizar la Signal (spec 18)', async () => {
+    const fakes = createFakes();
+    const useCase = createUseCase(fakes);
+
+    await useCase.execute({
+      machineId: 'machine-1',
+      signalId: 'signal-1',
+      requester: REQUESTER,
+      changes: { signalSource: { variableName: 'pressure' } },
+    });
+
+    expect(fakes.eventPublisher.publish).toHaveBeenCalledWith('MachineSignalsChanged', {
+      machineId: 'machine-1',
+      companyId: 'company-1',
+    });
   });
 });

@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ISignalTickGenerator } from '../../interface-adapters/data-providers/simulation/signal-tick-generator';
 import { createSignalTickGenerator } from '../../interface-adapters/data-providers/simulation/signal-tick-generator';
+import type { SimulatorConnectionConfig } from '../../entities/connection-config.vo';
 import { SignalType } from '../../entities/signal-type.enum';
 import { isFormulaSignalSource } from '../../entities/signal-source.vo';
 import {
@@ -95,7 +96,8 @@ export class SeedHistoryUseCase {
         continue;
       }
       const variableName = signal.signalSource.variableName;
-      const seed = connection.connectionConfig.signals.find(
+      // SimulatorMachineResolver ya garantiza ProviderType.Simulator.
+      const seed = (connection.connectionConfig as SimulatorConnectionConfig).signals.find(
         (candidate) => candidate.variableName === variableName,
       );
       if (!seed) {

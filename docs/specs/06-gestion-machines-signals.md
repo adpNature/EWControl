@@ -90,7 +90,7 @@ Ver [11-api-rest.md](../11-api-rest.md), secciones "Machine", "MachineConnection
 1. `POST /machines` crea una Machine con `companyId` del token (nunca del payload) y una `MachineConnection` con `providerType: "Simulator"` por defecto.
 2. `GET /machines` y `GET /machines/:id` solo devuelven Machines activas de la Company del usuario autenticado (`SuperAdmin`: de cualquier Company).
 3. `DELETE /machines/:id` es una baja lógica que además desactiva en cascada todas las Signals de esa Machine, sin eliminar filas ni histórico.
-4. `PUT /machines/:machineId/connection` con `providerType` distinto de `Simulator` responde `422 PROVIDER_NOT_SUPPORTED`.
+4. `PUT /machines/:machineId/connection` con `providerType` distinto de `Simulator` responde `422 PROVIDER_NOT_SUPPORTED`. _(Ampliado por [18-integracion-opc-ua.md](18-integracion-opc-ua.md): desde la spec 18 también se admite `OpcUa`; `Mqtt`/`ModbusTcp` siguen siendo `422`.)_
 5. `POST/PATCH` de una Signal `FORMULA` valida que todas las `variables` referenciadas existan en `connectionConfig.signals` de la misma Machine; si no, responde `422 FORMULA_REFERENCES_UNKNOWN_VARIABLE`.
 6. Ningún endpoint de este spec permite acceder, ni de solo lectura, a una Machine o Signal de otra Company (responde `404`).
 7. Un payload con campos no declarados en el DTO es rechazado con `400` antes de llegar a la capa de aplicación.

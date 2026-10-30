@@ -33,6 +33,14 @@ export class PrometheusMetricsService implements IMetricsRecorder {
     registers: [this.registry],
   });
 
+  /** docs/specs/18-integracion-opc-ua.md: aplazada en spec 15 hasta tener un Data Provider real. */
+  private readonly dataProviderReconnectsTotal = new Counter({
+    name: 'ewcontrol_data_provider_reconnects_total',
+    help: 'Número de reconexiones del Data Provider por Machine tras una pérdida de conexión',
+    labelNames: ['machine_id'],
+    registers: [this.registry],
+  });
+
   private readonly alarmActiveTotal = new Gauge({
     name: 'ewcontrol_alarm_active_total',
     help: 'Número de AlarmState con status ACTIVE',
@@ -71,6 +79,12 @@ export class PrometheusMetricsService implements IMetricsRecorder {
     // Nombre de label en snake_case: convención de Prometheus, no del proyecto.
     // eslint-disable-next-line @typescript-eslint/naming-convention
     this.dataProviderConnected.set({ machine_id: machineId }, connected ? 1 : 0);
+  }
+
+  incrementDataProviderReconnect(machineId: string): void {
+    // Nombre de label en snake_case: convención de Prometheus, no del proyecto.
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    this.dataProviderReconnectsTotal.inc({ machine_id: machineId });
   }
 
   setAlarmActiveTotal(count: number): void {

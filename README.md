@@ -79,6 +79,14 @@ Esto levanta PostgreSQL, InfluxDB, el backend (NestJS) y el frontend (Angular) d
 
 > En Windows, los eventos de sistema de archivos no siempre llegan al contenedor a través del bind mount (depende de la ruta y del backend de Docker Desktop), así que el hot-reload por defecto puede no dispararse. Por eso `backend/tsconfig.json` fuerza `watchOptions` por polling y `frontend/angular.json` fija `poll: 1000` en la configuración `development` de `serve`. No son configuraciones redundantes: quítalas y el hot-reload puede dejar de funcionar en Windows.
 
+### Servidor OPC UA de desarrollo
+
+Para trabajar con OPC UA sin acceso a la máquina real ([docs/specs/18-integracion-opc-ua.md](docs/specs/18-integracion-opc-ua.md)), arranca un servidor local que imita el PLC piloto y usa `opc.tcp://localhost:4840` como endpoint en la pantalla "Conexión" de una Machine:
+
+```bash
+docker compose exec backend pnpm run opcua:dev-server
+```
+
 ### Poblar datos demo
 
 Al levantar el entorno por primera vez, un script de seed crea:
@@ -215,7 +223,7 @@ Detalle completo de capas, componentes y flujo de datos en [docs/02-arquitectura
 | Fase 9  | Feature vertical: Motor de fórmulas del Signal Engine (Signals `FORMULA`)     | Completada |
 | Fase 10 | Feature vertical: Históricos — pantalla independiente y comparativas          | Completada |
 | Fase 11 | Observabilidad técnica (health checks, métricas, alerting de infraestructura) | Completada |
-| Fase 12 | Integración OPC UA real                                                       | A Futuro   |
+| Fase 12 | Integración OPC UA real (spec 18: modalidad local en planta)                  | En curso   |
 
 Cada fase a partir de la 2 se especifica en `docs/specs/` antes de implementarse (Documento 0). La Fase 11 es la única puramente backend/infraestructura, sin feature vertical Back+Front asociada.
 

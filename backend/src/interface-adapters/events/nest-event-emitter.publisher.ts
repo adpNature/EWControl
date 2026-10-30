@@ -6,7 +6,10 @@ import {
   AlarmTriggeredPayload,
   IEventPublisher,
   MachineConnectedPayload,
+  MachineConnectionReplacedPayload,
+  MachineDeactivatedPayload,
   MachineDisconnectedPayload,
+  MachineSignalsChangedPayload,
   SignalUpdatedPayload,
 } from '../../use-cases/simulator-control/ports/event-publisher.port';
 
@@ -24,6 +27,9 @@ export class NestEventEmitterPublisher implements IEventPublisher {
   publish(eventName: 'AlarmTriggered', payload: AlarmTriggeredPayload): void;
   publish(eventName: 'AlarmCleared', payload: AlarmClearedPayload): void;
   publish(eventName: 'AlarmAcked', payload: AlarmAckedPayload): void;
+  publish(eventName: 'MachineConnectionReplaced', payload: MachineConnectionReplacedPayload): void;
+  publish(eventName: 'MachineDeactivated', payload: MachineDeactivatedPayload): void;
+  publish(eventName: 'MachineSignalsChanged', payload: MachineSignalsChangedPayload): void;
   publish(
     eventName:
       | 'MachineConnected'
@@ -31,14 +37,20 @@ export class NestEventEmitterPublisher implements IEventPublisher {
       | 'SignalUpdated'
       | 'AlarmTriggered'
       | 'AlarmCleared'
-      | 'AlarmAcked',
+      | 'AlarmAcked'
+      | 'MachineConnectionReplaced'
+      | 'MachineDeactivated'
+      | 'MachineSignalsChanged',
     payload:
       | MachineConnectedPayload
       | MachineDisconnectedPayload
       | SignalUpdatedPayload
       | AlarmTriggeredPayload
       | AlarmClearedPayload
-      | AlarmAckedPayload,
+      | AlarmAckedPayload
+      | MachineConnectionReplacedPayload
+      | MachineDeactivatedPayload
+      | MachineSignalsChangedPayload,
   ): void {
     this.emitter.emit(eventName, payload);
   }

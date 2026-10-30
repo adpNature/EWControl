@@ -6,6 +6,7 @@ import {
   companiesListBreadcrumb,
   companyFormEditBreadcrumb,
   companyFormNewBreadcrumb,
+  machineConnectionBreadcrumb,
   machineDetailBreadcrumb,
   machineFormEditBreadcrumb,
   machineFormNewBreadcrumb,
@@ -21,6 +22,7 @@ import {
  * docs/specs/06-gestion-machines-signals.md: rutas de gestión de Machines/Signals.
  * docs/specs/10-gestion-companies-users.md añade `companies` (solo SuperAdmin,
  * `superAdminGuard`) y `users` (sin guard adicional, ambos roles entran).
+ * docs/specs/18-integracion-opc-ua.md añade `machines/:machineId/connection`.
  */
 export const configRoutes: Routes = [
   {
@@ -85,6 +87,14 @@ export const configRoutes: Routes = [
     data: { breadcrumb: machineFormEditBreadcrumb },
     loadComponent: () =>
       import('./pages/machine-form-page/machine-form-page').then((m) => m.MachineFormPage),
+  },
+  {
+    path: 'machines/:machineId/connection',
+    data: { breadcrumb: machineConnectionBreadcrumb },
+    loadComponent: () =>
+      import('./pages/machine-connection-page/machine-connection-page').then(
+        (m) => m.MachineConnectionPage,
+      ),
   },
   {
     path: 'machines/:machineId/signals/new',

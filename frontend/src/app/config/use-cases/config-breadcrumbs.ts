@@ -98,6 +98,13 @@ export const machineDetailBreadcrumb: BreadcrumbCrumb[] = [
 
 export const machineFormNewBreadcrumb: BreadcrumbCrumb[] = [machinesCrumb, newCrumb];
 
+/** docs/specs/18-integracion-opc-ua.md: pantalla de conexión de una Machine. */
+export const machineConnectionBreadcrumb: BreadcrumbCrumb[] = [
+  machinesCrumb,
+  { label: machineNameResolver, link: machineLink },
+  { label: 'Conexión' },
+];
+
 export const machineFormEditBreadcrumb: BreadcrumbCrumb[] = [
   machinesCrumb,
   { label: machineNameResolver, link: machineLink },

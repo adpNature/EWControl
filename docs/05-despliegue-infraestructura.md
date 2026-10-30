@@ -1,4 +1,5 @@
 # Documento 5
+
 # Despliegue e Infraestructura
 
 # 5.1 Introducción y Objetivos
@@ -60,12 +61,12 @@ Cada componente de la plataforma se empaqueta como una imagen Docker independien
 
 ## Imágenes de la Plataforma
 
-| Imagen | Contenido | Naturaleza |
-|---|---|---|
-| `ewcontrol-backend` | API NestJS, Signal Engine, Realtime Cache, Alarm Engine | Stateless |
-| `ewcontrol-frontend` | Build estático de Angular servido por Nginx | Stateless |
-| `postgres` | PostgreSQL oficial | Stateful (volumen persistente) |
-| `influxdb` | InfluxDB oficial | Stateful (volumen persistente) |
+| Imagen               | Contenido                                               | Naturaleza                     |
+| -------------------- | ------------------------------------------------------- | ------------------------------ |
+| `ewcontrol-backend`  | API NestJS, Signal Engine, Realtime Cache, Alarm Engine | Stateless                      |
+| `ewcontrol-frontend` | Build estático de Angular servido por Nginx             | Stateless                      |
+| `postgres`           | PostgreSQL oficial                                      | Stateful (volumen persistente) |
+| `influxdb`           | InfluxDB oficial                                        | Stateful (volumen persistente) |
 
 No existirá una imagen única para todo el sistema. Cada imagen se construye, versiona y despliega de forma independiente, permitiendo actualizar el Frontend sin reiniciar el Backend o las bases de datos.
 
@@ -73,7 +74,7 @@ No existirá una imagen única para todo el sistema. Cada imagen se construye, v
 
 ## Construcción de Imágenes
 
-Las imágenes de Backend y Frontend se construyen mediante *builds* multi-etapa:
+Las imágenes de Backend y Frontend se construyen mediante _builds_ multi-etapa:
 
 1. Una etapa de compilación con las dependencias de desarrollo (TypeScript, Angular CLI).
 2. Una etapa final que copia únicamente los artefactos compilados sobre una imagen base mínima.
@@ -149,24 +150,24 @@ B2 --> Influx
 B3 --> Influx
 ```
 
-| Componente | Recurso Kubernetes |
-|---|---|
-| Backend | Deployment con múltiples réplicas + Service |
-| Frontend | Deployment con réplicas + Service |
-| PostgreSQL | Instancia gestionada externa o StatefulSet con volumen persistente |
-| InfluxDB | Instancia gestionada externa o StatefulSet con volumen persistente |
-| Entrada de tráfico | Ingress con TLS terminado en el borde del clúster |
+| Componente         | Recurso Kubernetes                                                 |
+| ------------------ | ------------------------------------------------------------------ |
+| Backend            | Deployment con múltiples réplicas + Service                        |
+| Frontend           | Deployment con réplicas + Service                                  |
+| PostgreSQL         | Instancia gestionada externa o StatefulSet con volumen persistente |
+| InfluxDB           | Instancia gestionada externa o StatefulSet con volumen persistente |
+| Entrada de tráfico | Ingress con TLS terminado en el borde del clúster                  |
 
 ---
 
 ## Diferencias entre Entornos
 
-| Aspecto | Desarrollo | Producción |
-|---|---|---|
-| Orquestador | Docker Compose | Kubernetes |
-| Réplicas de Backend | 1 | N, según carga |
-| Bases de datos | Contenedores locales | Gestionadas o con alta disponibilidad |
-| TLS | No requerido | Obligatorio (Capítulo 6) |
+| Aspecto             | Desarrollo           | Producción                            |
+| ------------------- | -------------------- | ------------------------------------- |
+| Orquestador         | Docker Compose       | Kubernetes                            |
+| Réplicas de Backend | 1                    | N, según carga                        |
+| Bases de datos      | Contenedores locales | Gestionadas o con alta disponibilidad |
+| TLS                 | No requerido         | Obligatorio (Capítulo 6)              |
 
 ---
 
@@ -252,6 +253,42 @@ Un Data Provider desplegado en el edge debe tolerar cortes de conectividad hacia
 
 Los Data Providers pueden desplegarse embebidos junto al Backend o distribuidos en el edge según las condiciones de red y volumen de cada planta, sin que esta decisión de despliegue requiera modificar su implementación ni el resto de la arquitectura.
 
+---
+
+## Modo local en planta (spec 18)
+
+Primera aplicación real de este apartado ([docs/specs/18-integracion-opc-ua.md](specs/18-integracion-opc-ua.md)). En lugar de distribuir solo el Data Provider, el **stack completo** (Backend con su `OpcUaProvider`, frontend, PostgreSQL e InfluxDB) se ejecuta en el PC de planta, que está conectado por cable a la máquina. Es el caso "red OT que no admite conexiones entrantes" resuelto sin edge: el Backend ya vive dentro de la red OT.
+
+```mermaid
+flowchart LR
+
+subgraph Planta Industrial
+  PLC[PLC Siemens S7-1500<br/>opc.tcp://192.168.1.1:4840]
+  subgraph PC de planta - Windows + Docker Desktop
+    Backend[Backend + OpcUaProvider]
+    Front[Frontend]
+    DB[(PostgreSQL / InfluxDB)]
+  end
+end
+
+PLC -- cable --> Backend
+Backend --> DB
+Front --> Backend
+```
+
+- **Requisitos del PC de planta**: Windows 10/11 con Docker Desktop (WSL2) y salida a Internet para descargar imágenes. Revisar la licencia de Docker Desktop: es gratuita solo para empresas de menos de 250 empleados y menos de 10 M$ de facturación.
+- **Red desde Docker**: los contenedores salen a la red de la planta a través del NAT del host, así que el Backend llega a `192.168.1.1` igual que el propio PC. No hace falta `network_mode: host`.
+- **Configuración**: el `endpointUrl` se guarda por Machine desde la UI (pantalla "Conexión"), no en variables de entorno. `OPCUA_ALLOWED_HOSTS` puede quedar vacía en este modo; si se rellena, debe incluir la IP del PLC (p. ej. `192.168.1.1/32`).
+- **Certificados de cliente**: aunque el canal es `SecurityMode None`, `node-opcua` genera la primera vez un certificado de cliente en el directorio de usuario del contenedor. No requiere acción; si el contenedor se recrea, se regenera.
+
+### Piloto: acceso remoto temporal por Tailscale
+
+Mientras el equipo no trabaje en la planta, se accede a la máquina desde los equipos de desarrollo con **Tailscale**, usando el PC de planta como _subnet router_ que anuncia solo `192.168.1.1/32`. Así el equipo de desarrollo llega a `opc.tcp://192.168.1.1:4840` igual que el PC de planta, con la misma config de Machine que el despliegue final. Tailscale no forma parte del producto y se desactiva cuando no se usa, porque el PLC acepta conexiones anónimas y sus nodos son escribibles (Documento 6, apartado 6.10).
+
+### Desarrollo sin la máquina
+
+`pnpm run opcua:dev-server` (en `/backend`, o `docker compose exec backend pnpm run opcua:dev-server`) arranca un servidor OPC UA local que imita el espacio de direcciones del PLC piloto (mismos namespaces, ruta y NodeIds). Desde el Backend del mismo contenedor se usa como `opc.tcp://localhost:4840`; con `OPCUA_DEV_SERVER_PORT` se cambia el puerto.
+
 # 5.5 Escalado del Backend
 
 ## Objetivo
@@ -264,7 +301,7 @@ Definir cómo escala horizontalmente el Backend, aprovechando su naturaleza stat
 
 Múltiples réplicas del Backend se sitúan detrás de un balanceador de carga que distribuye las peticiones HTTP entrantes. Cada réplica es intercambiable: cualquiera de ellas puede atender cualquier petición, ya que ninguna mantiene estado que las demás no puedan reconstruir a partir de PostgreSQL, InfluxDB o la Realtime Cache.
 
-El balanceador comprueba periódicamente la salud de cada réplica mediante un endpoint de *health check* y retira automáticamente las instancias que no respondan.
+El balanceador comprueba periódicamente la salud de cada réplica mediante un endpoint de _health check_ y retira automáticamente las instancias que no respondan.
 
 ---
 
@@ -272,7 +309,7 @@ El balanceador comprueba periódicamente la salud de cada réplica mediante un e
 
 El Documento 2 define la Realtime Cache y el WebSocket Adapter como componentes en memoria de una única instancia del Backend. Al escalar horizontalmente, esto introduce una consideración que no existía con una sola instancia: un cliente conectado por WebSocket a la réplica A no recibe automáticamente los eventos procesados por la réplica B.
 
-En la primera versión de la plataforma, con un volumen de máquinas moderado, esta situación se resuelve mediante **sesiones persistentes** (*sticky sessions*) en el balanceador: cada cliente permanece conectado siempre a la misma réplica del Backend durante toda su sesión.
+En la primera versión de la plataforma, con un volumen de máquinas moderado, esta situación se resuelve mediante **sesiones persistentes** (_sticky sessions_) en el balanceador: cada cliente permanece conectado siempre a la misma réplica del Backend durante toda su sesión.
 
 La evolución hacia múltiples réplicas completamente intercambiables para WebSocket —mediante un canal de publicación/suscripción compartido entre instancias— queda como línea de evolución futura, a incorporar únicamente cuando el volumen de conexiones simultáneas lo justifique, conforme al principio de evolución controlada del Documento 2.
 
@@ -280,11 +317,11 @@ La evolución hacia múltiples réplicas completamente intercambiables para WebS
 
 ## Criterios de Escalado
 
-| Métrica | Acción |
-|---|---|
-| Uso de CPU sostenido por encima del umbral configurado | Añadir réplicas |
-| Latencia de respuesta de la API por encima del objetivo | Añadir réplicas |
-| Baja utilización sostenida | Reducir réplicas |
+| Métrica                                                 | Acción           |
+| ------------------------------------------------------- | ---------------- |
+| Uso de CPU sostenido por encima del umbral configurado  | Añadir réplicas  |
+| Latencia de respuesta de la API por encima del objetivo | Añadir réplicas  |
+| Baja utilización sostenida                              | Reducir réplicas |
 
 ---
 
@@ -312,23 +349,23 @@ Definir los requisitos de producción de PostgreSQL e InfluxDB, complementando l
 
 ## PostgreSQL en Producción
 
-| Aspecto | Estrategia |
-|---|---|
-| Disponibilidad | Instancia primaria con réplica de lectura/espera |
-| Backups | Automáticos, según la estrategia del apartado 5.9 |
-| Acceso | Únicamente desde la red interna del Backend, nunca expuesta a internet |
+| Aspecto          | Estrategia                                                                      |
+| ---------------- | ------------------------------------------------------------------------------- |
+| Disponibilidad   | Instancia primaria con réplica de lectura/espera                                |
+| Backups          | Automáticos, según la estrategia del apartado 5.9                               |
+| Acceso           | Únicamente desde la red interna del Backend, nunca expuesta a internet          |
 | Dimensionamiento | Volumen moderado (configuración del dominio), no requiere almacenamiento masivo |
 
 ---
 
 ## InfluxDB en Producción
 
-| Aspecto | Estrategia |
-|---|---|
-| Disponibilidad | Instancia única en la primera versión; la recuperación ante fallo se apoya en backups (apartado 5.9), no en réplica activa |
-| Backups | Snapshots periódicos del bucket `signals_history` |
-| Acceso | Únicamente desde la red interna del Backend |
-| Dimensionamiento | Disco optimizado para escritura secuencial de alto volumen |
+| Aspecto          | Estrategia                                                                                                                 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Disponibilidad   | Instancia única en la primera versión; la recuperación ante fallo se apoya en backups (apartado 5.9), no en réplica activa |
+| Backups          | Snapshots periódicos del bucket `signals_history`                                                                          |
+| Acceso           | Únicamente desde la red interna del Backend                                                                                |
+| Dimensionamiento | Disco optimizado para escritura secuencial de alto volumen                                                                 |
 
 La versión utilizada de InfluxDB no ofrece clustering nativo. Si el crecimiento de la plataforma exige alta disponibilidad activa para los históricos, la evolución natural es migrar a una oferta gestionada con soporte de clustering, sin que ello afecte al modelo de datos definido en el Documento 4.
 
@@ -392,13 +429,13 @@ Cada zona solo puede comunicarse con la zona inmediatamente adyacente, nunca sal
 
 ## Comunicación entre Nodos
 
-| Origen | Destino | Protocolo |
-|---|---|---|
-| Cliente / Angular | Ingress | HTTPS / WSS |
-| Ingress | Backend | HTTP interno |
-| Backend | PostgreSQL | TCP cifrado dentro del clúster |
-| Backend | InfluxDB | HTTP interno cifrado |
-| Data Provider (Edge) | Backend | Canal cifrado a través de internet (detallado en el Capítulo 6) |
+| Origen               | Destino    | Protocolo                                                       |
+| -------------------- | ---------- | --------------------------------------------------------------- |
+| Cliente / Angular    | Ingress    | HTTPS / WSS                                                     |
+| Ingress              | Backend    | HTTP interno                                                    |
+| Backend              | PostgreSQL | TCP cifrado dentro del clúster                                  |
+| Backend              | InfluxDB   | HTTP interno cifrado                                            |
+| Data Provider (Edge) | Backend    | Canal cifrado a través de internet (detallado en el Capítulo 6) |
 
 ---
 
@@ -426,13 +463,13 @@ Definir el nivel de disponibilidad de cada componente de la plataforma y la estr
 
 ## Estrategia por Componente
 
-| Componente | Estrategia de HA | Impacto de un fallo |
-|---|---|---|
-| Frontend | Múltiples réplicas sin estado | Ninguno; el balanceador redirige el tráfico |
-| Backend | Múltiples réplicas + health checks + reinicio automático | Ninguno si quedan réplicas sanas |
-| PostgreSQL | Réplica de lectura/espera con failover | Interrupción breve durante el failover |
-| InfluxDB | Instancia única respaldada por backups | Pérdida temporal de consultas históricas; el tiempo real no se ve afectado |
-| Data Provider (Edge) | Reconexión automática con búfer local | Pérdida temporal de datos de una planta, sin afectar a las demás |
+| Componente           | Estrategia de HA                                         | Impacto de un fallo                                                        |
+| -------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Frontend             | Múltiples réplicas sin estado                            | Ninguno; el balanceador redirige el tráfico                                |
+| Backend              | Múltiples réplicas + health checks + reinicio automático | Ninguno si quedan réplicas sanas                                           |
+| PostgreSQL           | Réplica de lectura/espera con failover                   | Interrupción breve durante el failover                                     |
+| InfluxDB             | Instancia única respaldada por backups                   | Pérdida temporal de consultas históricas; el tiempo real no se ve afectado |
+| Data Provider (Edge) | Reconexión automática con búfer local                    | Pérdida temporal de datos de una planta, sin afectar a las demás           |
 
 ---
 
@@ -466,19 +503,19 @@ Definir la estrategia de copias de seguridad y el procedimiento de recuperación
 
 ## Estrategia de Backups
 
-| Base de datos | Mecanismo | Frecuencia |
-|---|---|---|
-| PostgreSQL | Backup completo + registro de escritura continuo (WAL) | Diario + continuo |
-| InfluxDB | Snapshot del bucket `signals_history` | Diario |
+| Base de datos | Mecanismo                                              | Frecuencia        |
+| ------------- | ------------------------------------------------------ | ----------------- |
+| PostgreSQL    | Backup completo + registro de escritura continuo (WAL) | Diario + continuo |
+| InfluxDB      | Snapshot del bucket `signals_history`                  | Diario            |
 
 ---
 
 ## Objetivos de Recuperación
 
-| Métrica | Objetivo |
-|---|---|
-| RPO (pérdida máxima de datos asumible) | Minutos para PostgreSQL (gracias al WAL continuo); hasta 24 horas para InfluxDB |
-| RTO (tiempo máximo de recuperación) | Minutos para PostgreSQL mediante failover; horas para una restauración completa de InfluxDB |
+| Métrica                                | Objetivo                                                                                    |
+| -------------------------------------- | ------------------------------------------------------------------------------------------- |
+| RPO (pérdida máxima de datos asumible) | Minutos para PostgreSQL (gracias al WAL continuo); hasta 24 horas para InfluxDB             |
+| RTO (tiempo máximo de recuperación)    | Minutos para PostgreSQL mediante failover; horas para una restauración completa de InfluxDB |
 
 ---
 

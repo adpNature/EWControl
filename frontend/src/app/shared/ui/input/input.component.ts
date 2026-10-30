@@ -29,6 +29,8 @@ export class InputComponent implements ControlValueAccessor {
   @Input() type: 'text' | 'email' | 'password' = 'text';
   @Input() autocomplete?: string;
   @Input() errorMessage: string | null = null;
+  /** Id de un `<datalist>` con sugerencias (docs/specs/18-integracion-opc-ua.md, variables conocidas). */
+  @Input() list?: string;
 
   readonly id = `app-input-${nextInputId++}`;
 

@@ -1,0 +1,70 @@
+@if (rootLoading()) {
+  <p class="text-muted" role="status">Cargando nodos del servidor…</p>
+}
+@if (rootError()) {
+  <p class="form-error" role="alert">{{ rootError() }}</p>
+}
+
+@if (!rootLoading() && !rootError()) {
+  @if (visibleItems().length === 0) {
+    <p class="text-muted">El servidor no expone nodos bajo Objects.</p>
+  } @else {
+    <ul
+      class="node-browser"
+      role="tree"
+      aria-label="Nodos del servidor OPC UA"
+      (keydown)="onKeydown($event)"
+    >
+      @for (item of visibleItems(); track item.key) {
+        <li
+          class="node-browser__item"
+          role="treeitem"
+          [id]="itemId(item)"
+          [style.--node-level]="item.level"
+          [attr.aria-level]="item.level"
+          [attr.aria-expanded]="item.node.hasChildren ? item.expanded : null"
+          [attr.aria-busy]="item.loading ? true : null"
+          [attr.aria-selected]="isActive(item)"
+          [tabindex]="isActive(item) ? 0 : -1"
+          (click)="toggle(item)"
+          (focus)="activeKey.set(item.key)"
+        >
+          <span class="node-browser__toggle">
+            @if (item.node.hasChildren) {
+              <app-icon
+                name="arrow-down"
+                [size]="16"
+                class="node-browser__chevron"
+                [class.node-browser__chevron--collapsed]="!item.expanded"
+              />
+            }
+          </span>
+          <span class="node-browser__name">{{ item.node.displayName }}</span>
+          <span class="node-browser__meta text-muted">
+            {{ item.node.nodeClass }}{{ item.node.dataType ? ' · ' + item.node.dataType : '' }}
+          </span>
+          @if (item.loading) {
+            <span class="node-browser__meta text-muted" role="status">Cargando…</span>
+          }
+          @if (item.error) {
+            <span class="form-error" role="alert">{{ item.error }}</span>
+          }
+          @if (isMappable(item.node)) {
+            <button
+              type="button"
+              class="btn-secondary node-browser__add"
+              tabindex="-1"
+              [disabled]="isMapped(item.node)"
+              [attr.aria-label]="
+                (isMapped(item.node) ? 'Ya añadido: ' : 'Añadir al mapeo: ') + item.node.displayName
+              "
+              (click)="add($event, item.node)"
+            >
+              {{ isMapped(item.node) ? 'Añadido' : 'Añadir' }}
+            </button>
+          }
+        </li>
+      }
+    </ul>
+  }
+}

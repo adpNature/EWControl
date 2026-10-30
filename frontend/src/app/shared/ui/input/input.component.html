@@ -7,6 +7,7 @@
     [value]="value"
     [disabled]="disabled"
     [attr.autocomplete]="autocomplete ?? null"
+    [attr.list]="list ?? null"
     [attr.aria-describedby]="errorMessage ? id + '-error' : null"
     [attr.aria-invalid]="errorMessage ? true : null"
     (input)="handleInput($event)"

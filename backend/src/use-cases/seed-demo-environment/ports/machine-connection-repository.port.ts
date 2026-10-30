@@ -11,6 +11,8 @@ export interface IMachineConnectionRepository {
     ctx: TransactionContext,
   ): Promise<MachineConnection>;
   findByMachineId(machineId: string, ctx: TransactionContext): Promise<MachineConnection | null>;
+  /** docs/specs/18-integracion-opc-ua.md: `providerType` del listado de Machines en una sola consulta. */
+  findByMachineIds(machineIds: string[], ctx: TransactionContext): Promise<MachineConnection[]>;
   findAllByProviderType(
     providerType: ProviderType,
     ctx: TransactionContext,

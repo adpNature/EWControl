@@ -17,7 +17,7 @@
     </div>
 
     @if (!isFormula) {
-      <app-input formControlName="variableName" label="Variable" />
+      <app-input formControlName="variableName" label="Variable" [list]="knownVariablesListId" />
     } @else {
       <app-input formControlName="expression" label="Expresión" />
       <app-input
@@ -26,6 +26,12 @@
         [errorMessage]="variablesFieldError()"
       />
     }
+
+    <datalist [id]="knownVariablesListId">
+      @for (variable of knownVariables(); track variable) {
+        <option [value]="variable"></option>
+      }
+    </datalist>
 
     @if (formError()) {
       <p class="form-error" role="alert">{{ formError() }}</p>
@@ -40,7 +46,14 @@
     <div class="signal-form-page__alarms-header">
       <h2 class="title-lg">Reglas de alarma</h2>
       <a
-        [routerLink]="['/config/machines', machineId, 'signals', signalId, 'alarm-definitions', 'new']"
+        [routerLink]="[
+          '/config/machines',
+          machineId,
+          'signals',
+          signalId,
+          'alarm-definitions',
+          'new',
+        ]"
         class="btn-primary"
       >
         Añadir regla
@@ -60,7 +73,11 @@
         Editar
       </button>
       @if (definition.isActive) {
-        <button type="button" class="btn-danger" (click)="alarmDefinitionToDeactivate.set(definition)">
+        <button
+          type="button"
+          class="btn-danger"
+          (click)="alarmDefinitionToDeactivate.set(definition)"
+        >
           Desactivar
         </button>
       }

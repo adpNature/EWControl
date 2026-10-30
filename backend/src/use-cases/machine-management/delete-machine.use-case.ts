@@ -8,6 +8,10 @@ import {
   SIGNAL_REPOSITORY,
 } from '../seed-demo-environment/ports/signal-repository.port';
 import { type IUnitOfWork, UNIT_OF_WORK } from '../seed-demo-environment/ports/unit-of-work.port';
+import {
+  EVENT_PUBLISHER,
+  type IEventPublisher,
+} from '../simulator-control/ports/event-publisher.port';
 import { assertMachineActive, MachineAccessResolver, Requester } from './machine-access.resolver';
 
 export type DeleteMachineInput = { machineId: string; requester: Requester };
@@ -17,6 +21,8 @@ export type DeleteMachineInput = { machineId: string; requester: Requester };
  * baja lógica de la Machine con desactivación en cascada de todas sus Signals,
  * sin borrar filas ni histórico. Una Machine ya inactiva responde 422 (idempotencia
  * explícita: "volver a darla de baja" también es un caso de MachineInactiveError).
+ * Tras el commit publica `MachineDeactivated` para que su Data Provider se detenga
+ * (docs/specs/18-integracion-opc-ua.md).
  */
 @Injectable()
 export class DeleteMachineUseCase {
@@ -25,14 +31,20 @@ export class DeleteMachineUseCase {
     @Inject(MACHINE_REPOSITORY) private readonly machineRepository: IMachineRepository,
     @Inject(SIGNAL_REPOSITORY) private readonly signalRepository: ISignalRepository,
     @Inject(UNIT_OF_WORK) private readonly unitOfWork: IUnitOfWork,
+    @Inject(EVENT_PUBLISHER) private readonly eventPublisher: IEventPublisher,
   ) {}
 
-  execute(input: DeleteMachineInput): Promise<void> {
-    return this.unitOfWork.runInTransaction(async (ctx) => {
-      const machine = await this.resolver.resolveAny(input.machineId, input.requester, ctx);
-      assertMachineActive(machine);
-      await this.machineRepository.softDeactivate(machine.id, ctx);
-      await this.signalRepository.deactivateAllByMachineId(machine.id, ctx);
+  async execute(input: DeleteMachineInput): Promise<void> {
+    const machine = await this.unitOfWork.runInTransaction(async (ctx) => {
+      const resolved = await this.resolver.resolveAny(input.machineId, input.requester, ctx);
+      assertMachineActive(resolved);
+      await this.machineRepository.softDeactivate(resolved.id, ctx);
+      await this.signalRepository.deactivateAllByMachineId(resolved.id, ctx);
+      return resolved;
+    });
+    this.eventPublisher.publish('MachineDeactivated', {
+      machineId: machine.id,
+      companyId: machine.companyId,
     });
   }
 }
