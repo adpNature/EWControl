@@ -30,6 +30,7 @@ import { CreateMachineUseCase } from '../src/use-cases/machine-management/create
 import { CreateSignalUseCase } from '../src/use-cases/machine-management/create-signal.use-case';
 import { DeleteMachineUseCase } from '../src/use-cases/machine-management/delete-machine.use-case';
 import { FormulaReferencesUnknownVariableError } from '../src/use-cases/machine-management/errors/formula-references-unknown-variable.error';
+import { InvalidConnectionConfigError } from '../src/use-cases/machine-management/errors/invalid-connection-config.error';
 import { MachineInactiveError } from '../src/use-cases/machine-management/errors/machine-inactive.error';
 import { MachineNotFoundError } from '../src/use-cases/machine-management/errors/machine-not-found.error';
 import { ProviderNotSupportedError } from '../src/use-cases/machine-management/errors/provider-not-supported.error';
@@ -198,7 +199,7 @@ describe('Machine/Signal management (integration)', () => {
     expect(count.c).toBe(1); // la fila sigue existiendo, no se borra
   });
 
-  it('PUT connection con Simulator reemplaza la config; con otro provider responde 422 (criterio 4)', async () => {
+  it('PUT connection con Simulator reemplaza la config; un provider no soportado responde 422 (criterio 4, ampliado por spec 18)', async () => {
     const companyId = await insertCompany(dataSource);
     const machineId = await insertMachine(dataSource, companyId);
     await insertMachineConnection(dataSource, machineId, { seedProfile: 'empty', signals: [] });
@@ -216,13 +217,53 @@ describe('Machine/Signal management (integration)', () => {
       replaceMachineConnectionUseCase.execute({
         machineId,
         requester,
-        providerType: ProviderType.OpcUa,
-        connectionConfig: {} as never,
+        providerType: ProviderType.Mqtt,
+        connectionConfig: {},
       }),
     ).rejects.toBeInstanceOf(ProviderNotSupportedError);
 
     const connection = await getMachineConnectionUseCase.execute({ machineId, requester });
     expect(connection?.connectionConfig).toEqual({ seedProfile: 'demo', signals: [] });
+  });
+
+  it('PUT connection OpcUa: una config inválida no toca la conexión; una válida se persiste normalizada (spec 18, criterios 1 y 3)', async () => {
+    const companyId = await insertCompany(dataSource);
+    const machineId = await insertMachine(dataSource, companyId);
+    await insertMachineConnection(dataSource, machineId, { seedProfile: 'demo', signals: [] });
+    const requester = { companyId, role: UserRole.AdminCliente };
+
+    await expect(
+      replaceMachineConnectionUseCase.execute({
+        machineId,
+        requester,
+        providerType: ProviderType.OpcUa,
+        connectionConfig: {},
+      }),
+    ).rejects.toBeInstanceOf(InvalidConnectionConfigError);
+    const unchanged = await getMachineConnectionUseCase.execute({ machineId, requester });
+    expect(unchanged?.providerType).toBe(ProviderType.Simulator);
+
+    const nodeMapping = [
+      { nodeId: 'ns=3;s="Lectura"."REAL_1"', signalVariableName: 'Lectura_REAL_1' },
+    ];
+    await replaceMachineConnectionUseCase.execute({
+      machineId,
+      requester,
+      providerType: ProviderType.OpcUa,
+      connectionConfig: { endpointUrl: 'opc.tcp://192.168.1.1:4840', nodeMapping },
+    });
+
+    const connection = await getMachineConnectionUseCase.execute({ machineId, requester });
+    expect(connection?.providerType).toBe(ProviderType.OpcUa);
+    expect(connection?.connectionConfig).toEqual({
+      endpointUrl: 'opc.tcp://192.168.1.1:4840',
+      securityMode: 'None',
+      securityPolicy: 'None',
+      authMode: 'Anonymous',
+      timeoutMs: 5000,
+      samplingIntervalMs: 1000,
+      nodeMapping,
+    });
   });
 
   it('una Signal FORMULA solo puede referenciar variables reales de la MachineConnection (criterio 5)', async () => {
