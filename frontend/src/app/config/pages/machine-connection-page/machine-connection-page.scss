@@ -1,0 +1,74 @@
+@use 'breakpoints' as *;
+
+.machine-connection-page {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+
+.machine-connection-page__providers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.machine-connection-page__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  width: 100%;
+}
+
+.machine-connection-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+// Excepción justificada a Flexbox (docs/12-convenciones-frontend.md, 12.7):
+// el mapeo es una tabla real de datos editable, con <table> semántica.
+.machine-connection-page__table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.machine-connection-page__mapping {
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+  color: var(--text-color);
+
+  th,
+  td {
+    padding: var(--spacing-sm);
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  th {
+    font-weight: 500;
+    color: var(--text-muted-color);
+  }
+
+  code {
+    word-break: break-all;
+  }
+
+  @include respond(md) {
+    font-size: var(--font-size-md);
+  }
+}
+
+.machine-connection-page__row-actions {
+  text-align: right;
+
+  .btn-danger {
+    padding: var(--spacing-xs) var(--spacing-md);
+    font-size: var(--font-size-sm);
+  }
+}

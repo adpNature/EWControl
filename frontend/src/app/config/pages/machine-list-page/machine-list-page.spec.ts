@@ -6,8 +6,9 @@ import { MachinesState } from '../../use-cases/machines.state';
 import { MachineListPage } from './machine-list-page';
 
 const MACHINES = [
-  { id: 'machine-1', companyId: 'company-1', name: 'Bobinadora 1' },
-  { id: 'machine-2', companyId: 'company-1', name: 'Bobinadora 2' },
+  { id: 'machine-1', companyId: 'company-1', name: 'Bobinadora 1', providerType: 'Simulator' },
+  { id: 'machine-2', companyId: 'company-1', name: 'Bobinadora 2', providerType: 'OpcUa' },
+  { id: 'machine-3', companyId: 'company-1', name: 'Bobinadora 3', providerType: null },
 ];
 
 function renderPage(role: 'AdminCliente' | 'SuperAdmin' | undefined) {
@@ -32,6 +33,15 @@ describe('MachineListPage', () => {
 
     expect(screen.getByText('Bobinadora 1')).toBeInTheDocument();
     expect(screen.getByText('Bobinadora 2')).toBeInTheDocument();
+  });
+
+  it('muestra el proveedor real de cada Machine en la columna Conexión (spec 18, criterio 8)', async () => {
+    await renderPage('AdminCliente');
+
+    const rowOf = (name: string) => screen.getByText(name).closest('tr')!;
+    expect(rowOf('Bobinadora 1')).toHaveTextContent('Simulador');
+    expect(rowOf('Bobinadora 2')).toHaveTextContent('OPC UA');
+    expect(rowOf('Bobinadora 3')).toHaveTextContent('—');
   });
 
   it('muestra "Nueva Machine" para un rol con permiso de configuración', async () => {

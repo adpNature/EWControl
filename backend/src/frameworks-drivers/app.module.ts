@@ -10,6 +10,7 @@ import { DashboardModule } from './dashboard.module';
 import { HealthModule } from './health.module';
 import { MachineManagementModule } from './machine-management.module';
 import { MetricsModule } from './metrics.module';
+import { OpcUaModule } from './opc-ua.module';
 import { SimulatorModule } from './simulator.module';
 import { UserManagementModule } from './user-management.module';
 import { postgresConnectionOptions } from './database/postgres.config';
@@ -28,6 +29,7 @@ import { postgresConnectionOptions } from './database/postgres.config';
     EventEmitterModule.forRoot(),
     AuthModule,
     SimulatorModule,
+    OpcUaModule,
     CompanyManagementModule,
     UserManagementModule,
     MachineManagementModule,

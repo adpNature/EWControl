@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ConnectionConfig } from '../../../entities/connection-config.vo';
+import type { SimulatorConnectionConfig as ConnectionConfig } from '../../../entities/connection-config.vo';
 import { ForcedSignalQuality } from '../../../entities/forced-signal-quality.enum';
 import { ProviderType } from '../../../entities/provider-type.enum';
 import { SignalQuality } from '../../../entities/signal-quality.enum';
@@ -17,7 +17,7 @@ function createFakes(
 ) {
   const machineConnectionRepository = {
     create: vi.fn(),
-    findByMachineId: vi.fn(),
+    findByMachineId: vi.fn().mockResolvedValue(null),
     findAllByProviderType: vi.fn().mockResolvedValue(
       connections.map((c) => ({
         id: `connection-${c.machineId}`,
@@ -178,5 +178,117 @@ describe('SimulationProviderRegistry', () => {
     await Promise.resolve();
 
     expect(registry.isConnected('machine-1')).toBe(true);
+  });
+
+  describe('MachineConnectionReplaced (spec 18, criterio backend 2)', () => {
+    it('detiene el provider de una Machine que deja de ser Simulator', async () => {
+      const fakes = createFakes([{ machineId: 'machine-1', connectionConfig: CONFIG }]);
+      const registry = createRegistry(fakes);
+      await registry.onModuleInit();
+
+      await registry.onMachineConnectionReplaced({
+        machineId: 'machine-1',
+        companyId: 'company-1',
+        previousProviderType: ProviderType.Simulator,
+        providerType: ProviderType.OpcUa,
+      });
+
+      expect(() => registry.isConnected('machine-1')).toThrow();
+      expect(fakes.metrics.setDataProviderConnected).toHaveBeenLastCalledWith('machine-1', false);
+      expect(fakes.machineConnectionRepository.findByMachineId).not.toHaveBeenCalled();
+
+      fakes.ingestSignalTick.execute.mockClear();
+      vi.advanceTimersByTime(3000);
+      expect(fakes.ingestSignalTick.execute).not.toHaveBeenCalled();
+    });
+
+    it('arranca un provider para una Machine que pasa a ser Simulator', async () => {
+      const fakes = createFakes([]);
+      fakes.machineConnectionRepository.findByMachineId.mockResolvedValue({
+        id: 'connection-1',
+        machineId: 'machine-1',
+        providerType: ProviderType.Simulator,
+        connectionConfig: CONFIG,
+      });
+      const registry = createRegistry(fakes);
+      await registry.onModuleInit();
+
+      await registry.onMachineConnectionReplaced({
+        machineId: 'machine-1',
+        companyId: 'company-1',
+        previousProviderType: ProviderType.OpcUa,
+        providerType: ProviderType.Simulator,
+      });
+
+      expect(registry.isConnected('machine-1')).toBe(true);
+      vi.advanceTimersByTime(1000);
+      await Promise.resolve();
+      expect(fakes.ingestSignalTick.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ machineId: 'machine-1', variableName: 'WindingSpeed' }),
+      );
+    });
+
+    it('reinicia el provider con la config nueva si sigue siendo Simulator', async () => {
+      const newConfig: ConnectionConfig = {
+        seedProfile: 'test-profile',
+        signals: [{ variableName: 'Tension', min: 0, max: 10, stepMax: 1 }],
+      };
+      const fakes = createFakes([{ machineId: 'machine-1', connectionConfig: CONFIG }]);
+      fakes.machineConnectionRepository.findByMachineId.mockResolvedValue({
+        id: 'connection-1',
+        machineId: 'machine-1',
+        providerType: ProviderType.Simulator,
+        connectionConfig: newConfig,
+      });
+      const registry = createRegistry(fakes);
+      await registry.onModuleInit();
+
+      await registry.onMachineConnectionReplaced({
+        machineId: 'machine-1',
+        companyId: 'company-1',
+        previousProviderType: ProviderType.Simulator,
+        providerType: ProviderType.Simulator,
+      });
+      fakes.ingestSignalTick.execute.mockClear();
+      vi.advanceTimersByTime(1000);
+      await Promise.resolve();
+
+      const variableNames = fakes.ingestSignalTick.execute.mock.calls.map(
+        ([input]) => (input as { variableName: string }).variableName,
+      );
+      expect(variableNames).toEqual(['Tension']);
+    });
+
+    it('ignora cambios entre proveedores que no son Simulator', async () => {
+      const fakes = createFakes([]);
+      const registry = createRegistry(fakes);
+      await registry.onModuleInit();
+
+      await registry.onMachineConnectionReplaced({
+        machineId: 'machine-1',
+        companyId: 'company-1',
+        previousProviderType: ProviderType.OpcUa,
+        providerType: ProviderType.OpcUa,
+      });
+
+      expect(fakes.machineConnectionRepository.findByMachineId).not.toHaveBeenCalled();
+      expect(() => registry.isConnected('machine-1')).toThrow();
+    });
+
+    it('un fallo al cargar la conexión nueva no se propaga al emisor del evento', async () => {
+      const fakes = createFakes([]);
+      fakes.machineConnectionRepository.findByMachineId.mockRejectedValue(new Error('db down'));
+      const registry = createRegistry(fakes);
+      await registry.onModuleInit();
+
+      await expect(
+        registry.onMachineConnectionReplaced({
+          machineId: 'machine-1',
+          companyId: 'company-1',
+          previousProviderType: null,
+          providerType: ProviderType.Simulator,
+        }),
+      ).resolves.toBeUndefined();
+    });
   });
 });

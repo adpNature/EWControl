@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import type { ConnectionConfig } from '../../../entities/connection-config.vo';
+import type { SimulatorConnectionConfig } from '../../../entities/connection-config.vo';
 import type { IDataProvider, VariableListener } from '../data-provider';
 import { DataQuality } from '../data-quality.enum';
 import type { Variable } from '../variable.vo';
@@ -22,7 +22,7 @@ export class SimulationProvider implements IDataProvider {
   >();
 
   constructor(
-    connectionConfig: ConnectionConfig,
+    connectionConfig: SimulatorConnectionConfig,
     private readonly random: RandomFn = Math.random,
     private readonly clock: () => Date = () => new Date(),
   ) {

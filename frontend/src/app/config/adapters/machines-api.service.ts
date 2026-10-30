@@ -2,10 +2,18 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../core/http/api.service';
 import { PaginatedResponse } from '../../core/http/paginated-response.model';
-import { MachineConnection, ReplaceConnectionRequest } from '../entities/machine-connection.model';
+import {
+  MachineConnection,
+  OpcUaBrowseNode,
+  OpcUaConnectionTestResult,
+  ReplaceConnectionRequest,
+} from '../entities/machine-connection.model';
 import { CreateMachineRequest, Machine, UpdateMachineRequest } from '../entities/machine.model';
 
-/** Interface Adapter: llamadas HTTP de docs/11-api-rest.md, secciones "Machine" y "MachineConnection". */
+/**
+ * Interface Adapter: llamadas HTTP de docs/11-api-rest.md, secciones "Machine" y
+ * "MachineConnection" (prueba de conexión y exploración OPC UA: docs/specs/18-integracion-opc-ua.md).
+ */
 @Injectable({ providedIn: 'root' })
 export class MachinesApiService {
   private readonly api = inject(ApiService);
@@ -48,5 +56,27 @@ export class MachinesApiService {
     request: ReplaceConnectionRequest,
   ): Observable<MachineConnection> {
     return this.api.put<MachineConnection>(`/machines/${machineId}/connection`, request);
+  }
+
+  testOpcUaConnection(
+    machineId: string,
+    endpointUrl: string,
+  ): Observable<OpcUaConnectionTestResult> {
+    return this.api.post<OpcUaConnectionTestResult>(
+      `/machines/${machineId}/connection/opcua/test`,
+      { endpointUrl },
+    );
+  }
+
+  /** Sin `nodeId` devuelve los hijos de `ObjectsFolder`. */
+  browseOpcUaNodes(
+    machineId: string,
+    endpointUrl: string,
+    nodeId?: string,
+  ): Observable<{ nodes: OpcUaBrowseNode[] }> {
+    return this.api.post<{ nodes: OpcUaBrowseNode[] }>(
+      `/machines/${machineId}/connection/opcua/browse`,
+      nodeId ? { endpointUrl, nodeId } : { endpointUrl },
+    );
   }
 }

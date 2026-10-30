@@ -1,0 +1,144 @@
+<div class="box machine-connection-page">
+  <h1 class="title-xl">Conexión</h1>
+
+  @if (loading()) {
+    <p class="text-muted" role="status">Cargando conexión…</p>
+  } @else {
+    <fieldset class="machine-connection-page__providers">
+      <legend class="form-label">Proveedor de datos</legend>
+      <label class="form-label">
+        <input
+          type="radio"
+          name="providerType"
+          value="Simulator"
+          [checked]="providerType() === 'Simulator'"
+          (change)="selectProvider('Simulator')"
+        />
+        Simulador
+      </label>
+      <label class="form-label">
+        <input
+          type="radio"
+          name="providerType"
+          value="OpcUa"
+          [checked]="providerType() === 'OpcUa'"
+          (change)="selectProvider('OpcUa')"
+        />
+        OPC UA
+      </label>
+    </fieldset>
+
+    @if (providerType() === 'Simulator') {
+      <p class="text-body">La Machine recibe lecturas generadas por el Simulador.</p>
+    } @else {
+      <section class="machine-connection-page__section" aria-labelledby="opc-ua-endpoint-title">
+        <h2 id="opc-ua-endpoint-title" class="title-lg">Servidor OPC UA</h2>
+        <p class="text-muted">Conexión anónima y sin cifrado (SecurityMode None).</p>
+        <app-input
+          [formControl]="endpointControl"
+          label="Endpoint (opc.tcp://host:puerto)"
+          [errorMessage]="endpointError()"
+        />
+        <div class="machine-connection-page__actions">
+          <button
+            type="button"
+            class="btn-secondary"
+            [disabled]="testing()"
+            (click)="testConnection()"
+          >
+            {{ testing() ? 'Probando…' : 'Probar conexión' }}
+          </button>
+          <button type="button" class="btn-secondary" (click)="exploreNodes()">
+            Explorar nodos
+          </button>
+        </div>
+      </section>
+
+      @if (browseEndpoint(); as endpoint) {
+        <section class="machine-connection-page__section" aria-labelledby="opc-ua-nodes-title">
+          <h2 id="opc-ua-nodes-title" class="title-lg">Nodos del servidor</h2>
+          <app-opc-ua-node-browser
+            [machineId]="machineId"
+            [endpointUrl]="endpoint"
+            [mappedNodeIds]="mappedNodeIds()"
+            (nodeAdded)="addNode($event)"
+          />
+        </section>
+      }
+
+      <section class="machine-connection-page__section" aria-labelledby="opc-ua-mapping-title">
+        <h2 id="opc-ua-mapping-title" class="title-lg">Variables mapeadas</h2>
+        @if (mapping().length === 0) {
+          <p class="text-muted">
+            Explora los nodos del servidor y añade al menos una Variable para poder guardar.
+          </p>
+        } @else {
+          <div class="machine-connection-page__table-wrapper">
+            <table class="machine-connection-page__mapping">
+              <thead>
+                <tr>
+                  <th scope="col">NodeId</th>
+                  <th scope="col">Tipo</th>
+                  <th scope="col">Nombre de variable</th>
+                  <th scope="col"><span class="visually-hidden">Acciones</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of mapping(); track row.nodeId; let index = $index) {
+                  <tr>
+                    <td>
+                      <code>{{ row.nodeId }}</code>
+                    </td>
+                    <td>{{ row.dataType ?? '—' }}</td>
+                    <td>
+                      <label class="visually-hidden" [for]="'mapping-name-' + index">
+                        Nombre de variable para {{ row.nodeId }}
+                      </label>
+                      <input
+                        class="form-input"
+                        [id]="'mapping-name-' + index"
+                        [value]="row.signalVariableName"
+                        [attr.aria-invalid]="rowErrorMessage(index) ? true : null"
+                        [attr.aria-describedby]="
+                          rowErrorMessage(index) ? 'mapping-error-' + index : null
+                        "
+                        (input)="renameRow(index, $event)"
+                      />
+                      @if (rowErrorMessage(index); as message) {
+                        <p class="form-error" [id]="'mapping-error-' + index">{{ message }}</p>
+                      }
+                    </td>
+                    <td class="machine-connection-page__row-actions">
+                      <button
+                        type="button"
+                        class="btn-danger"
+                        [attr.aria-label]="'Quitar ' + row.nodeId + ' del mapeo'"
+                        (click)="removeRow(index)"
+                      >
+                        Quitar
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+    }
+
+    <button type="button" class="btn-primary" [disabled]="!canSave()" (click)="requestSave()">
+      {{ saving() ? 'Guardando…' : 'Guardar' }}
+    </button>
+  }
+</div>
+
+<app-confirm-dialog
+  [open]="confirmOpen()"
+  title="Cambiar proveedor de datos"
+  [message]="confirmMessage()"
+  confirmLabel="Guardar"
+  [danger]="false"
+  (confirmed)="save()"
+  (cancelled)="confirmOpen.set(false)"
+/>

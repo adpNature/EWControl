@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { listSeedVariableNames } from '../../entities/connection-config.vo';
+import { listKnownVariableNames } from '../../entities/connection-config.vo';
 import { validateFormulaExpression } from '../../entities/formula-evaluator';
 import { Signal } from '../../entities/signal.entity';
 import {
@@ -17,6 +17,10 @@ import {
   SIGNAL_REPOSITORY,
 } from '../seed-demo-environment/ports/signal-repository.port';
 import { type IUnitOfWork, UNIT_OF_WORK } from '../seed-demo-environment/ports/unit-of-work.port';
+import {
+  EVENT_PUBLISHER,
+  type IEventPublisher,
+} from '../simulator-control/ports/event-publisher.port';
 import { FormulaExpressionInvalidError } from './errors/formula-expression-invalid.error';
 import { FormulaReferencesUnknownVariableError } from './errors/formula-references-unknown-variable.error';
 import { assertMachineActive, MachineAccessResolver, Requester } from './machine-access.resolver';
@@ -34,6 +38,7 @@ export type CreateSignalInput = {
  * docs/specs/06-gestion-machines-signals.md, criterios de aceptación backend 5 y 8:
  * una Signal FORMULA solo puede referenciar variables ya declaradas en la
  * MachineConnection de la misma Machine (Documento 3, apartado 3.2.5).
+ * Tras el commit publica `MachineSignalsChanged` (docs/specs/18-integracion-opc-ua.md).
  */
 @Injectable()
 export class CreateSignalUseCase {
@@ -43,16 +48,19 @@ export class CreateSignalUseCase {
     private readonly machineConnectionRepository: IMachineConnectionRepository,
     @Inject(SIGNAL_REPOSITORY) private readonly signalRepository: ISignalRepository,
     @Inject(UNIT_OF_WORK) private readonly unitOfWork: IUnitOfWork,
+    @Inject(EVENT_PUBLISHER) private readonly eventPublisher: IEventPublisher,
   ) {}
 
-  execute(input: CreateSignalInput): Promise<Signal> {
-    return this.unitOfWork.runInTransaction(async (ctx) => {
+  async execute(input: CreateSignalInput): Promise<Signal> {
+    const { signal, machineId, companyId } = await this.unitOfWork.runInTransaction(async (ctx) => {
       const machine = await this.resolver.resolveAny(input.machineId, input.requester, ctx);
       assertMachineActive(machine);
 
       if (isFormulaSignalSource(input.signalSource)) {
         const connection = await this.machineConnectionRepository.findByMachineId(machine.id, ctx);
-        const knownVariables = connection ? listSeedVariableNames(connection.connectionConfig) : [];
+        const knownVariables = connection
+          ? listKnownVariableNames(connection.connectionConfig)
+          : [];
         const unknown = findUnknownVariables(input.signalSource, knownVariables);
         if (unknown.length > 0) {
           throw new FormulaReferencesUnknownVariableError(unknown);
@@ -67,7 +75,7 @@ export class CreateSignalUseCase {
         }
       }
 
-      return this.signalRepository.create(
+      const created = await this.signalRepository.create(
         {
           machineId: machine.id,
           name: input.name,
@@ -78,6 +86,9 @@ export class CreateSignalUseCase {
         },
         ctx,
       );
+      return { signal: created, machineId: machine.id, companyId: machine.companyId };
     });
+    this.eventPublisher.publish('MachineSignalsChanged', { machineId, companyId });
+    return signal;
   }
 }

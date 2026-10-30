@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { ProviderType } from '../../entities/provider-type.enum';
 import { UserRole } from '../../entities/user-role.enum';
 import { MachineNotFoundError } from './errors/machine-not-found.error';
 import { GetMachineUseCase } from './get-machine.use-case';
@@ -10,11 +11,20 @@ function createFakes() {
   const unitOfWork = {
     runInTransaction: vi.fn((work: (ctx: unknown) => Promise<unknown>) => work(FAKE_CTX)),
   };
-  return { resolver, unitOfWork };
+  const machineConnectionRepository = {
+    findByMachineId: vi
+      .fn()
+      .mockResolvedValue({ machineId: 'machine-1', providerType: ProviderType.Simulator }),
+  };
+  return { resolver, machineConnectionRepository, unitOfWork };
 }
 
 function createUseCase(fakes: ReturnType<typeof createFakes>) {
-  return new GetMachineUseCase(fakes.resolver as never, fakes.unitOfWork);
+  return new GetMachineUseCase(
+    fakes.resolver as never,
+    fakes.machineConnectionRepository as never,
+    fakes.unitOfWork,
+  );
 }
 
 describe('GetMachineUseCase', () => {
@@ -26,7 +36,20 @@ describe('GetMachineUseCase', () => {
     const machine = await useCase.execute({ machineId: 'machine-1', requester });
 
     expect(fakes.resolver.resolveActive).toHaveBeenCalledWith('machine-1', requester, FAKE_CTX);
-    expect(machine).toEqual({ id: 'machine-1' });
+    expect(machine).toEqual({ id: 'machine-1', providerType: ProviderType.Simulator });
+  });
+
+  it('devuelve providerType null si la Machine no tiene MachineConnection (spec 18)', async () => {
+    const fakes = createFakes();
+    fakes.machineConnectionRepository.findByMachineId.mockResolvedValue(null);
+    const useCase = createUseCase(fakes);
+
+    const machine = await useCase.execute({
+      machineId: 'machine-1',
+      requester: { companyId: 'company-1', role: UserRole.AdminCliente },
+    });
+
+    expect(machine.providerType).toBeNull();
   });
 
   it('propaga MachineNotFoundError del resolver', async () => {

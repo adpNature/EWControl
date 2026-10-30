@@ -32,6 +32,16 @@ describe('PrometheusMetricsService (docs/07-observabilidad-monitorizacion.md, ap
     expect(metrics).toContain('ewcontrol_data_provider_connected{machine_id="machine-2"} 0');
   });
 
+  it('expone ewcontrol_data_provider_reconnects_total por machine_id (spec 18)', async () => {
+    const service = new PrometheusMetricsService();
+
+    service.incrementDataProviderReconnect('machine-1');
+    service.incrementDataProviderReconnect('machine-1');
+
+    const metrics = await service.getMetrics();
+    expect(metrics).toContain('ewcontrol_data_provider_reconnects_total{machine_id="machine-1"} 2');
+  });
+
   it('expone ewcontrol_alarm_active_total como gauge', async () => {
     const service = new PrometheusMetricsService();
 

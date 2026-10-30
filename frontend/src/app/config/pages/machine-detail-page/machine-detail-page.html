@@ -4,6 +4,9 @@
       <h1 class="title-xl">{{ m.name }}</h1>
       @if (canConfigure()) {
         <div class="machine-detail-page__actions">
+          <a [routerLink]="['/config/machines', m.id, 'connection']" class="btn-secondary">
+            Conexión
+          </a>
           <button type="button" class="btn-edit" (click)="editMachine(m.id)">Editar</button>
           <button type="button" class="btn-danger" (click)="deleteMachineDialogOpen.set(true)">
             Eliminar Machine

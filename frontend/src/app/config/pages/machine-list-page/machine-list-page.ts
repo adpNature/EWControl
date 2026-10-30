@@ -6,9 +6,22 @@ import { Machine } from '../../entities/machine.model';
 import { canConfigure } from '../../use-cases/config-permissions';
 import { MachinesState } from '../../use-cases/machines.state';
 
+const PROVIDER_LABELS: ReadonlyMap<string, string> = new Map([
+  ['Simulator', 'Simulador'],
+  ['OpcUa', 'OPC UA'],
+]);
+
 const COLUMNS: TableColumn<Machine>[] = [
   { key: 'name', header: 'Nombre' },
-  { key: 'connection', header: 'Conexión', cell: () => 'Simulator' },
+  {
+    key: 'connection',
+    header: 'Conexión',
+    // docs/specs/18-integracion-opc-ua.md, criterio frontend 8: proveedor real.
+    cell: (machine) =>
+      machine.providerType
+        ? (PROVIDER_LABELS.get(machine.providerType) ?? machine.providerType)
+        : '—',
+  },
 ];
 
 /** docs/specs/06-gestion-machines-signals.md: listado de Machines de la Company del usuario. */

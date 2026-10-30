@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { EntityManager } from 'typeorm';
+import { EntityManager, In } from 'typeorm';
 import { ConnectionConfig } from '../../../../entities/connection-config.vo';
 import { MachineConnection } from '../../../../entities/machine-connection.entity';
 import { ProviderType } from '../../../../entities/provider-type.enum';
@@ -20,6 +20,18 @@ export class MachineConnectionTypeOrmRepository implements IMachineConnectionRep
     return (ctx as EntityManager)
       .getRepository(MachineConnection)
       .findOne({ where: { machineId } });
+  }
+
+  async findByMachineIds(
+    machineIds: string[],
+    ctx: TransactionContext,
+  ): Promise<MachineConnection[]> {
+    if (machineIds.length === 0) {
+      return [];
+    }
+    return (ctx as EntityManager)
+      .getRepository(MachineConnection)
+      .find({ where: { machineId: In(machineIds) } });
   }
 
   findAllByProviderType(

@@ -88,4 +88,30 @@ describe('MachinesApiService', () => {
     expect(req.request.body).toEqual(request);
     req.flush({});
   });
+
+  it('testOpcUaConnection llama a POST /machines/:machineId/connection/opcua/test (spec 18)', () => {
+    service.testOpcUaConnection('machine-1', 'opc.tcp://192.168.1.1:4840').subscribe();
+
+    const req = httpMock.expectOne('/api/v1/machines/machine-1/connection/opcua/test');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ endpointUrl: 'opc.tcp://192.168.1.1:4840' });
+    req.flush({ reachable: true });
+  });
+
+  it('browseOpcUaNodes envía nodeId solo si se indica (spec 18)', () => {
+    service.browseOpcUaNodes('machine-1', 'opc.tcp://192.168.1.1:4840').subscribe();
+    service
+      .browseOpcUaNodes('machine-1', 'opc.tcp://192.168.1.1:4840', 'ns=3;s="Lectura"')
+      .subscribe();
+
+    const [root, child] = httpMock.match('/api/v1/machines/machine-1/connection/opcua/browse');
+    expect(root.request.method).toBe('POST');
+    expect(root.request.body).toEqual({ endpointUrl: 'opc.tcp://192.168.1.1:4840' });
+    expect(child.request.body).toEqual({
+      endpointUrl: 'opc.tcp://192.168.1.1:4840',
+      nodeId: 'ns=3;s="Lectura"',
+    });
+    root.flush({ nodes: [] });
+    child.flush({ nodes: [] });
+  });
 });

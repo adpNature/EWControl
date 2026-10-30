@@ -38,6 +38,8 @@ import { SimulatorMachineResolver } from '../use-cases/simulator-control/simulat
  * `HISTORY_WRITER` (persistencia continua a InfluxDB y backfill puntual del seed).
  * `RAW_VARIABLE_CACHE` es interno a este módulo (no se exporta, spec 13): solo lo
  * consume `IngestSignalTickUseCase` para evaluar Signals `FORMULA` multi-variable.
+ * Exporta `IngestSignalTickUseCase` (spec 18) para que `OpcUaModule` entregue sus
+ * Variables al mismo Signal Engine, sin exponer `RAW_VARIABLE_CACHE`.
  */
 @Module({
   imports: [DashboardModule, HistoryPersistenceModule, MetricsModule],
@@ -60,5 +62,6 @@ import { SimulatorMachineResolver } from '../use-cases/simulator-control/simulat
     { provide: CLOCK, useClass: SystemClock },
     { provide: RANDOM_SOURCE, useClass: MathRandomSource },
   ],
+  exports: [IngestSignalTickUseCase],
 })
 export class SimulatorModule {}

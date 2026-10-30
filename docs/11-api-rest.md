@@ -142,6 +142,28 @@ Se gestiona siempre en el contexto de su Machine (Documento 3: relación 1 a 1).
 | GET    | `/api/v1/machines/:machineId/connection` | Configuración de conexión de la Machine.                                                                                      |
 | PUT    | `/api/v1/machines/:machineId/connection` | Reemplaza `ProviderType` + `ConnectionConfig` de la Machine (ej. pasar de `Simulator` a `OpcUa`, Documento 10 apartado 10.7). |
 
+### Prueba de conexión y exploración OPC UA
+
+[docs/specs/18-integracion-opc-ua.md](specs/18-integracion-opc-ua.md). Sesiones OPC UA anónimas, efímeras y de solo lectura contra el `endpointUrl` del cuerpo, que puede no estar guardado todavía. Son `POST` para que el endpoint no viaje en la URL ni en los logs de acceso.
+
+| Método | Ruta                                                  | Descripción                                                                                                                                                       |
+| ------ | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/v1/machines/:machineId/connection/opcua/test`   | Body `{ "endpointUrl": "opc.tcp://…" }`. `200 { "reachable": true }` o `200 { "reachable": false, "reason": "UNREACHABLE" \| "TIMEOUT" \| "SECURITY_REJECTED" }`. |
+| POST   | `/api/v1/machines/:machineId/connection/opcua/browse` | Body `{ "endpointUrl": "opc.tcp://…", "nodeId"?: "…" }`. Hijos directos del nodo (sin `nodeId`, de `ObjectsFolder`): `200 { "nodes": [...] }`.                    |
+
+Cada nodo de `browse` tiene la forma `{ nodeId, browseName, displayName, nodeClass, dataType?, hasChildren }`; `dataType` solo aparece en nodos `Variable`.
+
+Errores específicos de `MachineConnection` desde la spec 18:
+
+| Código                       | HTTP | Cuándo                                                                                                      |
+| ---------------------------- | ---- | ----------------------------------------------------------------------------------------------------------- |
+| `INVALID_CONNECTION_CONFIG`  | 400  | `PUT` con una `ConnectionConfig` OPC UA que no cumple la forma del Documento 3, apartado 3.2.4.             |
+| `INVALID_ENDPOINT_URL`       | 400  | `test`/`browse` con un endpoint que no es `opc.tcp://host[:puerto]`.                                        |
+| `OPCUA_INVALID_NODE_ID`      | 400  | `browse` con un `nodeId` mal formado o inexistente en el servidor.                                          |
+| `OPCUA_ENDPOINT_NOT_ALLOWED` | 422  | El host del endpoint está fuera de `OPCUA_ALLOWED_HOSTS` (anti-SSRF, Documento 6, apartado 6.10).           |
+| `PROVIDER_NOT_SUPPORTED`     | 422  | `PUT` con `providerType` `Mqtt` o `ModbusTcp`.                                                              |
+| `OPCUA_ENDPOINT_UNREACHABLE` | 502  | `browse` sin respuesta del servidor OPC UA (el detalle técnico solo va al log del Backend, nunca a la API). |
+
 ### Endpoints de control del Simulador
 
 Solo aplicables cuando `ProviderType = Simulator` (Documento 10). Devuelven `422` si la Machine usa otro proveedor.

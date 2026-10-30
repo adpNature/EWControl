@@ -130,4 +130,17 @@ describe('MachineDetailPage', () => {
     expect(screen.queryByRole('button', { name: 'Eliminar Machine' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Nueva Signal' })).not.toBeInTheDocument();
   });
+
+  it('ofrece el acceso a la pantalla de conexión de la Machine (spec 18)', async () => {
+    await renderPage();
+
+    // Con el Router simulado, routerLink no genera href: se comprueba el ancla por su texto.
+    expect(screen.getByText('Conexión').closest('a')).toBeInTheDocument();
+  });
+
+  it('oculta el acceso a la conexión sin rol de configuración', async () => {
+    await renderPage('none');
+
+    expect(screen.queryByText('Conexión')).not.toBeInTheDocument();
+  });
 });

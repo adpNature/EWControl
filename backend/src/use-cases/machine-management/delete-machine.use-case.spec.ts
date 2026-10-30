@@ -27,7 +27,8 @@ function createFakes() {
   const unitOfWork = {
     runInTransaction: vi.fn((work: (ctx: unknown) => Promise<unknown>) => work(FAKE_CTX)),
   };
-  return { resolver, machineRepository, signalRepository, unitOfWork };
+  const eventPublisher = { publish: vi.fn() };
+  return { resolver, machineRepository, signalRepository, unitOfWork, eventPublisher };
 }
 
 function createUseCase(fakes: ReturnType<typeof createFakes>) {
@@ -36,10 +37,26 @@ function createUseCase(fakes: ReturnType<typeof createFakes>) {
     fakes.machineRepository,
     fakes.signalRepository,
     fakes.unitOfWork,
+    fakes.eventPublisher,
   );
 }
 
 describe('DeleteMachineUseCase', () => {
+  it('publica MachineDeactivated tras la baja para detener su Data Provider (spec 18)', async () => {
+    const fakes = createFakes();
+    const useCase = createUseCase(fakes);
+
+    await useCase.execute({
+      machineId: 'machine-1',
+      requester: { companyId: 'company-1', role: UserRole.AdminCliente },
+    });
+
+    expect(fakes.eventPublisher.publish).toHaveBeenCalledWith('MachineDeactivated', {
+      machineId: 'machine-1',
+      companyId: 'company-1',
+    });
+  });
+
   it('desactiva la Machine y en cascada todas sus Signals', async () => {
     const fakes = createFakes();
     const useCase = createUseCase(fakes);

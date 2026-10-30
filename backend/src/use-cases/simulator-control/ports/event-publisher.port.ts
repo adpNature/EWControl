@@ -1,4 +1,5 @@
 import type { AlarmPriority } from '../../../entities/alarm-priority.enum';
+import type { ProviderType } from '../../../entities/provider-type.enum';
 import type { SignalQuality } from '../../../entities/signal-quality.enum';
 
 export const EVENT_PUBLISHER = Symbol('EventPublisher');
@@ -59,6 +60,27 @@ export type AlarmAckedPayload = {
 };
 
 /**
+ * docs/specs/18-integracion-opc-ua.md: evento interno (no se reemite por
+ * WebSocket) tras reemplazar la `MachineConnection`, para que los registries de
+ * Data Providers paren el provider anterior y arranquen el nuevo en caliente.
+ * `previousProviderType` es `null` si la Machine no tenía conexión.
+ */
+export type MachineConnectionReplacedPayload = {
+  machineId: string;
+  companyId: string;
+  previousProviderType: ProviderType | null;
+  providerType: ProviderType;
+};
+/** docs/specs/18-integracion-opc-ua.md: evento interno tras la baja lógica de una Machine. */
+export type MachineDeactivatedPayload = { machineId: string; companyId: string };
+/**
+ * docs/specs/18-integracion-opc-ua.md: evento interno tras crear o editar una
+ * Signal. Un Data Provider que solo notifica cambios (OPC UA) republica sus
+ * últimos valores para que la Signal nueva no quede sin valor.
+ */
+export type MachineSignalsChangedPayload = { machineId: string; companyId: string };
+
+/**
  * Único punto por el que el dominio/aplicación publica eventos, sin conocer
  * el mecanismo de entrega concreto (Documento 2: "Ningún componente del dominio
  * utilizará directamente el EventEmitter de NestJS"). Los nombres de evento
@@ -72,4 +94,7 @@ export interface IEventPublisher {
   publish(eventName: 'AlarmTriggered', payload: AlarmTriggeredPayload): void;
   publish(eventName: 'AlarmCleared', payload: AlarmClearedPayload): void;
   publish(eventName: 'AlarmAcked', payload: AlarmAckedPayload): void;
+  publish(eventName: 'MachineConnectionReplaced', payload: MachineConnectionReplacedPayload): void;
+  publish(eventName: 'MachineDeactivated', payload: MachineDeactivatedPayload): void;
+  publish(eventName: 'MachineSignalsChanged', payload: MachineSignalsChangedPayload): void;
 }

@@ -8,7 +8,9 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
 import { InputComponent } from '../../../shared/ui/input/input.component';
 import { TableColumn, TableComponent } from '../../../shared/ui/table/table.component';
 import { ToastService } from '../../../shared/ui/toast/toast.service';
+import { MachinesApiService } from '../../adapters/machines-api.service';
 import { SignalsApiService } from '../../adapters/signals-api.service';
+import { listKnownVariableNames } from '../../entities/machine-connection.model';
 import { SignalSource, SignalType } from '../../entities/signal.model';
 import { SignalsState } from '../../use-cases/signals.state';
 import { signalFormErrorMessage } from './signal-form-error-message';
@@ -45,6 +47,7 @@ export class SignalFormPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly signalsApi = inject(SignalsApiService);
+  private readonly machinesApi = inject(MachinesApiService);
   private readonly signalsState = inject(SignalsState);
   protected readonly alarmDefinitionsState = inject(AlarmDefinitionsState);
   private readonly toastService = inject(ToastService);
@@ -65,6 +68,8 @@ export class SignalFormPage implements OnInit {
     variables: new FormControl('', { nonNullable: true }),
   });
 
+  readonly knownVariables = signal<string[]>([]);
+  readonly knownVariablesListId = 'signal-form-known-variables';
   readonly submitting = signal(false);
   readonly formError = signal<string | null>(null);
   readonly variablesFieldError = signal<string | null>(null);
@@ -82,6 +87,13 @@ export class SignalFormPage implements OnInit {
   }
 
   ngOnInit(): void {
+    // spec 18, criterio frontend 9: sugerencias de las variables que expone la
+    // Machine (semillas del Simulador o nodeMapping de OPC UA). Sin conexión, sin sugerencias.
+    this.machinesApi.getConnection(this.machineId).subscribe({
+      next: (connection) =>
+        this.knownVariables.set(listKnownVariableNames(connection.connectionConfig)),
+      error: () => this.knownVariables.set([]),
+    });
     this.signalId = this.route.snapshot.paramMap.get('signalId');
     if (!this.signalId) {
       return;

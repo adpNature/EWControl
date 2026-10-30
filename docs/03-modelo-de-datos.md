@@ -927,25 +927,27 @@ Ejemplos:
 
 Cuando `ProviderType = Simulator`, la estructura y las señales seed disponibles están especificadas en el Documento 10, apartado 10.3.
 
-Cuando `ProviderType = OpcUa`, `ConnectionConfig` incluye:
+Cuando `ProviderType = OpcUa`, `ConnectionConfig` incluye (implementado en [docs/specs/18-integracion-opc-ua.md](specs/18-integracion-opc-ua.md)):
 
 ```json
 {
-  "endpointUrl": "opc.tcp://192.168.1.10:4840",
-  "securityPolicy": "Basic256Sha256",
-  "securityMode": "SignAndEncrypt",
-  "authMode": "Certificate",
-  "certificateRef": "machine-42-client-cert",
+  "endpointUrl": "opc.tcp://192.168.1.1:4840",
+  "securityMode": "None",
+  "securityPolicy": "None",
+  "authMode": "Anonymous",
   "timeoutMs": 5000,
+  "samplingIntervalMs": 1000,
   "nodeMapping": [
-    { "nodeId": "ns=2;s=Line1.WindingSpeed", "signalVariableName": "WindingSpeed" },
-    { "nodeId": "ns=2;s=Line1.MotorTemp", "signalVariableName": "MotorTemperature" }
+    { "nodeId": "ns=3;s=\"Lectura\".\"REAL_1\"", "signalVariableName": "Lectura_REAL_1" },
+    { "nodeId": "ns=3;s=\"Lectura\".\"BOOL_1\"", "signalVariableName": "Lectura_BOOL_1" }
   ]
 }
 ```
 
-- `endpointUrl`, `securityPolicy`, `securityMode`, `authMode`, `certificateRef`, `timeoutMs`: parámetros de conexión y seguridad del canal OPC UA (ver Documento 6, apartado 6.3, para el modelo de confianza en el edge).
-- `nodeMapping`: la lista de correspondencias entre un `NodeId` de OPC UA y el nombre de Variable interno (el mismo `variableName` que utiliza `SignalSource`, apartado 3.4, para resolver una Signal `DIRECT`). Sin esta lista, el `OpcUaProvider` no sabría a qué Signal corresponde cada NodeId suscrito.
+- `endpointUrl`: siempre `opc.tcp://host[:puerto]`. Es el host al que se conecta el Backend, aunque el servidor anuncie otro en `GetEndpoints`.
+- `securityMode`, `securityPolicy`, `authMode`: hoy solo `None`/`None`/`Anonymous`, lo que expone el PLC piloto. La forma queda abierta para `Sign`/`SignAndEncrypt`, `UserName` y `Certificate` (con un `certificateRef`, ver Documento 6, apartado 6.3) en una spec posterior; hasta entonces cualquier otro valor, o un campo no declarado, se rechaza.
+- `timeoutMs` (1000–60000, por defecto 5000) y `samplingIntervalMs` (100–60000, por defecto 1000): tiempo máximo de las sesiones efímeras de prueba/exploración e intervalo de muestreo y publicación de la Subscription.
+- `nodeMapping`: la lista de correspondencias entre un `NodeId` de OPC UA y el nombre de Variable interno (el mismo `variableName` que utiliza `SignalSource`, apartado 3.4, para resolver una Signal `DIRECT`). Sin esta lista, el `OpcUaProvider` no sabría a qué Signal corresponde cada NodeId suscrito. Entre 1 y 500 entradas, sin `nodeId` ni `signalVariableName` repetidos; `signalVariableName` cumple `[A-Za-z_][A-Za-z0-9_]*`, el patrón de identificador del motor de fórmulas, para poder referenciarse desde una Signal `FORMULA`.
 
 ### Traducción de calidad
 
@@ -958,7 +960,9 @@ El `StatusCode` nativo de OPC UA se traduce al enum de calidad interno (Document
 | Bad (cualquier subcódigo)       | BAD             |
 | Sin lectura / sesión caída      | OFFLINE         |
 
-Esta traducción la realiza el propio `OpcUaProvider`, antes de publicar la Variable (Documento 2, apartado 2.4): el resto de la plataforma nunca ve un `StatusCode` de OPC UA, solo la calidad interna ya traducida.
+Esta traducción la realiza el propio `OpcUaProvider`, antes de publicar la Variable (Documento 2, apartado 2.4): el resto de la plataforma nunca ve un `StatusCode` de OPC UA, solo la calidad interna ya traducida. La fila `OFFLINE` no la produce una notificación sino la pérdida de la sesión: el provider publica `MachineDisconnected` y las Signals de la Machine pasan a `OFFLINE` en la Realtime Cache.
+
+El `timestamp` de cada Variable OPC UA es la hora de recepción en el Backend, no el `sourceTimestamp` del servidor: el reloj de un PLC no es fiable (el PLC piloto informa de una fecha de 2012) y usarlo escribiría el histórico en una fecha incorrecta.
 
 Mientras que un simulador utiliza una configuración completamente distinta (Documento 10).
 

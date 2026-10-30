@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
 import { of, throwError } from 'rxjs';
 import { AlarmDefinitionsState } from '../../../alarms/use-cases/alarm-definitions.state';
+import { MachinesApiService } from '../../adapters/machines-api.service';
 import { SignalsApiService } from '../../adapters/signals-api.service';
 import { SignalsState } from '../../use-cases/signals.state';
 import { SignalFormPage } from './signal-form-page';
@@ -30,8 +31,30 @@ describe('SignalFormPage', () => {
     definitions: ReturnType<typeof vi.fn>;
   };
   let router: { navigate: ReturnType<typeof vi.fn> };
+  let machinesApi: { getConnection: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
+    machinesApi = {
+      getConnection: vi.fn().mockReturnValue(
+        of({
+          id: 'connection-1',
+          machineId: 'machine-1',
+          providerType: 'OpcUa',
+          connectionConfig: {
+            endpointUrl: 'opc.tcp://192.168.1.1:4840',
+            securityMode: 'None',
+            securityPolicy: 'None',
+            authMode: 'Anonymous',
+            timeoutMs: 5000,
+            samplingIntervalMs: 1000,
+            nodeMapping: [
+              { nodeId: 'ns=3;s="Lectura"."REAL_1"', signalVariableName: 'Lectura_REAL_1' },
+              { nodeId: 'ns=3;s="Lectura"."BOOL_1"', signalVariableName: 'Lectura_BOOL_1' },
+            ],
+          },
+        }),
+      ),
+    };
     signalsApi = { get: vi.fn() };
     signalsState = { create: vi.fn(), update: vi.fn() };
     alarmDefinitionsState = {
@@ -46,6 +69,7 @@ describe('SignalFormPage', () => {
     return render(SignalFormPage, {
       providers: [
         { provide: SignalsApiService, useValue: signalsApi },
+        { provide: MachinesApiService, useValue: machinesApi },
         { provide: SignalsState, useValue: signalsState },
         { provide: AlarmDefinitionsState, useValue: alarmDefinitionsState },
         { provide: Router, useValue: router },
@@ -230,5 +254,25 @@ describe('SignalFormPage', () => {
 
     expect(await screen.findByText(/no existe en esta Machine/)).toBeInTheDocument();
     expect(screen.getByLabelText('Expresión')).toHaveValue('a - z');
+  });
+
+  it('sugiere las variables del nodeMapping de una Machine OPC UA (spec 18, criterio 9)', async () => {
+    const { container } = await renderPage();
+
+    const input = screen.getByLabelText('Variable');
+    const listId = input.getAttribute('list');
+    expect(listId).toBeTruthy();
+    const options = Array.from(container.querySelectorAll(`datalist#${listId} option`)).map(
+      (option) => option.getAttribute('value'),
+    );
+    expect(options).toEqual(['Lectura_REAL_1', 'Lectura_BOOL_1']);
+  });
+
+  it('sin conexión cargable el formulario sigue funcionando, sin sugerencias', async () => {
+    machinesApi.getConnection.mockReturnValue(throwError(() => ({ status: 404 })));
+    const { container } = await renderPage();
+
+    expect(screen.getByLabelText('Variable')).toBeInTheDocument();
+    expect(container.querySelectorAll('datalist option')).toHaveLength(0);
   });
 });
