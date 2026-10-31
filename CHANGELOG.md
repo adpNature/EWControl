@@ -1,3 +1,9 @@
+# [1.16.0](https://github.com/adpNature/EWControl/compare/v1.15.0...v1.16.0) (2026-10-31)
+
+### Features
+
+- añade paquetes de escritura OPC UA para escribir en el PLC (spec 20) ([45e3413](https://github.com/adpNature/EWControl/commit/45e341355d9db73268df9548c42dd70ce16e02ce))
+
 # [1.15.0](https://github.com/adpNature/EWControl/compare/v1.14.0...v1.15.0) (2026-10-30)
 
 ### Features
