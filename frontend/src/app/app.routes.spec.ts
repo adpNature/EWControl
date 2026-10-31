@@ -33,6 +33,7 @@ describe('routes', () => {
         'config',
         'alarms',
         'history',
+        'paquetes',
         'account/change-password',
       ]),
     );
@@ -51,6 +52,13 @@ describe('routes', () => {
     const configRoute = shellRoute?.children?.find((route) => route.path === 'config');
 
     expect(configRoute?.canActivate).toEqual([configGuard]);
+  });
+
+  it('deja /paquetes sin configGuard: el Operador ejecuta paquetes (docs/specs/20-paquetes-escritura-opc-ua.md)', () => {
+    const shellRoute = routes.find((route) => route.path === '' && route.children);
+    const packagesRoute = shellRoute?.children?.find((route) => route.path === 'paquetes');
+
+    expect(packagesRoute?.canActivate ?? []).not.toContain(configGuard);
   });
 
   it('sigue redirigiendo rutas desconocidas a dashboard', () => {

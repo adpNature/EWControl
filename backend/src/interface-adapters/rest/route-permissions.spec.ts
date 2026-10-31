@@ -40,6 +40,11 @@ const OPERADOR_ALLOWED = new Set([
   'GET alarm-states/:id',
   'POST alarm-states/:id/ack',
   'PATCH users/me/password',
+  // docs/specs/20-paquetes-escritura-opc-ua.md: el Operador consulta y ejecuta paquetes, no los gestiona.
+  'GET machines/:machineId/write-packages',
+  'GET machines/:machineId/write-packages/:id',
+  'POST machines/:machineId/write-packages/:id/execute',
+  'GET machines/:machineId/write-packages/:id/executions',
 ]);
 
 const controllerModules = (

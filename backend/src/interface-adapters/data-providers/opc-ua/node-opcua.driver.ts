@@ -4,16 +4,26 @@ import {
   type ClientSession,
   ClientMonitoredItem,
   ClientSubscription,
+  DataType,
   type DataValue,
   MessageSecurityMode,
+  type NodeId,
   OPCUAClient,
   resolveNodeId,
   SecurityPolicy,
   TimestampsToReturn,
+  Variant,
 } from 'node-opcua-client';
 import type { OpcUaConnectionConfig } from '../../../entities/connection-config.vo';
-import { toDataChange } from './node-opcua.mappers';
-import type { IOpcUaDriver, IOpcUaDriverListener, OpcUaDriverFactory } from './opc-ua-driver.port';
+import { standardDataTypeName, toDataChange, withTimeout } from './node-opcua.mappers';
+import {
+  type IOpcUaDriver,
+  type IOpcUaDriverListener,
+  type OpcUaDriverFactory,
+  OpcUaSessionUnavailableError,
+  type OpcUaWriteItem,
+  type OpcUaWriteResult,
+} from './opc-ua-driver.port';
 
 /** spec 18: reintento indefinido con backoff exponencial, máximo 30 s entre intentos. */
 const RECONNECTION_STRATEGY = { maxRetry: -1, initialDelay: 1000, maxDelay: 30000 };
@@ -47,6 +57,79 @@ export class NodeOpcUaDriver implements IOpcUaDriver {
     this.stopped = true;
     clearTimeout(this.retryTimer);
     await this.closeQuietly();
+  }
+
+  /** docs/specs/20-paquetes-escritura-opc-ua.md: escritura con la sesión de la Subscription. */
+  async write(items: OpcUaWriteItem[]): Promise<OpcUaWriteResult[]> {
+    const session = this.session;
+    if (!session || this.stopped) {
+      throw new OpcUaSessionUnavailableError();
+    }
+    return withTimeout(this.writeWithSession(session, items), this.config.timeoutMs);
+  }
+
+  private async writeWithSession(
+    session: ClientSession,
+    items: OpcUaWriteItem[],
+  ): Promise<OpcUaWriteResult[]> {
+    const results: OpcUaWriteResult[] = items.map((item) => ({
+      nodeId: item.nodeId,
+      statusCode: 'BadNodeIdInvalid',
+    }));
+    const resolved: { index: number; nodeId: NodeId }[] = [];
+    items.forEach((item, index) => {
+      try {
+        resolved.push({ index, nodeId: resolveNodeId(item.nodeId) });
+      } catch {
+        // Queda como BadNodeIdInvalid, sin enviarse.
+      }
+    });
+    if (resolved.length === 0) {
+      return results;
+    }
+
+    // Se comprueba el tipo real del nodo antes de escribir: nunca se envía un
+    // valor con un tipo distinto del que espera el PLC.
+    const dataTypes = await session.read(
+      resolved.map(({ nodeId }) => ({ nodeId, attributeId: AttributeIds.DataType })),
+    );
+    const toWrite: { index: number; nodeId: NodeId; variant: Variant }[] = [];
+    resolved.forEach(({ index, nodeId }, position) => {
+      const dataValue = dataTypes[position];
+      if (!dataValue?.statusCode.isGood()) {
+        results[index].statusCode = dataValue?.statusCode.name ?? 'BadNodeIdUnknown';
+        return;
+      }
+      const actualType = standardDataTypeName(dataValue.value.value as NodeId);
+      const item = items[index];
+      if (actualType !== item.dataType) {
+        results[index].statusCode = 'BadTypeMismatch';
+        return;
+      }
+      toWrite.push({
+        index,
+        nodeId,
+        variant: new Variant({
+          dataType: DataType[item.dataType as keyof typeof DataType],
+          value: item.value,
+        }),
+      });
+    });
+    if (toWrite.length === 0) {
+      return results;
+    }
+
+    const statusCodes = await session.write(
+      toWrite.map(({ nodeId, variant }) => ({
+        nodeId,
+        attributeId: AttributeIds.Value,
+        value: { value: variant },
+      })),
+    );
+    toWrite.forEach(({ index }, position) => {
+      results[index].statusCode = statusCodes[position]?.name ?? 'BadUnexpectedError';
+    });
+    return results;
   }
 
   private async connectWithRetry(listener: IOpcUaDriverListener, attempt: number): Promise<void> {

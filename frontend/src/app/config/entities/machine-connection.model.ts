@@ -17,6 +17,11 @@ export interface SimulatorConnectionConfig {
 export interface OpcUaNodeMapping {
   nodeId: string;
   signalVariableName: string;
+  /** docs/specs/20-paquetes-escritura-opc-ua.md: escribible por paquetes, con su tipo y límites. */
+  writable?: boolean;
+  dataType?: string;
+  min?: number;
+  max?: number;
 }
 
 /** spec 18: solo `None`/`None`/`Anonymous`. */

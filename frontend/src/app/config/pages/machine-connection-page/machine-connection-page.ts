@@ -5,10 +5,15 @@ import { ApiError } from '../../../core/http/api-error.model';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
 import { InputComponent } from '../../../shared/ui/input/input.component';
 import { ToastService } from '../../../shared/ui/toast/toast.service';
+import {
+  isNumericDataType,
+  isWritableDataType,
+} from '../../../write-packages/use-cases/write-package-rules';
 import { MachinesApiService } from '../../adapters/machines-api.service';
 import { OpcUaNodeBrowserComponent } from '../../components/opc-ua-node-browser/opc-ua-node-browser.component';
 import {
   OpcUaBrowseNode,
+  OpcUaNodeMapping,
   ProviderType,
   ReplaceConnectionRequest,
   SimulatorConnectionConfig,
@@ -29,6 +34,10 @@ interface MappingRow {
   nodeId: string;
   signalVariableName: string;
   dataType?: string;
+  /** docs/specs/20-paquetes-escritura-opc-ua.md: escribible por paquetes, con límites opcionales. */
+  writable?: boolean;
+  min?: number;
+  max?: number;
 }
 
 const DEFAULT_TIMEOUT_MS = 5000;
@@ -170,6 +179,50 @@ export class MachineConnectionPage implements OnInit {
     this.mapping.update((rows) => rows.filter((row, rowIndex) => rowIndex !== index));
   }
 
+  /** spec 20, criterio frontend 1: solo se puede marcar como escribible un tipo escalar soportado. */
+  canBeWritable(row: MappingRow): boolean {
+    return isWritableDataType(row.dataType);
+  }
+
+  isNumericRow(row: MappingRow): boolean {
+    return isNumericDataType(row.dataType);
+  }
+
+  toggleWritable(index: number, event: Event): void {
+    const writable = (event.target as HTMLInputElement).checked;
+    this.mapping.update((rows) =>
+      rows.map((row, rowIndex) =>
+        rowIndex === index
+          ? { ...row, writable, ...(writable ? {} : { min: undefined, max: undefined }) }
+          : row,
+      ),
+    );
+  }
+
+  setLimit(index: number, bound: 'min' | 'max', event: Event): void {
+    const raw = (event.target as HTMLInputElement).value.trim().replace(',', '.');
+    const value = raw === '' ? undefined : Number(raw);
+    this.mapping.update((rows) =>
+      rows.map((row, rowIndex) => (rowIndex === index ? { ...row, [bound]: value } : row)),
+    );
+  }
+
+  limitsError(index: number): string | null {
+    const row = this.mapping()[index];
+    if (!row?.writable) {
+      return null;
+    }
+    for (const bound of [row.min, row.max]) {
+      if (bound !== undefined && !Number.isFinite(bound)) {
+        return 'Los límites deben ser números.';
+      }
+    }
+    if (row.min !== undefined && row.max !== undefined && row.min > row.max) {
+      return 'El mínimo no puede ser mayor que el máximo.';
+    }
+    return null;
+  }
+
   rowErrorMessage(index: number): string | null {
     const error = this.mappingErrors()[index];
     return error ? ROW_ERROR_MESSAGES[error] : null;
@@ -185,7 +238,8 @@ export class MachineConnectionPage implements OnInit {
     return (
       this.endpointControl.valid &&
       this.mapping().length > 0 &&
-      this.mappingErrors().every((error) => error === null)
+      this.mappingErrors().every((error) => error === null) &&
+      this.mapping().every((row, index) => this.limitsError(index) === null)
     );
   }
 
@@ -242,10 +296,7 @@ export class MachineConnectionPage implements OnInit {
         authMode: 'Anonymous',
         timeoutMs: this.timeoutMs,
         samplingIntervalMs: this.samplingIntervalMs,
-        nodeMapping: this.mapping().map(({ nodeId, signalVariableName }) => ({
-          nodeId,
-          signalVariableName,
-        })),
+        nodeMapping: this.mapping().map((row) => toNodeMapping(row)),
       },
     };
   }
@@ -254,4 +305,27 @@ export class MachineConnectionPage implements OnInit {
     this.endpointControl.markAsTouched();
     return this.endpointControl.valid;
   }
+}
+
+/**
+ * Fila de la tabla → entrada de `nodeMapping` (spec 20): el tipo se guarda
+ * siempre que se conozca, y `writable`/`min`/`max` solo si la variable es
+ * escribible (los límites, además, solo en tipos numéricos).
+ */
+function toNodeMapping(row: MappingRow): OpcUaNodeMapping {
+  const entry: OpcUaNodeMapping = {
+    nodeId: row.nodeId,
+    signalVariableName: row.signalVariableName,
+  };
+  if (row.dataType) {
+    entry.dataType = row.dataType;
+  }
+  if (row.writable && isWritableDataType(row.dataType)) {
+    entry.writable = true;
+    if (isNumericDataType(row.dataType)) {
+      if (row.min !== undefined) entry.min = row.min;
+      if (row.max !== undefined) entry.max = row.max;
+    }
+  }
+  return entry;
 }

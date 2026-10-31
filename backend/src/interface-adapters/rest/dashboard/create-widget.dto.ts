@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsString,
   Min,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { WidgetType } from '../../../entities/widget-type.enum';
@@ -14,6 +15,7 @@ import {
   AlarmListWidgetConfigDto,
   ChartWidgetConfigDto,
   GaugeWidgetConfigDto,
+  PackageWidgetConfigDto,
   TableWidgetConfigDto,
   ValueWidgetConfigDto,
   widgetConfigDtoFor,
@@ -24,6 +26,8 @@ export class CreateWidgetDto {
   @IsEnum(WidgetType)
   widgetType: WidgetType;
 
+  /** Obligatorio salvo en `PACKAGE`, que no referencia Signals (docs/specs/20-paquetes-escritura-opc-ua.md). */
+  @ValidateIf((dto: CreateWidgetDto) => dto.widgetType !== WidgetType.Package)
   @IsArray()
   @ArrayMinSize(1)
   @IsString({ each: true })
@@ -41,5 +45,6 @@ export class CreateWidgetDto {
     | GaugeWidgetConfigDto
     | ChartWidgetConfigDto
     | TableWidgetConfigDto
-    | AlarmListWidgetConfigDto;
+    | AlarmListWidgetConfigDto
+    | PackageWidgetConfigDto;
 }

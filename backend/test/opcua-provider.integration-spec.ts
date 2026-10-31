@@ -170,6 +170,42 @@ describe('OPC UA (integración, servidor PLC-like en proceso)', () => {
       expect(variables.some((v) => v.name === 'Lectura_NO_EXISTE')).toBe(false);
     }, 40000);
 
+    it('escribe valores en el DB Escritura y la Subscription los relee (spec 20, criterio 9)', async () => {
+      const config: OpcUaConnectionConfig = {
+        ...configFor(endpointUrl),
+        nodeMapping: [
+          { nodeId: 'ns=3;s="Escritura"."REAL"', signalVariableName: 'Escritura_REAL' },
+          { nodeId: 'ns=3;s="Escritura"."BOOL"', signalVariableName: 'Escritura_BOOL' },
+        ],
+      };
+      provider = new OpcUaProvider('machine-1', config, createNodeOpcUaDriver(config));
+      const variables: Variable[] = [];
+      provider.subscribe((variable) => variables.push(variable));
+      await provider.connect();
+      await waitFor(() => provider!.isConnected(), 20000);
+
+      const results = await provider.write([
+        { nodeId: 'ns=3;s="Escritura"."REAL"', dataType: 'Float', value: 120.5 },
+        { nodeId: 'ns=3;s="Escritura"."BOOL"', dataType: 'Boolean', value: true },
+        // Tipo declarado distinto del real (Float): no se envía.
+        { nodeId: 'ns=3;s="Escritura"."REAL"', dataType: 'Int16', value: 1 },
+        { nodeId: 'ns=3;s="Escritura"."NO_EXISTE"', dataType: 'Float', value: 1 },
+      ]);
+
+      expect(results.map((result) => result.statusCode)).toEqual([
+        'Good',
+        'Good',
+        'BadTypeMismatch',
+        'BadNodeIdUnknown',
+      ]);
+      await waitFor(
+        () =>
+          variables.some((v) => v.name === 'Escritura_REAL' && v.value === 120.5) &&
+          variables.some((v) => v.name === 'Escritura_BOOL' && v.value === true),
+        10000,
+      );
+    }, 40000);
+
     it('detecta la caída del servidor y se reconecta solo cuando vuelve (criterio 8)', async () => {
       const config = configFor(endpointUrl);
       provider = new OpcUaProvider('machine-1', config, createNodeOpcUaDriver(config));

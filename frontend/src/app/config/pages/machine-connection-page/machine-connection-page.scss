@@ -64,6 +64,15 @@
   }
 }
 
+.machine-connection-page__limits {
+  display: flex;
+  gap: var(--spacing-xs);
+
+  .form-input {
+    width: 6rem;
+  }
+}
+
 .machine-connection-page__row-actions {
   text-align: right;
 

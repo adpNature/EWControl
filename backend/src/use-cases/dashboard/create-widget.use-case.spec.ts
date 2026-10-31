@@ -3,6 +3,7 @@ import { UserRole } from '../../entities/user-role.enum';
 import { WidgetType } from '../../entities/widget-type.enum';
 import { CreateWidgetUseCase } from './create-widget.use-case';
 import { SignalNotFoundForWidgetError } from './errors/signal-not-found-for-widget.error';
+import { WritePackageNotFoundForWidgetError } from './errors/write-package-not-found-for-widget.error';
 
 const FAKE_CTX = Symbol('tx-ctx');
 const DASHBOARD = { id: 'dashboard-1', companyId: 'company-1', name: 'Planta 1' };
@@ -38,7 +39,19 @@ function createFakes() {
   const unitOfWork = {
     runInTransaction: vi.fn((work: (ctx: unknown) => Promise<unknown>) => work(FAKE_CTX)),
   };
-  return { resolver, widgetRepository, signalRepository, machineRepository, unitOfWork };
+  const writePackageRepository = {
+    findById: vi
+      .fn()
+      .mockResolvedValue({ id: 'package-1', machineId: 'machine-1', isActive: true }),
+  };
+  return {
+    resolver,
+    widgetRepository,
+    signalRepository,
+    machineRepository,
+    writePackageRepository,
+    unitOfWork,
+  };
 }
 
 function createUseCase(fakes: ReturnType<typeof createFakes>) {
@@ -47,6 +60,7 @@ function createUseCase(fakes: ReturnType<typeof createFakes>) {
     fakes.widgetRepository,
     fakes.signalRepository,
     fakes.machineRepository,
+    fakes.writePackageRepository as never,
     fakes.unitOfWork,
   );
 }
@@ -107,5 +121,64 @@ describe('CreateWidgetUseCase', () => {
         signalIds: ['signal-1'],
       }),
     ).rejects.toBeInstanceOf(SignalNotFoundForWidgetError);
+  });
+
+  describe('widget PACKAGE (docs/specs/20-paquetes-escritura-opc-ua.md)', () => {
+    const PACKAGE_CONFIG = { machineId: 'machine-1', writePackageId: 'package-1' };
+
+    it('valida el paquete en lugar de Signals y lo crea sin signalIds', async () => {
+      const fakes = createFakes();
+      const useCase = createUseCase(fakes);
+
+      await useCase.execute({
+        dashboardId: 'dashboard-1',
+        requester: { companyId: 'company-1', role: UserRole.AdminCliente },
+        widgetType: WidgetType.Package,
+        widgetConfig: PACKAGE_CONFIG,
+        signalIds: ['ignorada'],
+      });
+
+      expect(fakes.signalRepository.findById).not.toHaveBeenCalled();
+      expect(fakes.widgetRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ widgetType: WidgetType.Package, signalIds: [] }),
+        FAKE_CTX,
+      );
+    });
+
+    it.each([
+      ['de otra Machine', { id: 'package-1', machineId: 'machine-2', isActive: true }],
+      ['dado de baja', { id: 'package-1', machineId: 'machine-1', isActive: false }],
+      ['inexistente', null],
+    ])('rechaza un paquete %s', async (label, writePackage) => {
+      const fakes = createFakes();
+      fakes.writePackageRepository.findById.mockResolvedValue(writePackage);
+      const useCase = createUseCase(fakes);
+
+      await expect(
+        useCase.execute({
+          dashboardId: 'dashboard-1',
+          requester: { companyId: 'company-1', role: UserRole.AdminCliente },
+          widgetType: WidgetType.Package,
+          widgetConfig: PACKAGE_CONFIG,
+          signalIds: [],
+        }),
+      ).rejects.toBeInstanceOf(WritePackageNotFoundForWidgetError);
+    });
+
+    it('rechaza una Machine de otra Company', async () => {
+      const fakes = createFakes();
+      fakes.machineRepository.findById.mockResolvedValue({ ...MACHINE, companyId: 'company-2' });
+      const useCase = createUseCase(fakes);
+
+      await expect(
+        useCase.execute({
+          dashboardId: 'dashboard-1',
+          requester: { companyId: 'company-1', role: UserRole.AdminCliente },
+          widgetType: WidgetType.Package,
+          widgetConfig: PACKAGE_CONFIG,
+          signalIds: [],
+        }),
+      ).rejects.toBeInstanceOf(WritePackageNotFoundForWidgetError);
+    });
   });
 });

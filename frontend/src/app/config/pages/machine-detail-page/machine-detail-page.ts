@@ -4,6 +4,11 @@ import { AuthStateService } from '../../../auth/use-cases/auth.state';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
 import { TableColumn, TableComponent } from '../../../shared/ui/table/table.component';
 import { ToastService } from '../../../shared/ui/toast/toast.service';
+import { WritePackagesApiService } from '../../../write-packages/adapters/write-packages-api.service';
+import {
+  WritePackage,
+  WritePackageList,
+} from '../../../write-packages/entities/write-package.model';
 import { MachinesApiService } from '../../adapters/machines-api.service';
 import { Machine } from '../../entities/machine.model';
 import { Signal } from '../../entities/signal.model';
@@ -21,6 +26,8 @@ const SIGNAL_COLUMNS: TableColumn<Signal>[] = [
  * docs/specs/06-gestion-machines-signals.md: detalle de una Machine, con sus
  * Signals. El borrado de la Machine advierte explícitamente la cascada sobre
  * sus Signals (criterio de aceptación frontend 4).
+ * docs/specs/20-paquetes-escritura-opc-ua.md añade la sección "Paquetes de
+ * escritura" (alta, edición y baja; solo Machines OPC UA).
  */
 @Component({
   selector: 'app-machine-detail-page',
@@ -37,6 +44,7 @@ export class MachineDetailPage implements OnInit {
   private readonly machinesState = inject(MachinesState);
   protected readonly signalsState = inject(SignalsState);
   private readonly toastService = inject(ToastService);
+  private readonly writePackagesApi = inject(WritePackagesApiService);
 
   readonly machineId = this.route.snapshot.paramMap.get('machineId')!;
 
@@ -46,6 +54,8 @@ export class MachineDetailPage implements OnInit {
 
   readonly deleteMachineDialogOpen = signal(false);
   readonly signalToDelete = signal<Signal | null>(null);
+  readonly writePackages = signal<WritePackageList | null>(null);
+  readonly writePackageToDelete = signal<WritePackage | null>(null);
 
   ngOnInit(): void {
     const fromState = this.machinesState
@@ -57,6 +67,38 @@ export class MachineDetailPage implements OnInit {
       this.machinesApi.get(this.machineId).subscribe((machine) => this.machine.set(machine));
     }
     this.signalsState.load(this.machineId).subscribe();
+    this.loadWritePackages();
+  }
+
+  isOpcUa(): boolean {
+    return this.writePackages()?.providerType === 'OpcUa';
+  }
+
+  editWritePackage(packageId: string): void {
+    this.router.navigate(['/config/machines', this.machineId, 'write-packages', packageId, 'edit']);
+  }
+
+  confirmDeleteWritePackage(): void {
+    const writePackage = this.writePackageToDelete();
+    this.writePackageToDelete.set(null);
+    if (!writePackage) {
+      return;
+    }
+    this.writePackagesApi.remove(this.machineId, writePackage.id).subscribe({
+      next: () => {
+        this.toastService.show({ type: 'success', message: 'Paquete eliminado.' });
+        this.loadWritePackages();
+      },
+      error: () =>
+        this.toastService.show({ type: 'danger', message: 'No se ha podido eliminar el paquete.' }),
+    });
+  }
+
+  private loadWritePackages(): void {
+    this.writePackagesApi.list(this.machineId).subscribe({
+      next: (list) => this.writePackages.set(list),
+      error: () => this.writePackages.set(null),
+    });
   }
 
   canConfigure(): boolean {

@@ -4,6 +4,7 @@ import { of } from 'rxjs';
 import { AuthStateService } from '../../../auth/use-cases/auth.state';
 import { MachinesApiService } from '../../../config/adapters/machines-api.service';
 import { SignalsApiService } from '../../../config/adapters/signals-api.service';
+import { WritePackagesApiService } from '../../../write-packages/adapters/write-packages-api.service';
 import { DashboardDetail, DashboardWidget } from '../../entities/dashboard.model';
 import { DashboardState } from '../../use-cases/dashboard.state';
 import { DashboardPage } from './dashboard-page';
@@ -33,6 +34,7 @@ describe('DashboardPage', () => {
         { provide: AuthStateService, useValue: ADMIN_AUTH_STATE },
         { provide: MachinesApiService, useValue: { list: vi.fn() } },
         { provide: SignalsApiService, useValue: { list: vi.fn() } },
+        { provide: WritePackagesApiService, useValue: { list: vi.fn() } },
         { provide: DashboardState, useValue: createDashboardState() },
       ],
     });
@@ -50,6 +52,7 @@ describe('DashboardPage', () => {
         { provide: AuthStateService, useValue: ADMIN_AUTH_STATE },
         { provide: MachinesApiService, useValue: { list: vi.fn() } },
         { provide: SignalsApiService, useValue: { list: vi.fn() } },
+        { provide: WritePackagesApiService, useValue: { list: vi.fn() } },
         { provide: DashboardState, useValue: createDashboardState({ createDashboard, open }) },
       ],
     });
@@ -106,6 +109,7 @@ describe('DashboardPage', () => {
             ),
           },
         },
+        { provide: WritePackagesApiService, useValue: { list: vi.fn() } },
         {
           provide: DashboardState,
           useValue: createDashboardState({ activeDashboard: () => detail }),
@@ -150,11 +154,18 @@ describe('DashboardPage', () => {
       ),
     };
 
+    const writePackagesApi = {
+      list: vi
+        .fn()
+        .mockReturnValue(of({ providerType: 'Simulator', connected: true, packages: [] })),
+    };
+
     await render(DashboardPage, {
       providers: [
         { provide: AuthStateService, useValue: ADMIN_AUTH_STATE },
         { provide: MachinesApiService, useValue: machinesApi },
         { provide: SignalsApiService, useValue: signalsApi },
+        { provide: WritePackagesApiService, useValue: writePackagesApi },
         {
           provide: DashboardState,
           useValue: createDashboardState({ activeDashboard: () => detail, addWidget }),
@@ -179,6 +190,7 @@ describe('DashboardPage', () => {
         { provide: AuthStateService, useValue: OPERADOR_AUTH_STATE },
         { provide: MachinesApiService, useValue: { list: vi.fn() } },
         { provide: SignalsApiService, useValue: { list: vi.fn() } },
+        { provide: WritePackagesApiService, useValue: { list: vi.fn() } },
         { provide: DashboardState, useValue: createDashboardState() },
       ],
     });
@@ -200,6 +212,7 @@ describe('DashboardPage', () => {
         { provide: AuthStateService, useValue: OPERADOR_AUTH_STATE },
         { provide: MachinesApiService, useValue: { list: vi.fn() } },
         { provide: SignalsApiService, useValue: { list: vi.fn() } },
+        { provide: WritePackagesApiService, useValue: { list: vi.fn() } },
         {
           provide: DashboardState,
           useValue: createDashboardState({ activeDashboard: () => detail }),
@@ -209,5 +222,97 @@ describe('DashboardPage', () => {
 
     expect(screen.getByRole('heading', { name: 'Planta 1' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Añadir widget' })).not.toBeInTheDocument();
+  });
+
+  it('Añadir widget PACKAGE: elige Machine y paquete, sin Signals (docs/specs/20-paquetes-escritura-opc-ua.md)', async () => {
+    const detail: DashboardDetail = {
+      id: 'dashboard-1',
+      companyId: 'company-1',
+      name: 'Planta 1',
+      widgets: [],
+    };
+    const addWidget = vi.fn().mockReturnValue(of({}));
+
+    await render(DashboardPage, {
+      providers: [
+        { provide: AuthStateService, useValue: ADMIN_AUTH_STATE },
+        {
+          provide: MachinesApiService,
+          useValue: {
+            list: vi
+              .fn()
+              .mockReturnValue(
+                of({ data: [{ id: 'machine-1', companyId: 'company-1', name: 'Piloto OPC UA' }] }),
+              ),
+          },
+        },
+        {
+          provide: SignalsApiService,
+          useValue: { list: vi.fn().mockReturnValue(of({ data: [] })) },
+        },
+        {
+          provide: WritePackagesApiService,
+          useValue: {
+            list: vi.fn().mockReturnValue(
+              of({
+                providerType: 'OpcUa',
+                connected: true,
+                packages: [{ id: 'package-1', name: 'Formato 120 mm', items: [] }],
+              }),
+            ),
+          },
+        },
+        {
+          provide: DashboardState,
+          useValue: createDashboardState({ activeDashboard: () => detail, addWidget }),
+        },
+      ],
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Añadir widget' }));
+    await userEvent.selectOptions(screen.getByLabelText('Tipo de widget'), 'PACKAGE');
+    await userEvent.selectOptions(screen.getByLabelText('Machine'), 'machine-1');
+    await userEvent.selectOptions(await screen.findByLabelText('Paquete'), 'package-1');
+    await userEvent.click(screen.getByRole('button', { name: 'Crear widget' }));
+
+    expect(addWidget).toHaveBeenCalledWith('dashboard-1', {
+      widgetType: 'PACKAGE',
+      signalIds: [],
+      config: { machineId: 'machine-1', writePackageId: 'package-1' },
+      position: 0,
+    });
+  });
+
+  it('Añadir widget PACKAGE sin paquete elegido muestra un error y no llama a addWidget()', async () => {
+    const detail: DashboardDetail = {
+      id: 'dashboard-1',
+      companyId: 'company-1',
+      name: 'Planta 1',
+      widgets: [],
+    };
+    const addWidget = vi.fn();
+
+    await render(DashboardPage, {
+      providers: [
+        { provide: AuthStateService, useValue: ADMIN_AUTH_STATE },
+        {
+          provide: MachinesApiService,
+          useValue: { list: vi.fn().mockReturnValue(of({ data: [] })) },
+        },
+        { provide: SignalsApiService, useValue: { list: vi.fn() } },
+        { provide: WritePackagesApiService, useValue: { list: vi.fn() } },
+        {
+          provide: DashboardState,
+          useValue: createDashboardState({ activeDashboard: () => detail, addWidget }),
+        },
+      ],
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Añadir widget' }));
+    await userEvent.selectOptions(screen.getByLabelText('Tipo de widget'), 'PACKAGE');
+    await userEvent.click(screen.getByRole('button', { name: 'Crear widget' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Selecciona un paquete.');
+    expect(addWidget).not.toHaveBeenCalled();
   });
 });

@@ -10,6 +10,8 @@ import { PasswordResetToken } from './password-reset-token.entity';
 import { RefreshToken } from './refresh-token.entity';
 import { Signal } from './signal.entity';
 import { User } from './user.entity';
+import { WritePackageExecution } from './write-package-execution.entity';
+import { WritePackage } from './write-package.entity';
 
 /**
  * Lista explícita de entidades TypeORM para `TypeOrmModule.forRoot()`
@@ -33,4 +35,6 @@ export const ENTITIES = [
   DashboardWidget,
   AlarmDefinition,
   AlarmState,
+  WritePackage,
+  WritePackageExecution,
 ];

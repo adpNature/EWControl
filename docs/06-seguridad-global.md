@@ -230,7 +230,7 @@ Edge -->|Canal cifrado mTLS| Backend
 El Data Provider en el edge es el único componente con visibilidad simultánea de ambas redes. Por ello:
 
 - Nunca reenvía tráfico bruto de la red OT hacia la red IT; solo transmite Variables ya normalizadas.
-- Nunca acepta comandos de escritura originados desde el Backend hacia el PLC en la primera versión de la plataforma, que es exclusivamente de lectura de datos.
+- Solo escribe en el PLC a través de paquetes de escritura ([docs/specs/20-paquetes-escritura-opc-ua.md](specs/20-paquetes-escritura-opc-ua.md)): valores fijos definidos por `AdminCliente`/`SuperAdmin`, solo en variables marcadas como escribibles, revalidados al ejecutar, sin escrituras concurrentes por Machine y con auditoría inmutable. Nunca acepta un `nodeId` ni un valor libre desde la API.
 - Se ejecuta con el mínimo de permisos de red necesarios en ambos lados de la frontera.
 
 ---
@@ -307,11 +307,12 @@ Ampliar a nivel de sistema la auditoría de configuración ya definida en el Doc
 
 ## Niveles de Auditoría
 
-| Nivel         | Qué registra                                                                 | Dónde se define           |
-| ------------- | ---------------------------------------------------------------------------- | ------------------------- |
-| Configuración | Creación, modificación y desactivación de entidades del dominio              | Documento 4, apartado 4.2 |
-| Acceso        | Inicios de sesión, renovaciones de token, intentos fallidos de autenticación | Este documento            |
-| Seguridad     | Conexiones de Data Providers, certificados revocados, rechazos de conexión   | Este documento            |
+| Nivel         | Qué registra                                                                                                                 | Dónde se define                                  |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Configuración | Creación, modificación y desactivación de entidades del dominio                                                              | Documento 4, apartado 4.2                        |
+| Escritura OT  | Cada ejecución de un paquete de escritura: User, fecha, valores y `StatusCode` (tabla `write_package_executions`, inmutable) | [Spec 20](specs/20-paquetes-escritura-opc-ua.md) |
+| Acceso        | Inicios de sesión, renovaciones de token, intentos fallidos de autenticación                                                 | Este documento                                   |
+| Seguridad     | Conexiones de Data Providers, certificados revocados, rechazos de conexión                                                   | Este documento                                   |
 
 ---
 

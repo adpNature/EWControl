@@ -1,0 +1,38 @@
+@use 'breakpoints' as *;
+
+.write-package-form-page__items {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  margin: 0 0 var(--spacing-md);
+  padding: 0;
+  border: none;
+}
+
+.write-package-form-page__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--spacing-sm);
+  width: 100%;
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--border-color);
+
+  .form-field {
+    flex: 1 1 100%;
+
+    @include respond(md) {
+      flex: 1 1 12rem;
+    }
+  }
+
+  .form-error {
+    flex-basis: 100%;
+  }
+}
+
+.write-package-form-page__remove {
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: var(--font-size-sm);
+}

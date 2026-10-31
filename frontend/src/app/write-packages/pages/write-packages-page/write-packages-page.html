@@ -1,0 +1,119 @@
+<div class="box write-packages-page">
+  <h1 class="title-xl">Paquetes de escritura</h1>
+  <p class="text-muted">
+    Cada paquete escribe un conjunto fijo de valores en el PLC de la Machine.
+  </p>
+
+  <div class="form-field write-packages-page__machine">
+    <label class="form-label" for="write-packages-machine">Machine</label>
+    <select
+      id="write-packages-machine"
+      class="form-input"
+      (change)="selectMachine($any($event.target).value)"
+    >
+      <option value="" [selected]="!selectedMachineId()">Selecciona una Machine</option>
+      @for (machine of machines(); track machine.id) {
+        <option [value]="machine.id" [selected]="machine.id === selectedMachineId()">
+          {{ machine.name }}
+        </option>
+      }
+    </select>
+  </div>
+
+  @if (loading()) {
+    <p class="text-muted" role="status">Cargando paquetes…</p>
+  }
+  @if (error()) {
+    <p class="form-error" role="alert">{{ error() }}</p>
+  }
+
+  @if (list(); as current) {
+    @if (current.packages.length === 0) {
+      <p class="text-body">Esta Machine no tiene paquetes de escritura.</p>
+    }
+    <ul class="write-packages-page__list">
+      @for (writePackage of current.packages; track writePackage.id) {
+        <li class="write-packages-page__card">
+          <h2 class="title-lg">{{ writePackage.name }}</h2>
+          @if (writePackage.description) {
+            <p class="text-body">{{ writePackage.description }}</p>
+          }
+          <ul
+            class="write-packages-page__items"
+            [attr.aria-label]="'Valores de ' + writePackage.name"
+          >
+            @for (item of writePackage.items; track item.signalVariableName) {
+              <li>
+                <span class="write-packages-page__variable">{{ item.signalVariableName }}</span>
+                = {{ formatValue(item.value) }}
+              </li>
+            }
+          </ul>
+
+          <app-write-package-execute-button
+            [machineId]="writePackage.machineId"
+            [writePackage]="writePackage"
+            [disabledReason]="disabledReason()"
+            (executed)="onExecuted(writePackage)"
+          />
+
+          <button
+            type="button"
+            class="btn-secondary"
+            [attr.aria-expanded]="openHistory() === writePackage.id"
+            (click)="toggleHistory(writePackage)"
+          >
+            {{ openHistory() === writePackage.id ? 'Ocultar historial' : 'Historial' }}
+          </button>
+
+          @if (openHistory() === writePackage.id) {
+            @if (history().length === 0) {
+              <p class="text-muted">Todavía no se ha ejecutado.</p>
+            } @else {
+              <div class="write-packages-page__history">
+                <table class="write-packages-page__table">
+                  <caption class="visually-hidden">
+                    Historial de
+                    {{
+                      writePackage.name
+                    }}
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Fecha</th>
+                      <th scope="col">Usuario</th>
+                      <th scope="col">Resultado</th>
+                      <th scope="col">Detalle</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (execution of history(); track execution.id) {
+                      <tr>
+                        <td>{{ execution.executedAt | date: 'short' }}</td>
+                        <td>{{ execution.userEmail }}</td>
+                        <td>{{ statusLabel(execution.status) }}</td>
+                        <td>
+                          @if (reasonLabel(execution.reason); as reason) {
+                            <p class="write-packages-page__reason">{{ reason }}</p>
+                          }
+                          <ul class="write-packages-page__items">
+                            @for (item of execution.items; track item.signalVariableName) {
+                              <li>
+                                {{ item.signalVariableName }} = {{ formatValue(item.value) }} →
+                                {{ statusCodeLabel(item.statusCode) }}
+                              </li>
+                            }
+                          </ul>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          }
+        </li>
+      }
+    </ul>
+  }
+</div>

@@ -14,8 +14,38 @@ export type SimulatorConnectionConfig = {
   signals: SimulatorSignalSeed[];
 };
 
-/** Correspondencia entre un `NodeId` del servidor OPC UA y el nombre de Variable interno. */
-export type OpcUaNodeMapping = { nodeId: string; signalVariableName: string };
+/**
+ * Correspondencia entre un `NodeId` del servidor OPC UA y el nombre de Variable
+ * interno. Desde docs/specs/20-paquetes-escritura-opc-ua.md una entrada puede
+ * marcarse como escribible: `dataType` (obligatorio en ese caso) y `min`/`max`
+ * (solo numéricos) acotan los valores que un paquete puede escribir en ella.
+ */
+export type OpcUaNodeMapping = {
+  nodeId: string;
+  signalVariableName: string;
+  writable?: boolean;
+  dataType?: string;
+  min?: number;
+  max?: number;
+};
+
+/** Tipos escalares OPC UA soportados para lectura y escritura (specs 18 y 20). */
+export const WRITABLE_DATA_TYPES: readonly string[] = [
+  'Boolean',
+  'SByte',
+  'Byte',
+  'Int16',
+  'UInt16',
+  'Int32',
+  'UInt32',
+  'Float',
+  'Double',
+  'String',
+];
+
+export function isNumericDataType(dataType: string): boolean {
+  return WRITABLE_DATA_TYPES.includes(dataType) && dataType !== 'Boolean' && dataType !== 'String';
+}
 
 /**
  * spec 18: solo `None`/`None`/`Anonymous`. La forma admite ampliar estos literales
@@ -59,7 +89,14 @@ const OPCUA_CONFIG_KEYS = new Set([
   'samplingIntervalMs',
   'nodeMapping',
 ]);
-const NODE_MAPPING_KEYS = new Set(['nodeId', 'signalVariableName']);
+const NODE_MAPPING_KEYS = new Set([
+  'nodeId',
+  'signalVariableName',
+  'writable',
+  'dataType',
+  'min',
+  'max',
+]);
 
 export type OpcUaEndpointUrlParseResult = { ok: true; host: string } | { ok: false };
 export type OpcUaConnectionConfigParseResult =
@@ -169,7 +206,7 @@ function parseNodeMapping(
     if (!isPlainObject(entry) || Object.keys(entry).some((key) => !NODE_MAPPING_KEYS.has(key))) {
       return {
         ok: false,
-        reason: `nodeMapping[${index}] solo admite nodeId y signalVariableName`,
+        reason: `nodeMapping[${index}] solo admite nodeId, signalVariableName, writable, dataType, min y max`,
       };
     }
     const { nodeId, signalVariableName } = entry;
@@ -192,11 +229,64 @@ function parseNodeMapping(
     if (variableNames.has(signalVariableName)) {
       return { ok: false, reason: `nodeMapping[${index}].signalVariableName está repetido` };
     }
+    const writeSettings = parseWriteSettings(entry, index);
+    if (!writeSettings.ok) {
+      return writeSettings;
+    }
     nodeIds.add(nodeId);
     variableNames.add(signalVariableName);
-    entries.push({ nodeId, signalVariableName });
+    entries.push({ nodeId, signalVariableName, ...writeSettings.settings });
   }
   return { ok: true, entries };
+}
+
+type WriteSettings = Pick<OpcUaNodeMapping, 'writable' | 'dataType' | 'min' | 'max'>;
+
+/** spec 20, criterio backend 1: `writable` exige `dataType` soportado; `min`/`max` solo numéricos y `min <= max`. */
+function parseWriteSettings(
+  entry: Record<string, unknown>,
+  index: number,
+): { ok: true; settings: WriteSettings } | { ok: false; reason: string } {
+  const { writable, dataType, min, max } = entry;
+  const prefix = `nodeMapping[${index}]`;
+  if (writable !== undefined && typeof writable !== 'boolean') {
+    return { ok: false, reason: `${prefix}.writable debe ser booleano` };
+  }
+  if (
+    dataType !== undefined &&
+    (typeof dataType !== 'string' || !WRITABLE_DATA_TYPES.includes(dataType))
+  ) {
+    return {
+      ok: false,
+      reason: `${prefix}.dataType debe ser uno de ${WRITABLE_DATA_TYPES.join(', ')}`,
+    };
+  }
+  if (writable === true && dataType === undefined) {
+    return { ok: false, reason: `${prefix}.dataType es obligatorio si la variable es escribible` };
+  }
+  for (const [field, bound] of [
+    ['min', min],
+    ['max', max],
+  ] as const) {
+    if (bound === undefined) {
+      continue;
+    }
+    if (typeof bound !== 'number' || !Number.isFinite(bound)) {
+      return { ok: false, reason: `${prefix}.${field} debe ser un número` };
+    }
+    if (typeof dataType !== 'string' || !isNumericDataType(dataType)) {
+      return { ok: false, reason: `${prefix}.${field} solo se admite en tipos numéricos` };
+    }
+  }
+  if (typeof min === 'number' && typeof max === 'number' && min > max) {
+    return { ok: false, reason: `${prefix}.min no puede ser mayor que max` };
+  }
+  const settings: WriteSettings = {};
+  if (writable !== undefined) settings.writable = writable;
+  if (dataType !== undefined) settings.dataType = dataType as string;
+  if (min !== undefined) settings.min = min as number;
+  if (max !== undefined) settings.max = max as number;
+  return { ok: true, settings };
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

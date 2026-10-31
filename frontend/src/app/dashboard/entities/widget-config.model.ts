@@ -23,9 +23,16 @@ export interface TableWidgetConfig {
 /** Sin campos: el widget ALARM_LIST no tiene fuente de datos todavía. */
 export type AlarmListWidgetConfig = Record<string, never>;
 
+/** docs/specs/20-paquetes-escritura-opc-ua.md: el widget no lleva Signals, sino un paquete. */
+export interface PackageWidgetConfig {
+  machineId: string;
+  writePackageId: string;
+}
+
 export type WidgetConfig =
   | ValueWidgetConfig
   | GaugeWidgetConfig
   | ChartWidgetConfig
   | TableWidgetConfig
-  | AlarmListWidgetConfig;
+  | AlarmListWidgetConfig
+  | PackageWidgetConfig;

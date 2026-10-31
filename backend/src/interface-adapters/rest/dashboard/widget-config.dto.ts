@@ -5,6 +5,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   Validate,
   ValidationArguments,
   ValidatorConstraint,
@@ -88,8 +89,18 @@ export class OptionalGaugeRangeValidConstraint implements ValidatorConstraintInt
  * Resuelve el DTO de `config` correspondiente a `widgetType` (unión discriminada,
  * mismo patrón que `signal-source.dto.ts` para `SignalSource`).
  */
+export class PackageWidgetConfigDto {
+  @IsUUID()
+  machineId: string;
+
+  @IsUUID()
+  writePackageId: string;
+}
+
 export function widgetConfigDtoFor(widgetType: WidgetType | undefined): new () => object {
   switch (widgetType) {
+    case WidgetType.Package:
+      return PackageWidgetConfigDto;
     case WidgetType.Gauge:
       return GaugeWidgetConfigDto;
     case WidgetType.Chart:

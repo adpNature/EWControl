@@ -6,16 +6,19 @@ import { SignalsApiService } from '../../../config/adapters/signals-api.service'
 import { Machine } from '../../../config/entities/machine.model';
 import { Signal } from '../../../config/entities/signal.model';
 import { canConfigure } from '../../../config/use-cases/config-permissions';
+import { WritePackagesApiService } from '../../../write-packages/adapters/write-packages-api.service';
+import { WritePackage } from '../../../write-packages/entities/write-package.model';
 import { WidgetType } from '../../entities/dashboard.model';
 import { WidgetConfig } from '../../entities/widget-config.model';
 import { DashboardState } from '../../use-cases/dashboard.state';
 import { AlarmListWidgetComponent } from '../../widgets/alarm-list/alarm-list-widget.component';
 import { ChartWidgetComponent } from '../../widgets/chart/chart-widget.component';
 import { GaugeWidgetComponent } from '../../widgets/gauge/gauge-widget.component';
+import { PackageWidgetComponent } from '../../widgets/package/package-widget.component';
 import { TableWidgetComponent } from '../../widgets/table/table-widget.component';
 import { ValueWidgetComponent } from '../../widgets/value/value-widget.component';
 
-const WIDGET_TYPES: WidgetType[] = ['VALUE', 'GAUGE', 'CHART', 'TABLE', 'ALARM_LIST'];
+const WIDGET_TYPES: WidgetType[] = ['VALUE', 'GAUGE', 'CHART', 'TABLE', 'ALARM_LIST', 'PACKAGE'];
 
 /**
  * Dashboard en tiempo real (docs/specs/07-dashboard-tiempo-real.md): recorre
@@ -34,6 +37,7 @@ const WIDGET_TYPES: WidgetType[] = ['VALUE', 'GAUGE', 'CHART', 'TABLE', 'ALARM_L
     ChartWidgetComponent,
     TableWidgetComponent,
     AlarmListWidgetComponent,
+    PackageWidgetComponent,
   ],
   templateUrl: './dashboard-page.html',
   styleUrl: './dashboard-page.scss',
@@ -42,6 +46,7 @@ export class DashboardPage implements OnInit {
   private readonly authState = inject(AuthStateService);
   private readonly machinesApi = inject(MachinesApiService);
   private readonly signalsApi = inject(SignalsApiService);
+  private readonly writePackagesApi = inject(WritePackagesApiService);
   protected readonly dashboardState = inject(DashboardState);
 
   readonly widgetTypes = WIDGET_TYPES;
@@ -53,12 +58,15 @@ export class DashboardPage implements OnInit {
   readonly showAddWidgetForm = signal(false);
   readonly machines = signal<Machine[]>([]);
   readonly signalsOfSelectedMachine = signal<Signal[]>([]);
+  /** docs/specs/20-paquetes-escritura-opc-ua.md: paquetes de la Machine elegida, para el widget PACKAGE. */
+  readonly packagesOfSelectedMachine = signal<WritePackage[]>([]);
   readonly addWidgetError = signal<string | null>(null);
 
   readonly addWidgetForm = new FormGroup({
     widgetType: new FormControl<WidgetType>('VALUE', { nonNullable: true }),
     machineId: new FormControl('', { nonNullable: true }),
     signalIds: new FormControl<string[]>([], { nonNullable: true }),
+    writePackageId: new FormControl('', { nonNullable: true }),
     gaugeMin: new FormControl(0, { nonNullable: true }),
     gaugeMax: new FormControl(100, { nonNullable: true }),
   });
@@ -95,15 +103,24 @@ export class DashboardPage implements OnInit {
     }
   }
 
+  isPackageWidget(): boolean {
+    return this.addWidgetForm.controls.widgetType.value === 'PACKAGE';
+  }
+
   onMachineChange(machineId: string): void {
-    this.addWidgetForm.patchValue({ machineId, signalIds: [] });
+    this.addWidgetForm.patchValue({ machineId, signalIds: [], writePackageId: '' });
+    this.signalsOfSelectedMachine.set([]);
+    this.packagesOfSelectedMachine.set([]);
     if (!machineId) {
-      this.signalsOfSelectedMachine.set([]);
       return;
     }
     this.signalsApi
       .list(machineId, { limit: 100, offset: 0 })
       .subscribe((response) => this.signalsOfSelectedMachine.set(response.data));
+    this.writePackagesApi.list(machineId).subscribe({
+      next: (list) => this.packagesOfSelectedMachine.set(list.packages),
+      error: () => this.packagesOfSelectedMachine.set([]),
+    });
   }
 
   toggleSignal(signalId: string, checked: boolean): void {
@@ -126,18 +143,28 @@ export class DashboardPage implements OnInit {
     if (!dashboard) {
       return;
     }
-    const { widgetType, signalIds, gaugeMin, gaugeMax } = this.addWidgetForm.getRawValue();
-    if (widgetType !== 'ALARM_LIST' && signalIds.length === 0) {
+    const { widgetType, machineId, signalIds, writePackageId, gaugeMin, gaugeMax } =
+      this.addWidgetForm.getRawValue();
+    if (widgetType === 'PACKAGE' && !writePackageId) {
+      this.addWidgetError.set('Selecciona un paquete.');
+      return;
+    }
+    if (widgetType !== 'ALARM_LIST' && widgetType !== 'PACKAGE' && signalIds.length === 0) {
       this.addWidgetError.set('Selecciona al menos una Signal.');
       return;
     }
 
-    const config: WidgetConfig = widgetType === 'GAUGE' ? { min: gaugeMin, max: gaugeMax } : {};
+    const config: WidgetConfig =
+      widgetType === 'GAUGE'
+        ? { min: gaugeMin, max: gaugeMax }
+        : widgetType === 'PACKAGE'
+          ? { machineId, writePackageId }
+          : {};
 
     this.dashboardState
       .addWidget(dashboard.id, {
         widgetType,
-        signalIds,
+        signalIds: widgetType === 'PACKAGE' ? [] : signalIds,
         config,
         position: dashboard.widgets.length,
       })
@@ -149,6 +176,7 @@ export class DashboardPage implements OnInit {
             widgetType: 'VALUE',
             machineId: '',
             signalIds: [],
+            writePackageId: '',
             gaugeMin: 0,
             gaugeMax: 100,
           });

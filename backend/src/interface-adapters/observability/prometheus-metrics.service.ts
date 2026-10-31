@@ -53,6 +53,13 @@ export class PrometheusMetricsService implements IMetricsRecorder {
     registers: [this.registry],
   });
 
+  private readonly writePackageExecutionsTotal = new Counter({
+    name: 'ewcontrol_write_package_executions_total',
+    help: 'Número de ejecuciones de paquetes de escritura por resultado (SUCCESS, PARTIAL, FAILED)',
+    labelNames: ['status'],
+    registers: [this.registry],
+  });
+
   private readonly httpRequestsTotal = new Counter({
     name: 'ewcontrol_http_requests_total',
     help: 'Número total de peticiones HTTP',
@@ -93,6 +100,10 @@ export class PrometheusMetricsService implements IMetricsRecorder {
 
   recordHistoryWriteError(): void {
     this.historyWriteErrorsTotal.inc();
+  }
+
+  recordWritePackageExecution(status: string): void {
+    this.writePackageExecutionsTotal.inc({ status });
   }
 
   observeHttpRequest(

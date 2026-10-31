@@ -37,6 +37,64 @@
     <button type="button" class="btn-edit" (click)="editSignal(signal.id)">Editar</button>
     <button type="button" class="btn-danger" (click)="signalToDelete.set(signal)">Eliminar</button>
   </ng-template>
+
+  @if (writePackages(); as list) {
+    <section class="machine-detail-page__write-packages" aria-labelledby="write-packages-title">
+      <div class="machine-detail-page__signals-header">
+        <h2 class="title-lg" id="write-packages-title">Paquetes de escritura</h2>
+        @if (canConfigure() && isOpcUa()) {
+          <a
+            [routerLink]="['/config/machines', machineId, 'write-packages', 'new']"
+            class="btn-primary"
+          >
+            Nuevo paquete
+          </a>
+        }
+      </div>
+
+      @if (!isOpcUa()) {
+        <p class="text-muted">
+          Solo las Machines conectadas por OPC UA admiten paquetes de escritura.
+        </p>
+      } @else if (list.packages.length === 0) {
+        <p class="text-muted">No hay paquetes todavía.</p>
+      } @else {
+        <ul class="machine-detail-page__package-list">
+          @for (writePackage of list.packages; track writePackage.id) {
+            <li class="machine-detail-page__package">
+              <div>
+                <p class="text-body">{{ writePackage.name }}</p>
+                <p class="text-muted">
+                  {{ writePackage.items.length }}
+                  {{ writePackage.items.length === 1 ? 'variable' : 'variables' }}
+                </p>
+              </div>
+              @if (canConfigure()) {
+                <div class="machine-detail-page__actions">
+                  <button
+                    type="button"
+                    class="btn-edit"
+                    [attr.aria-label]="'Editar paquete ' + writePackage.name"
+                    (click)="editWritePackage(writePackage.id)"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-danger"
+                    [attr.aria-label]="'Eliminar paquete ' + writePackage.name"
+                    (click)="writePackageToDelete.set(writePackage)"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
 </div>
 
 <app-confirm-dialog
@@ -45,6 +103,18 @@
   message="Esta acción desactivará la Machine y todas sus Signals. ¿Continuar?"
   (confirmed)="confirmDeleteMachine()"
   (cancelled)="deleteMachineDialogOpen.set(false)"
+/>
+
+<app-confirm-dialog
+  [open]="writePackageToDelete() !== null"
+  title="Eliminar paquete"
+  [message]="
+    '¿Eliminar el paquete ' +
+    (writePackageToDelete()?.name ?? '') +
+    '? Su historial de ejecuciones se conserva.'
+  "
+  (confirmed)="confirmDeleteWritePackage()"
+  (cancelled)="writePackageToDelete.set(null)"
 />
 
 <app-confirm-dialog

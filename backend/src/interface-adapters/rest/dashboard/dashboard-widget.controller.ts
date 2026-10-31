@@ -20,6 +20,8 @@ import { CreateWidgetUseCase } from '../../../use-cases/dashboard/create-widget.
 import { DeleteWidgetUseCase } from '../../../use-cases/dashboard/delete-widget.use-case';
 import { DashboardNotFoundError } from '../../../use-cases/dashboard/errors/dashboard-not-found.error';
 import { SignalNotFoundForWidgetError } from '../../../use-cases/dashboard/errors/signal-not-found-for-widget.error';
+import { WritePackageNotFoundForWidgetError } from '../../../use-cases/dashboard/errors/write-package-not-found-for-widget.error';
+import { WidgetType } from '../../../entities/widget-type.enum';
 import { WidgetNotFoundError } from '../../../use-cases/dashboard/errors/widget-not-found.error';
 import { UpdateWidgetUseCase } from '../../../use-cases/dashboard/update-widget.use-case';
 import { CreateWidgetDto } from './create-widget.dto';
@@ -47,7 +49,7 @@ export class DashboardWidgetController {
         requester: { companyId: user.companyId, role: user.role },
         widgetType: dto.widgetType,
         widgetConfig: dto.config,
-        signalIds: dto.signalIds,
+        signalIds: dto.widgetType === WidgetType.Package ? [] : dto.signalIds,
         position: dto.position,
       });
     } catch (error) {
@@ -100,6 +102,13 @@ export class DashboardWidgetController {
     }
     if (error instanceof WidgetNotFoundError) {
       return new NotFoundException({ code: 'WIDGET_NOT_FOUND', message: error.message });
+    }
+    if (error instanceof WritePackageNotFoundForWidgetError) {
+      return new UnprocessableEntityException({
+        code: 'WRITE_PACKAGE_NOT_FOUND',
+        message: error.message,
+        details: { writePackageId: error.writePackageId },
+      });
     }
     if (error instanceof SignalNotFoundForWidgetError) {
       return new UnprocessableEntityException({

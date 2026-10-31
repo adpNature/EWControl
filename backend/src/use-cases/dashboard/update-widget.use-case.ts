@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DashboardWidget } from '../../entities/dashboard-widget.entity';
-import type { WidgetConfig } from '../../entities/widget-config.vo';
+import type { PackageWidgetConfig, WidgetConfig } from '../../entities/widget-config.vo';
+import { WidgetType } from '../../entities/widget-type.enum';
 import {
   type IMachineRepository,
   MACHINE_REPOSITORY,
@@ -10,12 +11,17 @@ import {
   SIGNAL_REPOSITORY,
 } from '../seed-demo-environment/ports/signal-repository.port';
 import { type IUnitOfWork, UNIT_OF_WORK } from '../seed-demo-environment/ports/unit-of-work.port';
+import {
+  type IWritePackageRepository,
+  WRITE_PACKAGE_REPOSITORY,
+} from '../write-packages/ports/write-package-repository.port';
 import { DashboardAccessResolver, Requester } from './dashboard-access.resolver';
 import { WidgetNotFoundError } from './errors/widget-not-found.error';
 import {
   DASHBOARD_WIDGET_REPOSITORY,
   type IDashboardWidgetRepository,
 } from './ports/dashboard-widget-repository.port';
+import { validateWidgetPackage } from './validate-widget-package';
 import { validateWidgetSignalIds } from './validate-widget-signal-ids';
 
 export type UpdateWidgetInput = {
@@ -36,6 +42,8 @@ export class UpdateWidgetUseCase {
     private readonly widgetRepository: IDashboardWidgetRepository,
     @Inject(SIGNAL_REPOSITORY) private readonly signalRepository: ISignalRepository,
     @Inject(MACHINE_REPOSITORY) private readonly machineRepository: IMachineRepository,
+    @Inject(WRITE_PACKAGE_REPOSITORY)
+    private readonly writePackageRepository: IWritePackageRepository,
     @Inject(UNIT_OF_WORK) private readonly unitOfWork: IUnitOfWork,
   ) {}
 
@@ -46,7 +54,20 @@ export class UpdateWidgetUseCase {
       if (!widget || widget.dashboardId !== dashboard.id) {
         throw new WidgetNotFoundError(input.widgetId);
       }
-      if (input.signalIds) {
+      // docs/specs/20-paquetes-escritura-opc-ua.md: un `PACKAGE` revalida su paquete y nunca lleva Signals.
+      const isPackage = widget.widgetType === WidgetType.Package;
+      if (isPackage && input.widgetConfig) {
+        await validateWidgetPackage(
+          input.widgetConfig as PackageWidgetConfig,
+          dashboard.companyId,
+          {
+            machineRepository: this.machineRepository,
+            writePackageRepository: this.writePackageRepository,
+          },
+          ctx,
+        );
+      }
+      if (input.signalIds && !isPackage) {
         await validateWidgetSignalIds(
           input.signalIds,
           dashboard.companyId,
@@ -56,7 +77,11 @@ export class UpdateWidgetUseCase {
       }
       return this.widgetRepository.update(
         widget.id,
-        { widgetConfig: input.widgetConfig, position: input.position, signalIds: input.signalIds },
+        {
+          widgetConfig: input.widgetConfig,
+          position: input.position,
+          signalIds: isPackage ? undefined : input.signalIds,
+        },
         ctx,
       );
     });

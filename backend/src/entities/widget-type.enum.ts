@@ -7,4 +7,6 @@ export enum WidgetType {
   Gauge = 'GAUGE',
   Table = 'TABLE',
   AlarmList = 'ALARM_LIST',
+  /** docs/specs/20-paquetes-escritura-opc-ua.md: botón para ejecutar un paquete de escritura. */
+  Package = 'PACKAGE',
 }

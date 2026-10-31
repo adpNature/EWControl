@@ -4,7 +4,12 @@ import type { OpcUaConnectionConfig } from '../../../entities/connection-config.
 import { DataQuality } from '../data-quality.enum';
 import { VariableType } from '../variable-type.enum';
 import type { Variable } from '../variable.vo';
-import type { IOpcUaDriver, IOpcUaDriverListener, OpcUaDataChange } from './opc-ua-driver.port';
+import {
+  type IOpcUaDriver,
+  type IOpcUaDriverListener,
+  type OpcUaDataChange,
+  OpcUaSessionUnavailableError,
+} from './opc-ua-driver.port';
 import { OpcUaProvider } from './opc-ua-provider';
 
 const NOW = new Date('2026-10-30T12:00:00Z');
@@ -29,6 +34,9 @@ class FakeDriver implements IOpcUaDriver {
     this.listener = listener;
   });
   stop = vi.fn(() => Promise.resolve());
+  write = vi.fn((items: { nodeId: string }[]) =>
+    Promise.resolve(items.map((item) => ({ nodeId: item.nodeId, statusCode: 'Good' }))),
+  );
 }
 
 function change(overrides: Partial<OpcUaDataChange> = {}): OpcUaDataChange {
@@ -297,5 +305,26 @@ describe('OpcUaProvider', () => {
     provider.republishLastValues();
 
     expect(variables).toHaveLength(0);
+  });
+
+  describe('write (docs/specs/20-paquetes-escritura-opc-ua.md)', () => {
+    const ITEMS = [{ nodeId: 'ns=3;s="Escritura"."REAL"', dataType: 'Float', value: 120 }];
+
+    it('delega en el driver si está conectado', async () => {
+      const { driver, provider } = await createConnectedProvider();
+
+      await expect(provider.write(ITEMS)).resolves.toEqual([
+        { nodeId: 'ns=3;s="Escritura"."REAL"', statusCode: 'Good' },
+      ]);
+      expect(driver.write).toHaveBeenCalledWith(ITEMS);
+    });
+
+    it('rechaza con OpcUaSessionUnavailableError si no está conectado', async () => {
+      const { driver, provider } = await createConnectedProvider();
+      driver.listener!.onDisconnected();
+
+      await expect(provider.write(ITEMS)).rejects.toBeInstanceOf(OpcUaSessionUnavailableError);
+      expect(driver.write).not.toHaveBeenCalled();
+    });
   });
 });

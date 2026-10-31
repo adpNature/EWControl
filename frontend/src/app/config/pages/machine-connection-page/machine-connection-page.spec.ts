@@ -203,7 +203,13 @@ describe('MachineConnectionPage', () => {
         authMode: 'Anonymous',
         timeoutMs: 5000,
         samplingIntervalMs: 1000,
-        nodeMapping: [{ nodeId: ANCHO.nodeId, signalVariableName: 'Lectura_ARRAY_1_0_Ancho' }],
+        nodeMapping: [
+          {
+            nodeId: ANCHO.nodeId,
+            signalVariableName: 'Lectura_ARRAY_1_0_Ancho',
+            dataType: 'Float',
+          },
+        ],
       },
     });
     expect(toastService.show).toHaveBeenLastCalledWith({
@@ -253,6 +259,112 @@ describe('MachineConnectionPage', () => {
     expect(machinesApi.replaceConnection).toHaveBeenCalledWith('machine-1', {
       providerType: 'Simulator',
       connectionConfig: { seedProfile: 'empty', signals: [] },
+    });
+  });
+
+  describe('variables escribibles (docs/specs/20-paquetes-escritura-opc-ua.md, criterio frontend 1)', () => {
+    const WRITABLE_CONNECTION: MachineConnection = {
+      ...OPCUA_CONNECTION,
+      connectionConfig: {
+        endpointUrl: ENDPOINT,
+        securityMode: 'None',
+        securityPolicy: 'None',
+        authMode: 'Anonymous',
+        timeoutMs: 5000,
+        samplingIntervalMs: 1000,
+        nodeMapping: [
+          {
+            nodeId: 'ns=3;s="Escritura"."REAL"',
+            signalVariableName: 'Escritura_REAL',
+            dataType: 'Float',
+          },
+          { nodeId: 'ns=3;s="Lectura"."REAL_1"', signalVariableName: 'Lectura_REAL_1' },
+        ],
+      },
+    };
+
+    it('marca una variable como escribible con límites y los envía al guardar', async () => {
+      machinesApi.getConnection.mockReturnValue(of(WRITABLE_CONNECTION));
+      const user = userEvent.setup();
+      await renderPage();
+
+      await user.click(
+        screen.getByRole('checkbox', { name: 'Escribible: ns=3;s="Escritura"."REAL"' }),
+      );
+      await user.type(screen.getByLabelText('Mínimo para ns=3;s="Escritura"."REAL"'), '0');
+      await user.type(screen.getByLabelText('Máximo para ns=3;s="Escritura"."REAL"'), '500');
+      await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+      expect(machinesApi.replaceConnection).toHaveBeenCalledWith(
+        'machine-1',
+        expect.objectContaining({
+          connectionConfig: expect.objectContaining({
+            nodeMapping: [
+              {
+                nodeId: 'ns=3;s="Escritura"."REAL"',
+                signalVariableName: 'Escritura_REAL',
+                dataType: 'Float',
+                writable: true,
+                min: 0,
+                max: 500,
+              },
+              { nodeId: 'ns=3;s="Lectura"."REAL_1"', signalVariableName: 'Lectura_REAL_1' },
+            ],
+          }),
+        }),
+      );
+    });
+
+    it('no permite marcar como escribible una fila sin tipo conocido', async () => {
+      machinesApi.getConnection.mockReturnValue(of(WRITABLE_CONNECTION));
+      await renderPage();
+
+      expect(
+        screen.getByRole('checkbox', { name: 'Escribible: ns=3;s="Lectura"."REAL_1"' }),
+      ).toBeDisabled();
+    });
+
+    it('bloquea el guardado si el mínimo supera al máximo', async () => {
+      machinesApi.getConnection.mockReturnValue(of(WRITABLE_CONNECTION));
+      const user = userEvent.setup();
+      await renderPage();
+
+      await user.click(
+        screen.getByRole('checkbox', { name: 'Escribible: ns=3;s="Escritura"."REAL"' }),
+      );
+      await user.type(screen.getByLabelText('Mínimo para ns=3;s="Escritura"."REAL"'), '10');
+      await user.type(screen.getByLabelText('Máximo para ns=3;s="Escritura"."REAL"'), '5');
+
+      expect(screen.getByText('El mínimo no puede ser mayor que el máximo.')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Guardar' })).toBeDisabled();
+    });
+
+    it('al añadir un nodo explorado se guarda también su dataType', async () => {
+      const user = userEvent.setup();
+      await renderPage();
+      await chooseOpcUaAndTypeEndpoint(user);
+      await user.click(screen.getByRole('button', { name: 'Explorar nodos' }));
+      await user.click(screen.getByRole('treeitem', { name: /Lectura/ }));
+      await user.click(screen.getByRole('button', { name: 'Añadir al mapeo: Ancho' }));
+      await user.click(screen.getByRole('button', { name: 'Guardar' }));
+      await user.click(
+        within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Guardar' }),
+      );
+
+      expect(machinesApi.replaceConnection).toHaveBeenCalledWith(
+        'machine-1',
+        expect.objectContaining({
+          connectionConfig: expect.objectContaining({
+            nodeMapping: [
+              {
+                nodeId: ANCHO.nodeId,
+                signalVariableName: 'Lectura_ARRAY_1_0_Ancho',
+                dataType: 'Float',
+              },
+            ],
+          }),
+        }),
+      );
     });
   });
 });

@@ -198,4 +198,45 @@ describe('parseOpcUaConnectionConfig', () => {
       }),
     ).toMatch(/signalVariableName/);
   });
+
+  describe('variables escribibles (docs/specs/20-paquetes-escritura-opc-ua.md, criterio 1)', () => {
+    const withEntry = (entry: Record<string, unknown>) => ({
+      ...VALID_OPCUA_CONFIG,
+      nodeMapping: [
+        { nodeId: 'ns=3;s="Escritura"."REAL"', signalVariableName: 'Escritura_REAL', ...entry },
+      ],
+    });
+
+    it('acepta writable con dataType y límites, y los conserva', () => {
+      const result = parseOpcUaConnectionConfig(
+        withEntry({ writable: true, dataType: 'Float', min: 0, max: 500 }),
+      );
+
+      expect(result.ok && result.config.nodeMapping[0]).toEqual({
+        nodeId: 'ns=3;s="Escritura"."REAL"',
+        signalVariableName: 'Escritura_REAL',
+        writable: true,
+        dataType: 'Float',
+        min: 0,
+        max: 500,
+      });
+    });
+
+    it('acepta dataType en una variable de solo lectura', () => {
+      expect(parseOpcUaConnectionConfig(withEntry({ dataType: 'Boolean' })).ok).toBe(true);
+    });
+
+    it.each([
+      [{ writable: true }, /dataType es obligatorio/],
+      [{ writable: 'sí', dataType: 'Float' }, /writable debe ser booleano/],
+      [{ writable: true, dataType: 'ExtensionObject' }, /dataType debe ser uno de/],
+      [{ writable: true, dataType: 'Boolean', min: 0 }, /solo se admite en tipos numéricos/],
+      [{ writable: true, dataType: 'Float', min: 10, max: 5 }, /min no puede ser mayor que max/],
+      [{ writable: true, dataType: 'Float', max: 'mucho' }, /max debe ser un número/],
+    ])('rechaza %o', (entry, reason) => {
+      const result = parseOpcUaConnectionConfig(withEntry(entry));
+      expect(result.ok).toBe(false);
+      expect(result.ok ? '' : result.reason).toMatch(reason);
+    });
+  });
 });

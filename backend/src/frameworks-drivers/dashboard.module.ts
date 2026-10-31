@@ -29,6 +29,8 @@ import { UpdateDashboardUseCase } from '../use-cases/dashboard/update-dashboard.
 import { UpdateWidgetUseCase } from '../use-cases/dashboard/update-widget.use-case';
 import { MACHINE_REPOSITORY } from '../use-cases/seed-demo-environment/ports/machine-repository.port';
 import { SIGNAL_REPOSITORY } from '../use-cases/seed-demo-environment/ports/signal-repository.port';
+import { WritePackageTypeOrmRepository } from '../interface-adapters/persistence/postgres/typeorm/write-package.typeorm-repository';
+import { WRITE_PACKAGE_REPOSITORY } from '../use-cases/write-packages/ports/write-package-repository.port';
 import { UNIT_OF_WORK } from '../use-cases/seed-demo-environment/ports/unit-of-work.port';
 import { EVENT_PUBLISHER } from '../use-cases/simulator-control/ports/event-publisher.port';
 import { MetricsModule } from './metrics.module';
@@ -61,6 +63,8 @@ import { MetricsModule } from './metrics.module';
     { provide: DASHBOARD_WIDGET_REPOSITORY, useClass: DashboardWidgetTypeOrmRepository },
     { provide: SIGNAL_REPOSITORY, useClass: SignalTypeOrmRepository },
     { provide: MACHINE_REPOSITORY, useClass: MachineTypeOrmRepository },
+    // docs/specs/20-paquetes-escritura-opc-ua.md: validar el paquete de un widget PACKAGE.
+    { provide: WRITE_PACKAGE_REPOSITORY, useClass: WritePackageTypeOrmRepository },
     { provide: UNIT_OF_WORK, useClass: TypeOrmUnitOfWork },
     { provide: EVENT_PUBLISHER, useClass: NestEventEmitterPublisher },
     { provide: TOKEN_SERVICE, useClass: JwtTokenService },

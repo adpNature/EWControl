@@ -43,12 +43,15 @@ El `Operador` nunca elige valores: solo elige qué paquete ejecutar. Nunca se es
 ```
 
 - `writable` (por defecto `false`): solo con `true` la variable puede formar parte de un paquete.
-- `dataType`: obligatorio si `writable`, uno de los tipos escalares soportados en la spec 18. Lo rellena la UI con el `dataType` del nodo explorado. Sirve para validar los valores de los paquetes; en cada escritura se comprueba además contra el tipo real del servidor.
+- `dataType`: obligatorio si `writable`, uno de los tipos escalares soportados (`Boolean`, `SByte`, `Byte`, `Int16`, `UInt16`, `Int32`, `UInt32`, `Float`, `Double`, `String`). La UI lo rellena con el `dataType` del nodo explorado y lo guarda en **todas** las filas en que lo conoce, no solo en las escribibles, para poder marcarlas después sin volver a explorar. Sirve para validar los valores de los paquetes; en cada escritura se comprueba además contra el tipo real del servidor.
 - `min`/`max`: opcionales, solo para tipos numéricos. Ningún paquete puede guardar un valor fuera de ellos.
 
-**Paquete de escritura** (`WritePackage`, tabla `write_packages`, migración nueva): `id`, `machineId`, `name` (único por Machine), `description?`, `items: [{ signalVariableName, value }]` (1 a 50 elementos, sin variables repetidas), `isActive` y fechas de auditoría. Pertenece a una Machine y hereda su Company.
+**Paquete de escritura** (`WritePackage`, tabla `write_packages`, migración `AddWritePackagesSchema`): `id`, `machineId`, `name` (único entre los activos de la Machine), `description?`, `items: [{ signalVariableName, value }]` (1 a 50 elementos, sin variables repetidas), `isActive` y fechas de auditoría. Pertenece a una Machine y hereda su Company. Los `String` admiten hasta 256 caracteres.
 
-**Ejecución** (`WritePackageExecution`, tabla `write_package_executions`, migración nueva): `id`, `packageId`, `machineId`, `companyId`, `userId`, `userEmail`, `executedAt`, `status` (`SUCCESS` | `PARTIAL` | `FAILED`) e `items: [{ signalVariableName, nodeId, value, statusCode }]`. Es inmutable: nunca se edita ni se borra.
+**Ejecución** (`WritePackageExecution`, tabla `write_package_executions`, misma migración): `id`, `packageId`, `machineId`, `companyId`, `userId` (`SET NULL` si se borra el User), `userEmail`, `executedAt`, `status` (`SUCCESS` | `PARTIAL` | `FAILED`), `reason` e `items: [{ signalVariableName, nodeId, value, statusCode }]`. Es inmutable: nunca se edita ni se borra.
+
+- `reason` es `null` cuando se llegó a escribir, y si no explica por qué no: `PROVIDER_NOT_SUPPORTED`, `WRITE_PACKAGE_OUTDATED`, `MACHINE_NOT_CONNECTED`, `WRITE_IN_PROGRESS` o `TIMEOUT`.
+- Un elemento que no llegó a enviarse lleva `statusCode: "NOT_SENT"` (y `nodeId: null` si ya no está mapeado).
 
 ### Flujo principal (Given/When/Then)
 
@@ -61,7 +64,9 @@ El `Operador` nunca elige valores: solo elige qué paquete ejecutar. Nunca se es
 - **Given** una Machine con variables escribibles.
 - **When** un `AdminCliente` llama a `POST /api/v1/machines/:machineId/write-packages` con `{ "name": "Formato 120 mm", "items": [{ "signalVariableName": "Escritura_REAL", "value": 120.0 }, { "signalVariableName": "Escritura_BOOL", "value": true }] }`.
 - **Then** la API responde `201` con el paquete creado.
-- **And** también hay `GET` (listado y detalle), `PATCH` y `DELETE` (baja lógica) del paquete.
+- **And** también hay `GET` (listado y detalle), `PATCH` y `DELETE` (baja lógica, `204`; su historial se conserva) del paquete.
+- **And** el listado responde `{ providerType, connected, packages }`: además de los paquetes activos, dice si la Machine admite escribir ahora mismo, para que la UI pueda deshabilitar "Ejecutar" sin intentarlo.
+- **And** un nombre ya usado por otro paquete activo de la Machine da `409 WRITE_PACKAGE_NAME_TAKEN`.
 
 **Ejecución**
 
@@ -72,6 +77,7 @@ El `Operador` nunca elige valores: solo elige qué paquete ejecutar. Nunca se es
   2. Escribe todos los valores en **una sola petición OPC UA `Write`**, usando la sesión del `OpcUaProvider` de la Machine.
   3. Registra la ejecución con el `StatusCode` de cada valor.
   4. Responde `200` con la ejecución: `status` global y resultado por elemento.
+  5. Publica el evento interno `WritePackageExecuted` e incrementa la métrica por resultado.
 - **And** la lectura (Subscription de la spec 18) recoge el nuevo valor si la variable escrita también se lee.
 
 - **Given** una Machine con ejecuciones.
@@ -86,7 +92,7 @@ El `Operador` nunca elige valores: solo elige qué paquete ejecutar. Nunca se es
 
 - **Given** un paquete con un valor fuera de `min`/`max`, de un tipo que no corresponde (p. ej. `"abc"` para un `Float`, `3.5` para un `Int16` o `40000` para un `Int16`) o que referencia una variable no escribible.
 - **When** se crea o edita.
-- **Then** la API responde `400 INVALID_WRITE_PACKAGE`, indicando el elemento.
+- **Then** la API responde `400 INVALID_WRITE_PACKAGE`, indicando el elemento en `details: { index, reason }`.
 
 - **Given** un paquete creado cuando sus variables eran escribibles, y una configuración de conexión que ha cambiado después (variable desmarcada, quitada del mapeo o con límites que ya no admiten el valor).
 - **When** se ejecuta.
@@ -94,11 +100,11 @@ El `Operador` nunca elige valores: solo elige qué paquete ejecutar. Nunca se es
 
 - **Given** una Machine `Simulator`, o `OpcUa` sin conexión con el PLC.
 - **When** se ejecuta un paquete.
-- **Then** la API responde `409 MACHINE_NOT_CONNECTED` (o `422 PROVIDER_NOT_SUPPORTED` si es `Simulator`) sin escribir nada.
+- **Then** la API responde `409 MACHINE_NOT_CONNECTED` (o `422 PROVIDER_NOT_SUPPORTED` si es `Simulator`) sin escribir nada, y lo registra como ejecución `FAILED` con ese `reason`.
 
 - **Given** una ejecución en curso en una Machine.
 - **When** llega otra ejecución para la misma Machine.
-- **Then** la segunda responde `409 WRITE_IN_PROGRESS`. No se encolan escrituras: el usuario la repite si sigue siendo necesaria.
+- **Then** la segunda responde `409 WRITE_IN_PROGRESS` y queda registrada como `FAILED`. No se encolan escrituras: el usuario la repite si sigue siendo necesaria.
 
 - **Given** un servidor que rechaza alguno de los valores (`BadNotWritable`, `BadTypeMismatch`, `BadOutOfRange`, `BadUserAccessDenied`…).
 - **When** se ejecuta el paquete.
@@ -110,7 +116,11 @@ El `Operador` nunca elige valores: solo elige qué paquete ejecutar. Nunca se es
 
 - **Given** una petición `Write` que no recibe respuesta en `timeoutMs`.
 - **When** vence el plazo.
-- **Then** la ejecución queda `FAILED` con motivo `TIMEOUT`. Algún valor pudo llegar a escribirse, y el historial lo advierte.
+- **Then** la ejecución queda `FAILED` con `reason: "TIMEOUT"` y la API responde `200` con ella (no es un error de la petición, sino un resultado incierto). Algún valor pudo llegar a escribirse, y el historial lo advierte.
+
+- **Given** una Machine o un paquete de otra Company, inexistente o dado de baja.
+- **When** se consulta o se ejecuta.
+- **Then** la API responde `404 MACHINE_NOT_FOUND` o `404 WRITE_PACKAGE_NOT_FOUND`.
 
 ### Contrato de entrada/salida
 
@@ -128,6 +138,8 @@ Ver [11-api-rest.md](../11-api-rest.md), sección nueva "WritePackage":
 
 Evento interno nuevo `WritePackageExecuted` (para métricas y una futura notificación). La métrica `ewcontrol_write_package_executions_total{status}` cuenta las ejecuciones por resultado.
 
+**Widget `PACKAGE`.** Nuevo `widgetType` del Dashboard con `config: { machineId, writePackageId }` y `signalIds: []` (no lee Signals). Al crearlo o editarlo, el paquete debe existir, estar activo y pertenecer a esa Machine de la Company; si no, `422 WRITE_PACKAGE_NOT_FOUND`. Crear el widget sigue siendo de `AdminCliente`/`SuperAdmin` (spec 19).
+
 ### Criterios de aceptación backend
 
 1. `nodeMapping` acepta `writable`, `dataType`, `min` y `max`. Una entrada `writable` sin `dataType` soportado, o con `min > max`, da `400`.
@@ -139,6 +151,7 @@ Evento interno nuevo `WritePackageExecuted` (para métricas y una futura notific
 7. Un rechazo parcial del servidor da `PARTIAL`, y uno total da `FAILED`, sin revertir.
 8. Toda ejecución (también las rechazadas antes de escribir) queda en `write_package_executions` con User, fecha, valores y resultado. El historial es solo de lectura.
 9. Test de integración contra el servidor OPC UA de desarrollo: escribe un paquete en el DB `Escritura` y relee los valores.
+10. El widget `PACKAGE` valida su paquete al crearlo y editarlo (`422 WRITE_PACKAGE_NOT_FOUND`).
 
 ## Frontend
 
@@ -151,14 +164,14 @@ Evento interno nuevo `WritePackageExecuted` (para métricas y una futura notific
 - **Then** aparecen los campos `mín`/`máx` (solo en tipos numéricos), y el `dataType` se guarda con la fila.
 
 - **Given** el detalle de una Machine OPC UA.
-- **When** el usuario entra en la pestaña "Paquetes de escritura" y pulsa "Nuevo paquete".
+- **When** el usuario va a la sección "Paquetes de escritura" del detalle y pulsa "Nuevo paquete" (`/config/machines/:machineId/write-packages/new`; la edición, en `.../:packageId/edit`).
 - **Then** ve un formulario con nombre, descripción y una lista de filas variable → valor. El selector solo ofrece variables escribibles, y el campo de valor se adapta al tipo: interruptor para booleanos, numérico con límites o texto.
 
 **Ejecución (los tres roles)**
 
 - **Given** cualquier User en la nueva sección **"Paquetes"** de la barra lateral, visible también para el `Operador`.
 - **When** elige una Machine.
-- **Then** ve sus paquetes activos, con los valores que escribe cada uno y el resultado de su última ejecución.
+- **Then** ve sus paquetes activos, con los valores que escribe cada uno. Por defecto se preselecciona la primera Machine OPC UA. El resultado de las ejecuciones anteriores se consulta en el historial de cada paquete.
 
 - **Given** un paquete.
 - **When** el usuario pulsa "Ejecutar".
@@ -168,7 +181,8 @@ Evento interno nuevo `WritePackageExecuted` (para métricas y una futura notific
 
 - **Given** un Dashboard.
 - **When** un `AdminCliente` añade un widget de tipo **"Paquete"** que apunta a un paquete.
-- **Then** el widget muestra un botón "Ejecutar <nombre>" con la misma confirmación, utilizable por los tres roles (el `Operador` lo usa pero no lo configura).
+- **Then** el widget muestra el paquete, sus valores y un botón "Ejecutar" con la misma confirmación, utilizable por los tres roles (el `Operador` lo usa pero no lo configura). El estado de conexión se actualiza en vivo con `MachineConnected`/`MachineDisconnected` por WebSocket.
+- **And** si el paquete se da de baja después, el widget lo indica en lugar de fallar.
 
 - **Given** un paquete.
 - **When** el usuario abre "Historial".
@@ -192,11 +206,12 @@ Evento interno nuevo `WritePackageExecuted` (para métricas y una futura notific
 
 Referencia: [08-frontend-dashboard.md](../08-frontend-dashboard.md).
 
-- `config/pages/machine-connection-page`: columna "Escribible" y límites en la tabla de mapeo.
+- `config/pages/machine-connection-page`: columnas "Escribible" y "Límites" en la tabla de mapeo.
+- `config/pages/machine-detail-page`: sección "Paquetes de escritura" con alta, edición y baja.
 - `config/pages/write-package-form-page` (nueva): alta y edición de paquetes.
-- Nueva sección `operations/` con `write-packages-page`: listado por Machine, ejecución e historial. Ruta `/paquetes`, accesible a los tres roles.
-- Componente compartido `WritePackageExecuteButton`: botón, confirmación y resultado, reutilizado por la página y por el widget.
-- `dashboard/widgets/package` (nuevo tipo de widget `PACKAGE`).
+- Nueva área `write-packages/` (`entities`, `adapters`, `use-cases`, `components`, `pages`) con `write-packages-page`: listado por Machine, ejecución e historial. Ruta `/paquetes`, sin `configGuard`, accesible a los tres roles, con enlace "Paquetes" en la barra lateral.
+- Componente compartido `WritePackageExecuteButtonComponent`: botón, confirmación y resultado, reutilizado por la página y por el widget. Para listar los valores dentro de la confirmación, `ConfirmDialogComponent` admite ahora contenido proyectado (`<ng-content>`) bajo el mensaje.
+- `dashboard/widgets/package` (nuevo tipo de widget `PACKAGE`). En "Añadir widget", el tipo `PACKAGE` pide Machine y paquete en lugar de Signals.
 
 ### Criterios de aceptación frontend
 

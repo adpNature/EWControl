@@ -38,7 +38,19 @@ function createFakes() {
   const unitOfWork = {
     runInTransaction: vi.fn((work: (ctx: unknown) => Promise<unknown>) => work(FAKE_CTX)),
   };
-  return { resolver, widgetRepository, signalRepository, machineRepository, unitOfWork };
+  const writePackageRepository = {
+    findById: vi
+      .fn()
+      .mockResolvedValue({ id: 'package-1', machineId: 'machine-1', isActive: true }),
+  };
+  return {
+    resolver,
+    widgetRepository,
+    signalRepository,
+    machineRepository,
+    writePackageRepository,
+    unitOfWork,
+  };
 }
 
 function createUseCase(fakes: ReturnType<typeof createFakes>) {
@@ -47,6 +59,7 @@ function createUseCase(fakes: ReturnType<typeof createFakes>) {
     fakes.widgetRepository,
     fakes.signalRepository,
     fakes.machineRepository,
+    fakes.writePackageRepository as never,
     fakes.unitOfWork,
   );
 }

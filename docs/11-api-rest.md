@@ -216,6 +216,41 @@ Su ciclo de vida (`status`/`activatedAt`/`resolvedAt`) únicamente lo crea o mod
 
 ---
 
+## WritePackage
+
+[docs/specs/20-paquetes-escritura-opc-ua.md](specs/20-paquetes-escritura-opc-ua.md). Paquetes de escritura OPC UA: listas fijas de pares variable → valor que se escriben en el PLC de la Machine con una sola petición `Write`. Solo pueden usar variables del `nodeMapping` marcadas `writable` (Documento 3, apartado 3.2.4).
+
+| Método | Ruta                                                        | Roles                    | Descripción                                                                                                           |
+| ------ | ----------------------------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/v1/machines/:machineId/write-packages`                | Los tres                 | `200 { "providerType", "connected", "packages": [...] }`: paquetes activos y si la Machine admite escribir ahora.     |
+| GET    | `/api/v1/machines/:machineId/write-packages/:id`            | Los tres                 | Detalle de un paquete activo.                                                                                         |
+| POST   | `/api/v1/machines/:machineId/write-packages`                | AdminCliente, SuperAdmin | Body `{ "name", "description"?, "items": [{ "signalVariableName", "value" }] }` (1 a 50). `201` con el paquete.       |
+| PATCH  | `/api/v1/machines/:machineId/write-packages/:id`            | AdminCliente, SuperAdmin | Actualiza nombre, descripción o `items`, con la misma validación.                                                     |
+| DELETE | `/api/v1/machines/:machineId/write-packages/:id`            | AdminCliente, SuperAdmin | Baja lógica (`204`). El historial de ejecuciones se conserva.                                                         |
+| POST   | `/api/v1/machines/:machineId/write-packages/:id/execute`    | Los tres                 | Cuerpo vacío: escribe lo guardado en el paquete. `200` con la ejecución (`status`, `reason`, resultado por elemento). |
+| GET    | `/api/v1/machines/:machineId/write-packages/:id/executions` | Los tres                 | Historial paginado del paquete, más recientes primero. Solo lectura.                                                  |
+
+Una ejecución tiene la forma `{ id, packageId, machineId, userEmail, executedAt, status, reason, items: [{ signalVariableName, nodeId, value, statusCode }] }`:
+
+- `status`: `SUCCESS`, `PARTIAL` (el servidor rechazó algún valor) o `FAILED`.
+- `reason`: `null` si se llegó a escribir. Si no, `PROVIDER_NOT_SUPPORTED`, `WRITE_PACKAGE_OUTDATED`, `MACHINE_NOT_CONNECTED`, `WRITE_IN_PROGRESS` o `TIMEOUT`.
+- `statusCode`: el nombre del `StatusCode` OPC UA de cada valor (`Good`, `BadTypeMismatch`…), o `NOT_SENT` si no llegó a enviarse.
+
+Un timeout de la escritura no es un error de la petición: responde `200` con `status: FAILED` y `reason: TIMEOUT`, porque algún valor pudo escribirse. Las ejecuciones rechazadas antes de escribir también quedan en el historial.
+
+| Código                     | HTTP | Cuándo                                                                                                        |
+| -------------------------- | ---- | ------------------------------------------------------------------------------------------------------------- |
+| `INVALID_WRITE_PACKAGE`    | 400  | Valor fuera de tipo o límites, variable no escribible o repetida. `details: { index, reason }`.               |
+| `MACHINE_NOT_FOUND`        | 404  | Machine inexistente o de otra Company.                                                                        |
+| `WRITE_PACKAGE_NOT_FOUND`  | 404  | Paquete inexistente, dado de baja o de otra Machine.                                                          |
+| `WRITE_PACKAGE_NAME_TAKEN` | 409  | Ya hay otro paquete activo con ese nombre en la Machine.                                                      |
+| `WRITE_PACKAGE_OUTDATED`   | 409  | Al ejecutar, la configuración actual de la conexión ya no admite algún valor del paquete. No se escribe nada. |
+| `MACHINE_NOT_CONNECTED`    | 409  | El provider OPC UA de la Machine no tiene sesión con el PLC. No se escribe nada.                              |
+| `WRITE_IN_PROGRESS`        | 409  | Ya hay una ejecución en curso en esa Machine. No se encola.                                                   |
+| `PROVIDER_NOT_SUPPORTED`   | 422  | La Machine no es `OpcUa` (p. ej. `Simulator`).                                                                |
+
+---
+
 ## Dashboard / DashboardWidget
 
 | Método | Ruta                                       | Descripción                                                                     |
@@ -228,6 +263,8 @@ Su ciclo de vida (`status`/`activatedAt`/`resolvedAt`) únicamente lo crea o mod
 | POST   | `/api/v1/dashboards/:id/widgets`           | Añade un DashboardWidget (`WidgetType`, `WidgetConfig`, Signals referenciadas). |
 | PATCH  | `/api/v1/dashboards/:id/widgets/:widgetId` | Actualiza un widget.                                                            |
 | DELETE | `/api/v1/dashboards/:id/widgets/:widgetId` | Elimina un widget.                                                              |
+
+El widget `PACKAGE` ([docs/specs/20-paquetes-escritura-opc-ua.md](specs/20-paquetes-escritura-opc-ua.md)) no referencia Signals: lleva `signalIds: []` y `config: { "machineId", "writePackageId" }`. Si el paquete no existe, está dado de baja o no es de esa Machine, crear o editar el widget responde `422 WRITE_PACKAGE_NOT_FOUND`.
 
 ---
 

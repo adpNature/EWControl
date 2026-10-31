@@ -18,7 +18,14 @@ export type TableWidgetConfig = { columns?: Array<'value' | 'quality' | 'timesta
 /** Sin campos: el widget ALARM_LIST no tiene fuente de datos todavía (AlarmState no existe). */
 export type AlarmListWidgetConfig = Record<string, never>;
 
+/**
+ * docs/specs/20-paquetes-escritura-opc-ua.md: un widget `PACKAGE` no muestra
+ * Signals sino un botón que ejecuta un paquete de escritura de una Machine.
+ */
+export type PackageWidgetConfig = { machineId: string; writePackageId: string };
+
 export type WidgetConfig =
+  | PackageWidgetConfig
   | ValueWidgetConfig
   | GaugeWidgetConfig
   | ChartWidgetConfig

@@ -1,7 +1,7 @@
 import { WidgetConfig } from './widget-config.model';
 
-/** Documento 3, apartado 3.5. */
-export type WidgetType = 'VALUE' | 'CHART' | 'GAUGE' | 'TABLE' | 'ALARM_LIST';
+/** Documento 3, apartado 3.5. `PACKAGE`: docs/specs/20-paquetes-escritura-opc-ua.md. */
+export type WidgetType = 'VALUE' | 'CHART' | 'GAUGE' | 'TABLE' | 'ALARM_LIST' | 'PACKAGE';
 
 /** Signal ya resuelta de un widget (docs/specs/07-dashboard-tiempo-real.md, criterio backend 5). */
 export interface WidgetSignal {
