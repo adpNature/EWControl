@@ -16,6 +16,8 @@ import {
   userFormEditBreadcrumb,
   userFormNewBreadcrumb,
   usersListBreadcrumb,
+  writePackageFormEditBreadcrumb,
+  writePackageFormNewBreadcrumb,
 } from './use-cases/config-breadcrumbs';
 
 /**
@@ -23,6 +25,7 @@ import {
  * docs/specs/10-gestion-companies-users.md añade `companies` (solo SuperAdmin,
  * `superAdminGuard`) y `users` (sin guard adicional, ambos roles entran).
  * docs/specs/18-integracion-opc-ua.md añade `machines/:machineId/connection`.
+ * docs/specs/20-paquetes-escritura-opc-ua.md añade el alta/edición de paquetes de escritura.
  */
 export const configRoutes: Routes = [
   {
@@ -94,6 +97,22 @@ export const configRoutes: Routes = [
     loadComponent: () =>
       import('./pages/machine-connection-page/machine-connection-page').then(
         (m) => m.MachineConnectionPage,
+      ),
+  },
+  {
+    path: 'machines/:machineId/write-packages/new',
+    data: { breadcrumb: writePackageFormNewBreadcrumb },
+    loadComponent: () =>
+      import('./pages/write-package-form-page/write-package-form-page').then(
+        (m) => m.WritePackageFormPage,
+      ),
+  },
+  {
+    path: 'machines/:machineId/write-packages/:packageId/edit',
+    data: { breadcrumb: writePackageFormEditBreadcrumb },
+    loadComponent: () =>
+      import('./pages/write-package-form-page/write-package-form-page').then(
+        (m) => m.WritePackageFormPage,
       ),
   },
   {

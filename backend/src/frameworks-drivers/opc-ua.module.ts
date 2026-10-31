@@ -12,6 +12,7 @@ import { MACHINE_CONNECTION_REPOSITORY } from '../use-cases/seed-demo-environmen
 import { MACHINE_REPOSITORY } from '../use-cases/seed-demo-environment/ports/machine-repository.port';
 import { UNIT_OF_WORK } from '../use-cases/seed-demo-environment/ports/unit-of-work.port';
 import { EVENT_PUBLISHER } from '../use-cases/simulator-control/ports/event-publisher.port';
+import { MACHINE_WRITER } from '../use-cases/write-packages/ports/machine-writer.port';
 import { MetricsModule } from './metrics.module';
 import { SimulatorModule } from './simulator.module';
 
@@ -20,7 +21,8 @@ import { SimulatorModule } from './simulator.module';
  * con el driver real de `node-opcua`. Importa `SimulatorModule` únicamente por
  * `IngestSignalTickUseCase` (misma instancia del Signal Engine y de su
  * `RAW_VARIABLE_CACHE` que el Simulador) y `MetricsModule` por el registro
- * Prometheus compartido.
+ * Prometheus compartido. Exporta el registry como `MACHINE_WRITER`
+ * (docs/specs/20-paquetes-escritura-opc-ua.md) para escribir con sus sesiones.
  */
 @Module({
   imports: [SimulatorModule, MetricsModule],
@@ -32,6 +34,8 @@ import { SimulatorModule } from './simulator.module';
     { provide: UNIT_OF_WORK, useClass: TypeOrmUnitOfWork },
     { provide: EVENT_PUBLISHER, useClass: NestEventEmitterPublisher },
     { provide: CLOCK, useClass: SystemClock },
+    { provide: MACHINE_WRITER, useExisting: OpcUaProviderRegistry },
   ],
+  exports: [MACHINE_WRITER],
 })
 export class OpcUaModule {}

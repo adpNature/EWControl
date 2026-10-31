@@ -42,6 +42,18 @@ describe('PrometheusMetricsService (docs/07-observabilidad-monitorizacion.md, ap
     expect(metrics).toContain('ewcontrol_data_provider_reconnects_total{machine_id="machine-1"} 2');
   });
 
+  it('expone ewcontrol_write_package_executions_total por status (spec 20)', async () => {
+    const service = new PrometheusMetricsService();
+
+    service.recordWritePackageExecution('SUCCESS');
+    service.recordWritePackageExecution('PARTIAL');
+    service.recordWritePackageExecution('SUCCESS');
+
+    const metrics = await service.getMetrics();
+    expect(metrics).toContain('ewcontrol_write_package_executions_total{status="SUCCESS"} 2');
+    expect(metrics).toContain('ewcontrol_write_package_executions_total{status="PARTIAL"} 1');
+  });
+
   it('expone ewcontrol_alarm_active_total como gauge', async () => {
     const service = new PrometheusMetricsService();
 

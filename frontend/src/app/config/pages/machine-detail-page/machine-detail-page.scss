@@ -7,6 +7,33 @@
   margin-bottom: var(--spacing-md);
 }
 
+.machine-detail-page__write-packages {
+  margin-top: var(--spacing-lg);
+}
+
+.machine-detail-page__package-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.machine-detail-page__package {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--border-color);
+
+  p {
+    margin: 0;
+  }
+}
+
 .machine-detail-page__actions {
   display: flex;
   gap: var(--spacing-sm);

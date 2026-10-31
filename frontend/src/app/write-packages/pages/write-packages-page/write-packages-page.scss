@@ -1,0 +1,76 @@
+@use 'breakpoints' as *;
+
+.write-packages-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.write-packages-page__machine {
+  max-width: 24rem;
+}
+
+.write-packages-page__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.write-packages-page__card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  background-color: var(--surface-color);
+}
+
+.write-packages-page__items {
+  margin: 0;
+  padding-left: var(--spacing-md);
+  font-size: var(--font-size-sm);
+}
+
+.write-packages-page__variable {
+  font-family: monospace;
+}
+
+.write-packages-page__reason {
+  margin: 0 0 var(--spacing-xs);
+  font-size: var(--font-size-sm);
+}
+
+// Excepción justificada a Flexbox (docs/12-convenciones-frontend.md, 12.7):
+// el historial es una tabla real de datos, con <table> semántica.
+.write-packages-page__history {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.write-packages-page__table {
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+
+  th,
+  td {
+    padding: var(--spacing-sm);
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  th {
+    font-weight: 500;
+    color: var(--text-muted-color);
+  }
+
+  @include respond(md) {
+    font-size: var(--font-size-md);
+  }
+}

@@ -16,6 +16,7 @@ const ROUTES = [
   { path: 'config/users', children: [] },
   { path: 'alarms', children: [] },
   { path: 'history', children: [] },
+  { path: 'paquetes', children: [] },
   { path: 'account/change-password', children: [] },
 ];
 
@@ -192,14 +193,20 @@ describe('SidebarComponent', () => {
     });
   });
 
-  it('oculta "Configuración" a un Operador y mantiene Dashboard, Alarmas, Históricos y Cuenta (spec 19)', async () => {
+  it('oculta "Configuración" a un Operador y mantiene Dashboard, Alarmas, Históricos, Paquetes y Cuenta (specs 19 y 20)', async () => {
     await renderSidebar('Operador');
 
     expect(screen.queryByRole('link', { name: 'Configuración' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Machines' })).not.toBeInTheDocument();
-    for (const name of ['Dashboard', 'Alarmas', 'Históricos', 'Cuenta']) {
+    for (const name of ['Dashboard', 'Alarmas', 'Históricos', 'Paquetes', 'Cuenta']) {
       expect(screen.getByRole('link', { name })).toBeInTheDocument();
     }
+  });
+
+  it('muestra "Paquetes" enlazando a /paquetes (docs/specs/20-paquetes-escritura-opc-ua.md)', async () => {
+    await renderSidebar('AdminCliente');
+
+    expect(screen.getByRole('link', { name: 'Paquetes' })).toHaveAttribute('href', '/paquetes');
   });
 
   it('muestra "Configuración" a un AdminCliente', async () => {

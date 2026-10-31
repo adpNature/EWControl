@@ -44,7 +44,21 @@
           </select>
         </div>
 
-        @if (signalsOfSelectedMachine().length > 0) {
+        @if (isPackageWidget()) {
+          <div class="form-field">
+            <label class="form-label" for="widget-package">Paquete</label>
+            <select
+              id="widget-package"
+              class="form-input"
+              [formControl]="addWidgetForm.controls.writePackageId"
+            >
+              <option value="">Selecciona un paquete</option>
+              @for (writePackage of packagesOfSelectedMachine(); track writePackage.id) {
+                <option [value]="writePackage.id">{{ writePackage.name }}</option>
+              }
+            </select>
+          </div>
+        } @else if (signalsOfSelectedMachine().length > 0) {
           <div class="form-field">
             <span class="form-label">Signals</span>
             @for (signal of signalsOfSelectedMachine(); track signal.id) {
@@ -108,6 +122,9 @@
           }
           @case ('ALARM_LIST') {
             <app-alarm-list-widget [widget]="widget" />
+          }
+          @case ('PACKAGE') {
+            <app-package-widget [widget]="widget" />
           }
         }
       } @empty {

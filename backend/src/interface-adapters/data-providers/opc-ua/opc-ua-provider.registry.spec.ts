@@ -3,7 +3,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { OpcUaConnectionConfig } from '../../../entities/connection-config.vo';
 import { ProviderType } from '../../../entities/provider-type.enum';
 import { SignalQuality } from '../../../entities/signal-quality.enum';
-import type { IOpcUaDriver, IOpcUaDriverListener } from './opc-ua-driver.port';
+import { MachineNotConnectedError } from '../../../use-cases/write-packages/errors/machine-not-connected.error';
+import { WriteInProgressError } from '../../../use-cases/write-packages/errors/write-in-progress.error';
+import { WriteTimeoutError } from '../../../use-cases/write-packages/errors/write-timeout.error';
+import { OpcUaTimeoutError } from './node-opcua.mappers';
+import {
+  type IOpcUaDriver,
+  type IOpcUaDriverListener,
+  OpcUaSessionUnavailableError,
+} from './opc-ua-driver.port';
 import { OpcUaProviderRegistry } from './opc-ua-provider.registry';
 
 const NOW = new Date('2026-10-30T12:00:00Z');
@@ -24,6 +32,9 @@ class FakeDriver implements IOpcUaDriver {
     this.listener = listener;
   });
   stop = vi.fn(() => Promise.resolve());
+  write = vi.fn((items: { nodeId: string }[]) =>
+    Promise.resolve(items.map((item) => ({ nodeId: item.nodeId, statusCode: 'Good' }))),
+  );
 }
 
 type MachineRow = { id: string; companyId: string; isActive: boolean };
@@ -340,5 +351,69 @@ describe('OpcUaProviderRegistry', () => {
     expect(fakes.ingestSignalTick.execute).toHaveBeenCalledWith(
       expect.objectContaining({ variableName: 'Lectura_REAL_1', value: 4.5 }),
     );
+  });
+
+  describe('write / IMachineWriter (docs/specs/20-paquetes-escritura-opc-ua.md)', () => {
+    const ITEMS = [{ nodeId: 'ns=3;s="Escritura"."REAL"', dataType: 'Float', value: 120 }];
+
+    async function connectedRegistry() {
+      const fakes = createFakes();
+      const registry = createRegistry(fakes);
+      await registry.onModuleInit();
+      fakes.drivers[0].listener!.onConnected();
+      return { fakes, registry };
+    }
+
+    it('escribe con el provider de la Machine y devuelve sus StatusCode (criterio 4)', async () => {
+      const { fakes, registry } = await connectedRegistry();
+
+      await expect(registry.write('machine-1', ITEMS)).resolves.toEqual([
+        { nodeId: 'ns=3;s="Escritura"."REAL"', statusCode: 'Good' },
+      ]);
+      expect(fakes.drivers[0].write).toHaveBeenCalledWith(ITEMS);
+    });
+
+    it('sin provider o sin conexión lanza MachineNotConnectedError (criterio 6)', async () => {
+      const fakes = createFakes();
+      const registry = createRegistry(fakes);
+      await registry.onModuleInit();
+
+      await expect(registry.write('machine-1', ITEMS)).rejects.toBeInstanceOf(
+        MachineNotConnectedError,
+      );
+      await expect(registry.write('otra-machine', ITEMS)).rejects.toBeInstanceOf(
+        MachineNotConnectedError,
+      );
+    });
+
+    it('una segunda escritura simultánea en la misma Machine lanza WriteInProgressError (criterio 6)', async () => {
+      const { fakes, registry } = await connectedRegistry();
+      let release: (value: unknown) => void = () => undefined;
+      fakes.drivers[0].write.mockReturnValueOnce(
+        new Promise((resolve) => {
+          release = resolve;
+        }) as never,
+      );
+
+      const first = registry.write('machine-1', ITEMS);
+      await expect(registry.write('machine-1', ITEMS)).rejects.toBeInstanceOf(WriteInProgressError);
+      release([{ nodeId: 'x', statusCode: 'Good' }]);
+      await first;
+
+      await expect(registry.write('machine-1', ITEMS)).resolves.toBeDefined();
+    });
+
+    it('traduce el timeout y la sesión caída del driver a errores de aplicación', async () => {
+      const { fakes, registry } = await connectedRegistry();
+      fakes.drivers[0].write.mockRejectedValueOnce(new OpcUaTimeoutError(5000));
+      fakes.drivers[0].write.mockRejectedValueOnce(new OpcUaSessionUnavailableError());
+      fakes.drivers[0].write.mockRejectedValueOnce(new Error('otro'));
+
+      await expect(registry.write('machine-1', ITEMS)).rejects.toBeInstanceOf(WriteTimeoutError);
+      await expect(registry.write('machine-1', ITEMS)).rejects.toBeInstanceOf(
+        MachineNotConnectedError,
+      );
+      await expect(registry.write('machine-1', ITEMS)).rejects.toThrow('otro');
+    });
   });
 });

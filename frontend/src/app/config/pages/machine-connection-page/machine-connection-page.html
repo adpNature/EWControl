@@ -80,6 +80,8 @@
                   <th scope="col">NodeId</th>
                   <th scope="col">Tipo</th>
                   <th scope="col">Nombre de variable</th>
+                  <th scope="col">Escribible</th>
+                  <th scope="col">Límites</th>
                   <th scope="col"><span class="visually-hidden">Acciones</span></th>
                 </tr>
               </thead>
@@ -106,6 +108,45 @@
                       />
                       @if (rowErrorMessage(index); as message) {
                         <p class="form-error" [id]="'mapping-error-' + index">{{ message }}</p>
+                      }
+                    </td>
+                    <td>
+                      <input
+                        type="checkbox"
+                        [checked]="!!row.writable"
+                        [disabled]="!canBeWritable(row)"
+                        [attr.aria-label]="'Escribible: ' + row.nodeId"
+                        [attr.title]="
+                          canBeWritable(row) ? null : 'Solo variables escalares con tipo conocido'
+                        "
+                        (change)="toggleWritable(index, $event)"
+                      />
+                    </td>
+                    <td>
+                      @if (row.writable && isNumericRow(row)) {
+                        <div class="machine-connection-page__limits">
+                          <input
+                            class="form-input"
+                            type="number"
+                            placeholder="mín"
+                            [value]="row.min ?? ''"
+                            [attr.aria-label]="'Mínimo para ' + row.nodeId"
+                            (input)="setLimit(index, 'min', $event)"
+                          />
+                          <input
+                            class="form-input"
+                            type="number"
+                            placeholder="máx"
+                            [value]="row.max ?? ''"
+                            [attr.aria-label]="'Máximo para ' + row.nodeId"
+                            (input)="setLimit(index, 'max', $event)"
+                          />
+                        </div>
+                        @if (limitsError(index); as message) {
+                          <p class="form-error">{{ message }}</p>
+                        }
+                      } @else {
+                        —
                       }
                     </td>
                     <td class="machine-connection-page__row-actions">

@@ -1,0 +1,59 @@
+<div class="execute-button">
+  <button
+    type="button"
+    class="btn-primary"
+    [disabled]="!!disabledReason || executing()"
+    [attr.aria-describedby]="disabledReason ? reasonId : null"
+    (click)="askConfirmation()"
+  >
+    {{ executing() ? 'Ejecutando…' : 'Ejecutar' }}
+  </button>
+  @if (disabledReason) {
+    <p class="text-muted execute-button__reason" [id]="reasonId">{{ disabledReason }}</p>
+  }
+
+  @if (error()) {
+    <p class="form-error" role="alert">{{ error() }}</p>
+  }
+
+  @if (result(); as execution) {
+    <div
+      class="execute-button__result"
+      [class.execute-button__result--success]="execution.status === 'SUCCESS'"
+      [class.execute-button__result--failed]="execution.status !== 'SUCCESS'"
+      role="status"
+    >
+      <p class="execute-button__status">{{ statusLabel(execution.status) }}</p>
+      @if (reasonLabel(execution.reason); as reason) {
+        <p class="text-body">{{ reason }}</p>
+      }
+      <ul class="execute-button__items">
+        @for (item of execution.items; track item.signalVariableName) {
+          <li>
+            <span class="execute-button__variable">{{ item.signalVariableName }}</span>
+            = {{ formatValue(item.value) }} → {{ statusCodeLabel(item.statusCode) }}
+          </li>
+        }
+      </ul>
+    </div>
+  }
+</div>
+
+<app-confirm-dialog
+  [open]="confirmOpen()"
+  [title]="'Ejecutar «' + writePackage.name + '»'"
+  message="Se escribirán estos valores en la máquina:"
+  confirmLabel="Escribir en la máquina"
+  [danger]="false"
+  (confirmed)="confirm()"
+  (cancelled)="confirmOpen.set(false)"
+>
+  <ul class="execute-button__items">
+    @for (item of writePackage.items; track item.signalVariableName) {
+      <li>
+        <span class="execute-button__variable">{{ item.signalVariableName }}</span>
+        = {{ formatValue(item.value) }}
+      </li>
+    }
+  </ul>
+</app-confirm-dialog>

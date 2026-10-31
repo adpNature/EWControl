@@ -131,7 +131,10 @@ C -->|CHART| E[Componente Gráfico]
 C -->|GAUGE| F[Componente Indicador]
 C -->|TABLE| G[Componente Tabla]
 C -->|ALARM_LIST| H[Componente Lista de Alarmas]
+C -->|PACKAGE| I[Componente Paquete de escritura]
 ```
+
+El widget `PACKAGE` ([docs/specs/20-paquetes-escritura-opc-ua.md](specs/20-paquetes-escritura-opc-ua.md)) es el único que actúa sobre la máquina: muestra un paquete de escritura y un botón "Ejecutar" con confirmación. Lo comparte con la página "Paquetes" (`/paquetes`, área `write-packages/`), y está disponible para los tres roles.
 
 ---
 
@@ -246,14 +249,15 @@ Definir cómo un usuario administrador configura Machines, Signals, AlarmDefinit
 
 ## Operaciones de Configuración
 
-| Operación                      | Entidad afectada           | Rol requerido             |
-| ------------------------------ | -------------------------- | ------------------------- |
-| Registrar una Machine          | Machine, MachineConnection | AdminCliente / SuperAdmin |
-| Definir una Signal             | Signal                     | AdminCliente / SuperAdmin |
-| Definir una regla de alarma    | AlarmDefinition            | AdminCliente / SuperAdmin |
-| Crear o modificar un Dashboard | Dashboard, DashboardWidget | AdminCliente / SuperAdmin |
-| Dar de alta una Company        | Company                    | SuperAdmin                |
-| Gestionar Users de la Company  | User                       | AdminCliente / SuperAdmin |
+| Operación                                                      | Entidad afectada                | Rol requerido             |
+| -------------------------------------------------------------- | ------------------------------- | ------------------------- |
+| Registrar una Machine                                          | Machine, MachineConnection      | AdminCliente / SuperAdmin |
+| Definir una Signal                                             | Signal                          | AdminCliente / SuperAdmin |
+| Definir una regla de alarma                                    | AlarmDefinition                 | AdminCliente / SuperAdmin |
+| Crear o modificar un Dashboard                                 | Dashboard, DashboardWidget      | AdminCliente / SuperAdmin |
+| Marcar variables escribibles y gestionar paquetes de escritura | MachineConnection, WritePackage | AdminCliente / SuperAdmin |
+| Dar de alta una Company                                        | Company                         | SuperAdmin                |
+| Gestionar Users de la Company                                  | User                            | AdminCliente / SuperAdmin |
 
 Cada formulario del Frontend se corresponde con una entidad del dominio (Documento 3) y con los endpoints de escritura definidos en el Documento 11. El Frontend valida el formato de los datos introducidos, pero la validación de negocio (por ejemplo, que una Signal FORMULA solo referencie Variables de su misma Machine) siempre se revalida en el Backend.
 
@@ -263,7 +267,7 @@ Las dos últimas filas de la tabla anterior (Company, User) están especificadas
 
 ## Reglas Arquitectónicas
 
-**Regla 1.** Toda operación de configuración respeta los roles definidos en el Documento 3 (`UserRole`); el Frontend oculta las opciones no autorizadas, pero el Backend las rechaza igualmente si se solicitan. El rol `Operador` ([docs/specs/19-rol-operador.md](specs/19-rol-operador.md)) no tiene ninguna operación de esta tabla: no ve la sección "Configuración" (el `configGuard` le devuelve al Dashboard) ni los controles de edición del Dashboard, y un `403` de la API se le notifica con un toast.
+**Regla 1.** Toda operación de configuración respeta los roles definidos en el Documento 3 (`UserRole`); el Frontend oculta las opciones no autorizadas, pero el Backend las rechaza igualmente si se solicitan. El rol `Operador` ([docs/specs/19-rol-operador.md](specs/19-rol-operador.md)) no tiene ninguna operación de esta tabla: no ve la sección "Configuración" (el `configGuard` le devuelve al Dashboard) ni los controles de edición del Dashboard, y un `403` de la API se le notifica con un toast. Sí ejecuta paquetes de escritura, desde la página "Paquetes" o el widget `PACKAGE` ([docs/specs/20-paquetes-escritura-opc-ua.md](specs/20-paquetes-escritura-opc-ua.md)).
 
 **Regla 2.** Ninguna validación de negocio se considera definitiva en el Frontend; el Backend es siempre la última autoridad.
 

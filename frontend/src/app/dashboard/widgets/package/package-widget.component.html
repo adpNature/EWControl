@@ -1,0 +1,26 @@
+<div class="box widget package-widget">
+  @if (loadError()) {
+    <p class="text-muted">No se ha podido cargar el paquete.</p>
+  } @else if (list() && !writePackage()) {
+    <p class="text-muted">
+      Este paquete ya no existe. Pide a un administrador que retire el widget.
+    </p>
+  } @else if (writePackage(); as writePackage) {
+    <h2 class="title-lg">{{ writePackage.name }}</h2>
+    <ul class="package-widget__items">
+      @for (item of writePackage.items; track item.signalVariableName) {
+        <li class="package-widget__item">
+          <span>{{ item.signalVariableName }}</span>
+          <strong>{{ formatValue(item.value) }}</strong>
+        </li>
+      }
+    </ul>
+    <app-write-package-execute-button
+      [machineId]="config.machineId"
+      [writePackage]="writePackage"
+      [disabledReason]="disabledReason()"
+    />
+  } @else {
+    <p class="text-muted" role="status">Cargando…</p>
+  }
+</div>

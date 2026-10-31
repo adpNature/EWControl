@@ -8,6 +8,7 @@ import { configGuard } from './core/guards/config.guard';
 /** docs/specs/12-navegacion-shell.md: el breadcrumb se muestra en toda la zona privada. */
 const dashboardBreadcrumb: BreadcrumbCrumb[] = [{ label: 'Dashboard' }];
 const changePasswordBreadcrumb: BreadcrumbCrumb[] = [{ label: 'Cuenta' }];
+const writePackagesBreadcrumb: BreadcrumbCrumb[] = [{ label: 'Paquetes' }];
 
 export const routes: Routes = [
   {
@@ -62,6 +63,16 @@ export const routes: Routes = [
       {
         path: 'history',
         loadChildren: () => import('./history/history.routes').then((m) => m.historyRoutes),
+      },
+      {
+        // docs/specs/20-paquetes-escritura-opc-ua.md: ejecutar paquetes es de los
+        // tres roles (incluido el Operador), así que vive fuera de `config`.
+        path: 'paquetes',
+        data: { breadcrumb: writePackagesBreadcrumb },
+        loadComponent: () =>
+          import('./write-packages/pages/write-packages-page/write-packages-page').then(
+            (m) => m.WritePackagesPage,
+          ),
       },
       {
         // docs/specs/10-gestion-companies-users.md: top-level porque auth.routes.ts

@@ -948,6 +948,10 @@ Cuando `ProviderType = OpcUa`, `ConnectionConfig` incluye (implementado en [docs
 - `securityMode`, `securityPolicy`, `authMode`: hoy solo `None`/`None`/`Anonymous`, lo que expone el PLC piloto. La forma queda abierta para `Sign`/`SignAndEncrypt`, `UserName` y `Certificate` (con un `certificateRef`, ver Documento 6, apartado 6.3) en una spec posterior; hasta entonces cualquier otro valor, o un campo no declarado, se rechaza.
 - `timeoutMs` (1000–60000, por defecto 5000) y `samplingIntervalMs` (100–60000, por defecto 1000): tiempo máximo de las sesiones efímeras de prueba/exploración e intervalo de muestreo y publicación de la Subscription.
 - `nodeMapping`: la lista de correspondencias entre un `NodeId` de OPC UA y el nombre de Variable interno (el mismo `variableName` que utiliza `SignalSource`, apartado 3.4, para resolver una Signal `DIRECT`). Sin esta lista, el `OpcUaProvider` no sabría a qué Signal corresponde cada NodeId suscrito. Entre 1 y 500 entradas, sin `nodeId` ni `signalVariableName` repetidos; `signalVariableName` cumple `[A-Za-z_][A-Za-z0-9_]*`, el patrón de identificador del motor de fórmulas, para poder referenciarse desde una Signal `FORMULA`.
+- Cada entrada de `nodeMapping` admite además, desde [docs/specs/20-paquetes-escritura-opc-ua.md](specs/20-paquetes-escritura-opc-ua.md), cuatro campos opcionales para la escritura:
+  - `dataType`: tipo OPC UA del nodo (`Boolean`, `SByte`, `Byte`, `Int16`, `UInt16`, `Int32`, `UInt32`, `Float`, `Double`, `String`).
+  - `writable`: con `true`, la variable puede formar parte de un paquete de escritura (apartado 3.2.10). Exige `dataType`.
+  - `min`/`max`: límites de los valores que se pueden escribir, solo en tipos numéricos y con `min <= max`.
 
 ### Traducción de calidad
 
@@ -1388,7 +1392,7 @@ Un DashboardWidget referencia una o varias Signals; nunca referencia Variables d
 
 **Regla 1**
 
-Un DashboardWidget nunca accede directamente al PLC ni a Variables; siempre referencia Signals.
+Un DashboardWidget nunca accede directamente al PLC ni a Variables; siempre referencia Signals. La única excepción es el widget `PACKAGE` ([docs/specs/20-paquetes-escritura-opc-ua.md](specs/20-paquetes-escritura-opc-ua.md)), que referencia un paquete de escritura (apartado 3.2.10) en lugar de Signals; tampoco accede al PLC: ejecutar el paquete pasa siempre por el Backend.
 
 ---
 
@@ -1407,6 +1411,33 @@ El modelo permite incorporar en el futuro widgets combinados con varias Signals,
 ### Decisión Arquitectónica
 
 DashboardWidget delega toda la obtención de datos en el Backend a través de Signals, manteniendo la capa de presentación completamente desacoplada de la adquisición de datos.
+
+## 3.2.10 WritePackage y WritePackageExecution
+
+### Introducción
+
+Implementadas en [docs/specs/20-paquetes-escritura-opc-ua.md](specs/20-paquetes-escritura-opc-ua.md). Un **WritePackage** es una receta cerrada: una lista fija de pares variable → valor que se escriben en el PLC de una Machine `OpcUa`. Un **WritePackageExecution** es el registro inmutable de cada vez que alguien lo ejecuta.
+
+---
+
+### Responsabilidades
+
+- `WritePackage`: pertenece a una Machine (y hereda su Company); `name` único entre sus paquetes activos, `description` opcional, `items` (1 a 50, sin variables repetidas) e `isActive` para la baja lógica.
+- `WritePackageExecution`: guarda quién (`userId`, `userEmail`), cuándo, el `status` global (`SUCCESS`, `PARTIAL`, `FAILED`), el `reason` si no se llegó a escribir y, por elemento, el `nodeId`, el valor y el `StatusCode` devuelto por el servidor.
+
+---
+
+### Reglas del Dominio
+
+**Regla 1.** Un paquete solo contiene variables del `nodeMapping` de su Machine marcadas `writable`, con valores de su `dataType` y dentro de sus límites.
+
+**Regla 2.** Al ejecutarse, el paquete se revalida contra la configuración actual de la Machine. Si ya no cumple la Regla 1, no se escribe nada.
+
+**Regla 3.** Una ejecución nunca se edita ni se borra, ni siquiera al dar de baja el paquete.
+
+**Regla 4.** Nunca hay dos escrituras simultáneas en la misma Machine.
+
+---
 
 # 3.3 Relaciones del Dominio
 
@@ -1515,14 +1546,15 @@ Este apartado formaliza las enumeraciones utilizadas por las entidades del domin
 
 ## Tabla de Enumeraciones
 
-| Enumeración    | Valores                                | Utilizada por     |
-| -------------- | -------------------------------------- | ----------------- |
-| UserRole       | SuperAdmin, AdminCliente, Operador     | User              |
-| ProviderType   | Simulator, OpcUa, Mqtt, ModbusTcp      | MachineConnection |
-| SignalType     | DIRECT, FORMULA                        | Signal            |
-| AlarmPriority  | LOW, MEDIUM, HIGH, CRITICAL            | AlarmDefinition   |
-| AlarmStateType | INACTIVE, ACTIVE                       | AlarmState        |
-| WidgetType     | VALUE, CHART, GAUGE, TABLE, ALARM_LIST | DashboardWidget   |
+| Enumeración                 | Valores                                         | Utilizada por         |
+| --------------------------- | ----------------------------------------------- | --------------------- |
+| UserRole                    | SuperAdmin, AdminCliente, Operador              | User                  |
+| ProviderType                | Simulator, OpcUa, Mqtt, ModbusTcp               | MachineConnection     |
+| SignalType                  | DIRECT, FORMULA                                 | Signal                |
+| AlarmPriority               | LOW, MEDIUM, HIGH, CRITICAL                     | AlarmDefinition       |
+| AlarmStateType              | INACTIVE, ACTIVE                                | AlarmState            |
+| WidgetType                  | VALUE, CHART, GAUGE, TABLE, ALARM_LIST, PACKAGE | DashboardWidget       |
+| WritePackageExecutionStatus | SUCCESS, PARTIAL, FAILED                        | WritePackageExecution |
 
 ---
 

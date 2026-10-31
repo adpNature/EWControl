@@ -1,0 +1,20 @@
+// Mismo motivo que el resto de widgets: el flex item de .dashboard-page__grid
+// debe ser el div.box.widget interno, no el host.
+:host {
+  display: contents;
+}
+
+.package-widget__items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin: 0 0 var(--spacing-sm);
+  padding: 0;
+  list-style: none;
+}
+
+.package-widget__item {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}

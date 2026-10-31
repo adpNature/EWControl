@@ -29,9 +29,22 @@ import {
   type MachineDeactivatedPayload,
   type MachineSignalsChangedPayload,
 } from '../../../use-cases/simulator-control/ports/event-publisher.port';
+import { MachineNotConnectedError } from '../../../use-cases/write-packages/errors/machine-not-connected.error';
+import { WriteInProgressError } from '../../../use-cases/write-packages/errors/write-in-progress.error';
+import { WriteTimeoutError } from '../../../use-cases/write-packages/errors/write-timeout.error';
+import type {
+  IMachineWriter,
+  MachineWriteItem,
+  MachineWriteResult,
+} from '../../../use-cases/write-packages/ports/machine-writer.port';
 import { PrometheusMetricsService } from '../../observability/prometheus-metrics.service';
+import { OpcUaTimeoutError } from './node-opcua.mappers';
 import { forwardVariableToSignalEngine } from '../variable-ingestion';
-import { OPCUA_DRIVER_FACTORY, type OpcUaDriverFactory } from './opc-ua-driver.port';
+import {
+  OPCUA_DRIVER_FACTORY,
+  type OpcUaDriverFactory,
+  OpcUaSessionUnavailableError,
+} from './opc-ua-driver.port';
 import { OpcUaProvider } from './opc-ua-provider';
 
 type RunningProvider = { provider: OpcUaProvider; companyId: string; hasConnected: boolean };
@@ -43,11 +56,14 @@ type RunningProvider = { provider: OpcUaProvider; companyId: string; hasConnecte
  * `MachineDisconnected` y a métricas (criterio backend 8), y para/arranca
  * providers en caliente ante `MachineConnectionReplaced`/`MachineDeactivated`
  * (criterio 2). Un endpoint inalcanzable nunca bloquea el arranque (criterio 9).
+ * Desde docs/specs/20-paquetes-escritura-opc-ua.md implementa `IMachineWriter`:
+ * escribe con la sesión de la Machine, una escritura a la vez por Machine.
  */
 @Injectable()
-export class OpcUaProviderRegistry implements OnModuleInit, OnModuleDestroy {
+export class OpcUaProviderRegistry implements OnModuleInit, OnModuleDestroy, IMachineWriter {
   private readonly logger = new Logger(OpcUaProviderRegistry.name);
   private readonly running = new Map<string, RunningProvider>();
+  private readonly writing = new Set<string>();
 
   constructor(
     @Inject(MACHINE_CONNECTION_REPOSITORY)
@@ -102,6 +118,34 @@ export class OpcUaProviderRegistry implements OnModuleInit, OnModuleDestroy {
   @OnEvent('MachineSignalsChanged')
   onMachineSignalsChanged(payload: MachineSignalsChangedPayload): void {
     this.running.get(payload.machineId)?.provider.republishLastValues();
+  }
+
+  /**
+   * spec 20, criterios backend 4 y 6: sin sesión, `MachineNotConnectedError`; con
+   * otra escritura en curso en la misma Machine, `WriteInProgressError` (no se encola).
+   */
+  async write(machineId: string, items: MachineWriteItem[]): Promise<MachineWriteResult[]> {
+    const entry = this.running.get(machineId);
+    if (!entry?.provider.isConnected()) {
+      throw new MachineNotConnectedError(machineId);
+    }
+    if (this.writing.has(machineId)) {
+      throw new WriteInProgressError(machineId);
+    }
+    this.writing.add(machineId);
+    try {
+      return await entry.provider.write(items);
+    } catch (error) {
+      if (error instanceof OpcUaTimeoutError) {
+        throw new WriteTimeoutError();
+      }
+      if (error instanceof OpcUaSessionUnavailableError) {
+        throw new MachineNotConnectedError(machineId);
+      }
+      throw error;
+    } finally {
+      this.writing.delete(machineId);
+    }
   }
 
   /** Solo para diagnóstico y tests: si la Machine tiene provider y está conectado. */

@@ -1,0 +1,99 @@
+<div class="box write-package-form-page">
+  <h1 class="title-xl">{{ isEditMode ? 'Editar paquete' : 'Nuevo paquete' }}</h1>
+
+  @if (loading()) {
+    <p class="text-muted" role="status">Cargando…</p>
+  } @else if (variables().length === 0) {
+    <p class="text-body">
+      Esta Machine no tiene variables escribibles. Márcalas primero en la pantalla de
+      <a [routerLink]="['/config/machines', machineId, 'connection']">Conexión</a>.
+    </p>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <app-input formControlName="name" label="Nombre" [errorMessage]="nameError()" />
+      <app-input formControlName="description" label="Descripción (opcional)" />
+
+      <fieldset class="write-package-form-page__items">
+        <legend class="form-label">Valores que escribe el paquete</legend>
+
+        @for (row of rows(); track $index; let index = $index) {
+          <div class="write-package-form-page__row">
+            <div class="form-field">
+              <label class="form-label" [for]="'item-variable-' + index">Variable</label>
+              <select
+                class="form-input"
+                [id]="'item-variable-' + index"
+                (change)="selectVariable(index, $event)"
+              >
+                @for (variable of variables(); track variable.signalVariableName) {
+                  <option
+                    [value]="variable.signalVariableName"
+                    [selected]="variable.signalVariableName === row.signalVariableName"
+                  >
+                    {{ variable.signalVariableName }} ({{ variable.dataType }})
+                  </option>
+                }
+              </select>
+            </div>
+
+            @if (variableOf(row); as variable) {
+              <div class="form-field">
+                <label class="form-label" [for]="'item-value-' + index">Valor</label>
+                @if (variable.dataType === 'Boolean') {
+                  <select
+                    class="form-input"
+                    [id]="'item-value-' + index"
+                    (change)="setValue(index, $event)"
+                  >
+                    <option value="true" [selected]="row.value === true">Verdadero</option>
+                    <option value="false" [selected]="row.value === false">Falso</option>
+                  </select>
+                } @else {
+                  <input
+                    class="form-input"
+                    [id]="'item-value-' + index"
+                    [type]="variable.dataType === 'String' ? 'text' : 'number'"
+                    [value]="row.value ?? ''"
+                    [attr.min]="variable.min ?? null"
+                    [attr.max]="variable.max ?? null"
+                    [attr.aria-invalid]="rowErrors()[index] ? true : null"
+                    [attr.aria-describedby]="rowErrors()[index] ? 'item-error-' + index : null"
+                    (input)="setValue(index, $event)"
+                  />
+                }
+              </div>
+            }
+
+            <button
+              type="button"
+              class="btn-danger write-package-form-page__remove"
+              [attr.aria-label]="'Quitar fila ' + (index + 1)"
+              (click)="removeRow(index)"
+            >
+              Quitar
+            </button>
+
+            @if (submitted() && rowErrors()[index]; as message) {
+              <p class="form-error" [id]="'item-error-' + index">{{ message }}</p>
+            }
+          </div>
+        }
+
+        @if (rows().length < variables().length) {
+          <button type="button" class="btn-secondary" (click)="addRow()">Añadir variable</button>
+        }
+        @if (submitted() && rows().length === 0) {
+          <p class="form-error">Añade al menos una variable.</p>
+        }
+      </fieldset>
+
+      @if (formError()) {
+        <p class="form-error" role="alert">{{ formError() }}</p>
+      }
+
+      <button type="submit" class="btn-primary" [disabled]="submitting()">
+        {{ submitting() ? 'Guardando…' : 'Guardar' }}
+      </button>
+    </form>
+  }
+</div>

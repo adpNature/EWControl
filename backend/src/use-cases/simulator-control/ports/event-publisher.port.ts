@@ -79,6 +79,14 @@ export type MachineDeactivatedPayload = { machineId: string; companyId: string }
  * últimos valores para que la Signal nueva no quede sin valor.
  */
 export type MachineSignalsChangedPayload = { machineId: string; companyId: string };
+/** docs/specs/20-paquetes-escritura-opc-ua.md: evento interno tras cada ejecución de un paquete. */
+export type WritePackageExecutedPayload = {
+  executionId: string;
+  packageId: string;
+  machineId: string;
+  companyId: string;
+  status: string;
+};
 
 /**
  * Único punto por el que el dominio/aplicación publica eventos, sin conocer
@@ -97,4 +105,5 @@ export interface IEventPublisher {
   publish(eventName: 'MachineConnectionReplaced', payload: MachineConnectionReplacedPayload): void;
   publish(eventName: 'MachineDeactivated', payload: MachineDeactivatedPayload): void;
   publish(eventName: 'MachineSignalsChanged', payload: MachineSignalsChangedPayload): void;
+  publish(eventName: 'WritePackageExecuted', payload: WritePackageExecutedPayload): void;
 }

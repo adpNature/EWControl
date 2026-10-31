@@ -17,6 +17,20 @@ export type OpcUaDataChange = {
   statusCodeName: string;
 };
 
+/** Valor a escribir en un nodo (docs/specs/20-paquetes-escritura-opc-ua.md). */
+export type OpcUaWriteItem = { nodeId: string; dataType: string; value: number | boolean | string };
+
+/** `StatusCode` resultante de cada escritura, en el orden de la petición. */
+export type OpcUaWriteResult = { nodeId: string; statusCode: string };
+
+/** No hay sesión OPC UA activa con la que escribir (desconectado o detenido). */
+export class OpcUaSessionUnavailableError extends Error {
+  constructor() {
+    super('No hay una sesión OPC UA activa.');
+    this.name = 'OpcUaSessionUnavailableError';
+  }
+}
+
 /** Eventos que el driver entrega al `OpcUaProvider`. */
 export interface IOpcUaDriverListener {
   /** Sesión y Subscription operativas (primera conexión o tras reconectar). */
@@ -40,6 +54,13 @@ export interface IOpcUaDriver {
   start(listener: IOpcUaDriverListener): void;
   /** Cierra Subscription, sesión y canal; tras resolverse no emite más eventos. */
   stop(): Promise<void>;
+  /**
+   * Escribe con la sesión abierta, todos los valores en una sola petición `Write`.
+   * Un nodo cuyo tipo real no coincide con `dataType` no se envía (`BadTypeMismatch`).
+   * @throws OpcUaSessionUnavailableError si no hay sesión.
+   * @throws OpcUaTimeoutError si el servidor no responde en `timeoutMs`.
+   */
+  write(items: OpcUaWriteItem[]): Promise<OpcUaWriteResult[]>;
 }
 
 export type OpcUaDriverFactory = (config: OpcUaConnectionConfig) => IOpcUaDriver;

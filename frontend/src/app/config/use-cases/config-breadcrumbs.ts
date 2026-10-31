@@ -105,6 +105,23 @@ export const machineConnectionBreadcrumb: BreadcrumbCrumb[] = [
   { label: 'Conexión' },
 ];
 
+/** docs/specs/20-paquetes-escritura-opc-ua.md: alta y edición de paquetes de escritura. */
+export const writePackagesPseudoCrumb: BreadcrumbCrumb = { label: 'Paquetes' };
+
+export const writePackageFormNewBreadcrumb: BreadcrumbCrumb[] = [
+  machinesCrumb,
+  { label: machineNameResolver, link: machineLink },
+  writePackagesPseudoCrumb,
+  { label: 'Nuevo' },
+];
+
+export const writePackageFormEditBreadcrumb: BreadcrumbCrumb[] = [
+  machinesCrumb,
+  { label: machineNameResolver, link: machineLink },
+  writePackagesPseudoCrumb,
+  editCrumb,
+];
+
 export const machineFormEditBreadcrumb: BreadcrumbCrumb[] = [
   machinesCrumb,
   { label: machineNameResolver, link: machineLink },

@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DashboardWidget } from '../../entities/dashboard-widget.entity';
-import type { WidgetConfig } from '../../entities/widget-config.vo';
+import type { PackageWidgetConfig, WidgetConfig } from '../../entities/widget-config.vo';
 import { WidgetType } from '../../entities/widget-type.enum';
 import {
   type IMachineRepository,
@@ -11,11 +11,16 @@ import {
   SIGNAL_REPOSITORY,
 } from '../seed-demo-environment/ports/signal-repository.port';
 import { type IUnitOfWork, UNIT_OF_WORK } from '../seed-demo-environment/ports/unit-of-work.port';
+import {
+  type IWritePackageRepository,
+  WRITE_PACKAGE_REPOSITORY,
+} from '../write-packages/ports/write-package-repository.port';
 import { DashboardAccessResolver, Requester } from './dashboard-access.resolver';
 import {
   DASHBOARD_WIDGET_REPOSITORY,
   type IDashboardWidgetRepository,
 } from './ports/dashboard-widget-repository.port';
+import { validateWidgetPackage } from './validate-widget-package';
 import { validateWidgetSignalIds } from './validate-widget-signal-ids';
 
 export type CreateWidgetInput = {
@@ -27,7 +32,11 @@ export type CreateWidgetInput = {
   position?: number;
 };
 
-/** docs/specs/07-dashboard-tiempo-real.md, criterio de aceptación backend 7. */
+/**
+ * docs/specs/07-dashboard-tiempo-real.md, criterio de aceptación backend 7.
+ * Un widget `PACKAGE` (docs/specs/20-paquetes-escritura-opc-ua.md) no lleva
+ * Signals: se valida su paquete en su lugar.
+ */
 @Injectable()
 export class CreateWidgetUseCase {
   constructor(
@@ -36,25 +45,40 @@ export class CreateWidgetUseCase {
     private readonly widgetRepository: IDashboardWidgetRepository,
     @Inject(SIGNAL_REPOSITORY) private readonly signalRepository: ISignalRepository,
     @Inject(MACHINE_REPOSITORY) private readonly machineRepository: IMachineRepository,
+    @Inject(WRITE_PACKAGE_REPOSITORY)
+    private readonly writePackageRepository: IWritePackageRepository,
     @Inject(UNIT_OF_WORK) private readonly unitOfWork: IUnitOfWork,
   ) {}
 
   execute(input: CreateWidgetInput): Promise<DashboardWidget> {
     return this.unitOfWork.runInTransaction(async (ctx) => {
       const dashboard = await this.resolver.resolveAny(input.dashboardId, input.requester, ctx);
-      await validateWidgetSignalIds(
-        input.signalIds,
-        dashboard.companyId,
-        { signalRepository: this.signalRepository, machineRepository: this.machineRepository },
-        ctx,
-      );
+      const isPackage = input.widgetType === WidgetType.Package;
+      if (isPackage) {
+        await validateWidgetPackage(
+          input.widgetConfig as PackageWidgetConfig,
+          dashboard.companyId,
+          {
+            machineRepository: this.machineRepository,
+            writePackageRepository: this.writePackageRepository,
+          },
+          ctx,
+        );
+      } else {
+        await validateWidgetSignalIds(
+          input.signalIds,
+          dashboard.companyId,
+          { signalRepository: this.signalRepository, machineRepository: this.machineRepository },
+          ctx,
+        );
+      }
       return this.widgetRepository.create(
         {
           dashboardId: dashboard.id,
           widgetType: input.widgetType,
           widgetConfig: input.widgetConfig,
           position: input.position ?? 0,
-          signalIds: input.signalIds,
+          signalIds: isPackage ? [] : input.signalIds,
         },
         ctx,
       );

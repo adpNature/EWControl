@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { of } from 'rxjs';
 import { AuthStateService } from '../../../auth/use-cases/auth.state';
 import { ToastService } from '../../../shared/ui/toast/toast.service';
+import { WritePackagesApiService } from '../../../write-packages/adapters/write-packages-api.service';
+import { WritePackageList } from '../../../write-packages/entities/write-package.model';
 import { MachinesApiService } from '../../adapters/machines-api.service';
 import { MachinesState } from '../../use-cases/machines.state';
 import { SignalsState } from '../../use-cases/signals.state';
@@ -20,6 +22,17 @@ const SIGNAL = {
   historyEnabled: false,
 };
 
+const WRITE_PACKAGE = {
+  id: 'package-1',
+  machineId: 'machine-1',
+  name: 'Formato 120 mm',
+  description: null,
+  items: [{ signalVariableName: 'Escritura_REAL', value: 120 }],
+  isActive: true,
+  createdAt: '2026-10-01T00:00:00Z',
+  updatedAt: '2026-10-01T00:00:00Z',
+};
+
 function activatedRouteStub() {
   return { snapshot: { paramMap: { get: () => 'machine-1' } } };
 }
@@ -34,6 +47,7 @@ describe('MachineDetailPage', () => {
   };
   let router: { navigate: ReturnType<typeof vi.fn> };
   let toastService: { show: ReturnType<typeof vi.fn> };
+  let writePackagesApi: { list: ReturnType<typeof vi.fn>; remove: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     machinesApi = { get: vi.fn() };
@@ -45,6 +59,14 @@ describe('MachineDetailPage', () => {
     };
     router = { navigate: vi.fn() };
     toastService = { show: vi.fn() };
+    writePackagesApi = {
+      list: vi
+        .fn()
+        .mockReturnValue(
+          of({ providerType: 'Simulator', connected: true, packages: [] } as WritePackageList),
+        ),
+      remove: vi.fn().mockReturnValue(of(undefined)),
+    };
   });
 
   function renderPage(role: 'AdminCliente' | 'none' = 'AdminCliente') {
@@ -60,6 +82,7 @@ describe('MachineDetailPage', () => {
         { provide: Router, useValue: router },
         { provide: ActivatedRoute, useValue: activatedRouteStub() },
         { provide: ToastService, useValue: toastService },
+        { provide: WritePackagesApiService, useValue: writePackagesApi },
       ],
     });
   }
@@ -142,5 +165,71 @@ describe('MachineDetailPage', () => {
     await renderPage('none');
 
     expect(screen.queryByText('Conexión')).not.toBeInTheDocument();
+  });
+
+  describe('paquetes de escritura (docs/specs/20-paquetes-escritura-opc-ua.md)', () => {
+    beforeEach(() => {
+      writePackagesApi.list.mockReturnValue(
+        of({ providerType: 'OpcUa', connected: true, packages: [WRITE_PACKAGE] }),
+      );
+    });
+
+    it('lista los paquetes de la Machine con su número de variables', async () => {
+      await renderPage();
+
+      expect(screen.getByRole('heading', { name: 'Paquetes de escritura' })).toBeInTheDocument();
+      expect(screen.getByText('Formato 120 mm')).toBeInTheDocument();
+      expect(screen.getByText(/1\s+variable/)).toBeInTheDocument();
+      expect(screen.getByText('Nuevo paquete').closest('a')).toBeInTheDocument();
+    });
+
+    it('"Editar paquete" navega a su formulario', async () => {
+      await renderPage();
+
+      await userEvent.click(screen.getByRole('button', { name: 'Editar paquete Formato 120 mm' }));
+
+      expect(router.navigate).toHaveBeenCalledWith([
+        '/config/machines',
+        'machine-1',
+        'write-packages',
+        'package-1',
+        'edit',
+      ]);
+    });
+
+    it('confirmar "Eliminar paquete" lo da de baja y recarga el listado', async () => {
+      await renderPage();
+
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Eliminar paquete Formato 120 mm' }),
+      );
+      await userEvent.click(
+        within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Eliminar' }),
+      );
+
+      expect(writePackagesApi.remove).toHaveBeenCalledWith('machine-1', 'package-1');
+      expect(writePackagesApi.list).toHaveBeenCalledTimes(2);
+    });
+
+    it('en una Machine que no es OPC UA explica que no admite paquetes', async () => {
+      writePackagesApi.list.mockReturnValue(
+        of({ providerType: 'Simulator', connected: true, packages: [] }),
+      );
+
+      await renderPage();
+
+      expect(screen.getByText(/Solo las Machines conectadas por OPC UA/)).toBeInTheDocument();
+      expect(screen.queryByText('Nuevo paquete')).not.toBeInTheDocument();
+    });
+
+    it('sin rol de configuración no ofrece crear, editar ni eliminar paquetes', async () => {
+      await renderPage('none');
+
+      expect(screen.getByText('Formato 120 mm')).toBeInTheDocument();
+      expect(screen.queryByText('Nuevo paquete')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Eliminar paquete Formato 120 mm' }),
+      ).not.toBeInTheDocument();
+    });
   });
 });

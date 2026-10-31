@@ -147,7 +147,7 @@ El script de seed (sección c) crea estos usuarios de demo en la misma Company:
 | `SuperAdmin`   | `superadmin@ewcontrol.local` | `SuperAdmin1234!` |
 | `Operador`     | `operador@ewcontrol.local`   | `Operador1234!`   |
 
-El `Operador` ve Dashboard, Históricos y Alarmas y reconoce alarmas, pero no configura nada ([docs/specs/19-rol-operador.md](docs/specs/19-rol-operador.md)).
+El `Operador` ve Dashboard, Históricos y Alarmas, reconoce alarmas y ejecuta paquetes de escritura, pero no configura nada ([docs/specs/19-rol-operador.md](docs/specs/19-rol-operador.md), [docs/specs/20-paquetes-escritura-opc-ua.md](docs/specs/20-paquetes-escritura-opc-ua.md)).
 
 Válido tanto para el login del Frontend como para obtener un token directamente contra `POST /api/v1/auth/login` (Documento 11). Detalle completo del flujo en [docs/specs/05-auth-login.md](docs/specs/05-auth-login.md).
 
@@ -212,21 +212,21 @@ Detalle completo de capas, componentes y flujo de datos en [docs/02-arquitectura
 
 ## Roadmap
 
-| Fase    | Contenido                                                                     | Estado     |
-| ------- | ----------------------------------------------------------------------------- | ---------- |
-| Fase 0  | Metodología y documentación base                                              | Completada |
-| Fase 1  | Fundación backend: Simulador de datos demo + catálogo de API REST             | Completada |
-| Fase 2  | Feature vertical: Autenticación (Auth)                                        | Completada |
-| Fase 3  | Feature vertical: Gestión de Machines y Signals                               | Completada |
-| Fase 4  | Feature vertical: Dashboard en tiempo real                                    | Completada |
-| Fase 5  | Feature vertical: Históricos y Alarmas                                        | Completada |
-| Fase 6  | Feature vertical: Gestión de Companies y Users (SuperAdmin)                   | Completada |
-| Fase 7  | Feature vertical: Reconocimiento manual de alarmas (ACK)                      | Completada |
-| Fase 8  | Feature vertical: Navegación (Shell + Sidebar + Breadcrumbs)                  | Completada |
-| Fase 9  | Feature vertical: Motor de fórmulas del Signal Engine (Signals `FORMULA`)     | Completada |
-| Fase 10 | Feature vertical: Históricos — pantalla independiente y comparativas          | Completada |
-| Fase 11 | Observabilidad técnica (health checks, métricas, alerting de infraestructura) | Completada |
-| Fase 12 | Integración OPC UA real (spec 18: modalidad local en planta)                  | En curso   |
+| Fase    | Contenido                                                                                                             | Estado     |
+| ------- | --------------------------------------------------------------------------------------------------------------------- | ---------- |
+| Fase 0  | Metodología y documentación base                                                                                      | Completada |
+| Fase 1  | Fundación backend: Simulador de datos demo + catálogo de API REST                                                     | Completada |
+| Fase 2  | Feature vertical: Autenticación (Auth)                                                                                | Completada |
+| Fase 3  | Feature vertical: Gestión de Machines y Signals                                                                       | Completada |
+| Fase 4  | Feature vertical: Dashboard en tiempo real                                                                            | Completada |
+| Fase 5  | Feature vertical: Históricos y Alarmas                                                                                | Completada |
+| Fase 6  | Feature vertical: Gestión de Companies y Users (SuperAdmin)                                                           | Completada |
+| Fase 7  | Feature vertical: Reconocimiento manual de alarmas (ACK)                                                              | Completada |
+| Fase 8  | Feature vertical: Navegación (Shell + Sidebar + Breadcrumbs)                                                          | Completada |
+| Fase 9  | Feature vertical: Motor de fórmulas del Signal Engine (Signals `FORMULA`)                                             | Completada |
+| Fase 10 | Feature vertical: Históricos — pantalla independiente y comparativas                                                  | Completada |
+| Fase 11 | Observabilidad técnica (health checks, métricas, alerting de infraestructura)                                         | Completada |
+| Fase 12 | Integración OPC UA real (spec 18: modalidad local en planta; spec 19: rol `Operador`; spec 20: paquetes de escritura) | En curso   |
 
 Cada fase a partir de la 2 se especifica en `docs/specs/` antes de implementarse (Documento 0). La Fase 11 es la única puramente backend/infraestructura, sin feature vertical Back+Front asociada.
 

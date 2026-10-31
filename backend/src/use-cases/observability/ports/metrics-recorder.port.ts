@@ -9,4 +9,6 @@ export const METRICS_RECORDER = Symbol('MetricsRecorder');
  */
 export interface IMetricsRecorder {
   recordHistoryWriteError(): void;
+  /** docs/specs/20-paquetes-escritura-opc-ua.md: ejecuciones de paquetes por resultado. */
+  recordWritePackageExecution(status: string): void;
 }

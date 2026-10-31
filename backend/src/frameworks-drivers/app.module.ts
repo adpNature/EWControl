@@ -13,6 +13,7 @@ import { MetricsModule } from './metrics.module';
 import { OpcUaModule } from './opc-ua.module';
 import { SimulatorModule } from './simulator.module';
 import { UserManagementModule } from './user-management.module';
+import { WritePackagesModule } from './write-packages.module';
 import { postgresConnectionOptions } from './database/postgres.config';
 
 /**
@@ -30,6 +31,7 @@ import { postgresConnectionOptions } from './database/postgres.config';
     AuthModule,
     SimulatorModule,
     OpcUaModule,
+    WritePackagesModule,
     CompanyManagementModule,
     UserManagementModule,
     MachineManagementModule,

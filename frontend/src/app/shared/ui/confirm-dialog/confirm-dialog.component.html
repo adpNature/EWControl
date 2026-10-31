@@ -12,8 +12,12 @@
     >
       <h2 [id]="titleId" class="title-lg">{{ title }}</h2>
       <p [id]="messageId" class="text-body">{{ message }}</p>
+      <!-- Contenido adicional opcional, p. ej. la lista de valores de un paquete (spec 20). -->
+      <ng-content />
       @if (confirmText !== undefined) {
-        <label class="form-label" [for]="confirmInputId">Escribe "{{ confirmText }}" para confirmar</label>
+        <label class="form-label" [for]="confirmInputId"
+          >Escribe "{{ confirmText }}" para confirmar</label
+        >
         <input
           [id]="confirmInputId"
           class="form-input"

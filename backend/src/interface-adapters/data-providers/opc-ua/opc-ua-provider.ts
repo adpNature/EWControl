@@ -5,11 +5,14 @@ import type { IDataProvider, VariableListener } from '../data-provider';
 import { DataQuality } from '../data-quality.enum';
 import { VariableType } from '../variable-type.enum';
 import type { Variable } from '../variable.vo';
-import type {
-  IOpcUaDriver,
-  IOpcUaDriverListener,
-  OpcUaDataChange,
-  OpcUaSeverity,
+import {
+  type IOpcUaDriver,
+  type IOpcUaDriverListener,
+  type OpcUaDataChange,
+  OpcUaSessionUnavailableError,
+  type OpcUaSeverity,
+  type OpcUaWriteItem,
+  type OpcUaWriteResult,
 } from './opc-ua-driver.port';
 
 export type ConnectionChangeListener = (connected: boolean) => void;
@@ -114,6 +117,17 @@ export class OpcUaProvider implements IDataProvider {
         correlationId: randomUUID(),
       });
     }
+  }
+
+  /**
+   * docs/specs/20-paquetes-escritura-opc-ua.md: escribe con la sesión abierta.
+   * @throws OpcUaSessionUnavailableError si el provider no está conectado.
+   */
+  write(items: OpcUaWriteItem[]): Promise<OpcUaWriteResult[]> {
+    if (!this.started || !this.connected) {
+      return Promise.reject(new OpcUaSessionUnavailableError());
+    }
+    return this.driver.write(items);
   }
 
   /** Avisa de cada transición conectado/desconectado, para publicar `MachineConnected`/`MachineDisconnected`. */
