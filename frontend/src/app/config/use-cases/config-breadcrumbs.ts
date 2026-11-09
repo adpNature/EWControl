@@ -105,6 +105,13 @@ export const machineConnectionBreadcrumb: BreadcrumbCrumb[] = [
   { label: 'Conexión' },
 ];
 
+/** docs/specs/21-sincronizacion-variables-opc-ua.md: sincronización de variables OPC UA. */
+export const machineOpcUaVariablesBreadcrumb: BreadcrumbCrumb[] = [
+  machinesCrumb,
+  { label: machineNameResolver, link: machineLink },
+  { label: 'Variables OPC UA' },
+];
+
 /** docs/specs/20-paquetes-escritura-opc-ua.md: alta y edición de paquetes de escritura. */
 export const writePackagesPseudoCrumb: BreadcrumbCrumb = { label: 'Paquetes' };
 

@@ -48,7 +48,11 @@ describe('SignalFormPage', () => {
             timeoutMs: 5000,
             samplingIntervalMs: 1000,
             nodeMapping: [
-              { nodeId: 'ns=3;s="Lectura"."REAL_1"', signalVariableName: 'Lectura_REAL_1' },
+              {
+                nodeId: 'ns=3;s="Lectura"."REAL_1"',
+                signalVariableName: 'Lectura_REAL_1',
+                label: 'Real de lectura',
+              },
               { nodeId: 'ns=3;s="Lectura"."BOOL_1"', signalVariableName: 'Lectura_BOOL_1' },
             ],
           },
@@ -266,6 +270,15 @@ describe('SignalFormPage', () => {
       (option) => option.getAttribute('value'),
     );
     expect(options).toEqual(['Lectura_REAL_1', 'Lectura_BOOL_1']);
+  });
+
+  it('las sugerencias muestran la etiqueta de la variable si la tiene (spec 21, criterio frontend 8)', async () => {
+    const { container } = await renderPage();
+
+    const labels = Array.from(container.querySelectorAll('datalist option')).map((option) =>
+      option.getAttribute('label'),
+    );
+    expect(labels).toEqual(['Real de lectura', null]);
   });
 
   it('sin conexión cargable el formulario sigue funcionando, sin sugerencias', async () => {

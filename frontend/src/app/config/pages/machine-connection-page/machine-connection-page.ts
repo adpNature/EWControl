@@ -33,6 +33,8 @@ import {
 interface MappingRow {
   nodeId: string;
   signalVariableName: string;
+  /** docs/specs/21-sincronizacion-variables-opc-ua.md: se conserva aunque esta pantalla no la edite. */
+  label?: string;
   dataType?: string;
   /** docs/specs/20-paquetes-escritura-opc-ua.md: escribible por paquetes, con límites opcionales. */
   writable?: boolean;
@@ -88,6 +90,8 @@ export class MachineConnectionPage implements OnInit {
   readonly mappedNodeIds = computed(() => new Set(this.mapping().map((row) => row.nodeId)));
 
   private savedSimulatorConfig: SimulatorConnectionConfig | null = null;
+  /** spec 21: carpeta de la pantalla «Variables OPC UA»; se reenvía tal cual al guardar. */
+  private variableSyncRootNodeId: string | undefined;
   private timeoutMs = DEFAULT_TIMEOUT_MS;
   private samplingIntervalMs = DEFAULT_SAMPLING_INTERVAL_MS;
 
@@ -103,6 +107,7 @@ export class MachineConnectionPage implements OnInit {
           this.mapping.set(config.nodeMapping.map((entry) => ({ ...entry })));
           this.timeoutMs = config.timeoutMs;
           this.samplingIntervalMs = config.samplingIntervalMs;
+          this.variableSyncRootNodeId = config.variableSyncRootNodeId;
         } else {
           this.savedSimulatorConfig = config;
         }
@@ -297,6 +302,9 @@ export class MachineConnectionPage implements OnInit {
         timeoutMs: this.timeoutMs,
         samplingIntervalMs: this.samplingIntervalMs,
         nodeMapping: this.mapping().map((row) => toNodeMapping(row)),
+        ...(this.variableSyncRootNodeId
+          ? { variableSyncRootNodeId: this.variableSyncRootNodeId }
+          : {}),
       },
     };
   }
@@ -317,6 +325,9 @@ function toNodeMapping(row: MappingRow): OpcUaNodeMapping {
     nodeId: row.nodeId,
     signalVariableName: row.signalVariableName,
   };
+  if (row.label) {
+    entry.label = row.label;
+  }
   if (row.dataType) {
     entry.dataType = row.dataType;
   }

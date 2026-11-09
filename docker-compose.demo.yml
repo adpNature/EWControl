@@ -1,0 +1,99 @@
+# Plantilla para la demo en Plesk (pestaña "Pilas" = Docker Compose), SIN acceso SSH al VPS.
+# No es el docker-compose.prod.yml "real": aquí el backend usa la etapa `build` del
+# Dockerfile (incluye devDependencies) en vez de `production`, para poder ejecutar
+# `migration:run`/`seed` (usan ts-node) al arrancar sin necesitar exec/SSH al contenedor.
+#
+# Uso:
+#   1. Sustituye <TU-USUARIO-DOCKERHUB> por tu usuario de Docker Hub tras hacer
+#      `docker build` + `docker push` de ambas imágenes (ver guía).
+#   2. Rellena los valores CAMBIAR_* con secretos reales (openssl rand -hex 24 / -base64 48).
+#   3. Pega el YAML ya relleno en Plesk > Docker > Pilas > Crear pila.
+#   4. NUNCA commitees este fichero con los CAMBIAR_* sustituidos por valores reales.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ewcontrol
+      POSTGRES_USER: ewcontrol
+      POSTGRES_PASSWORD: CAMBIAR_PASSWORD_POSTGRES
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ewcontrol -d ewcontrol"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks: [ewcontrol]
+
+  influxdb:
+    image: influxdb:2.7-alpine
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: CAMBIAR_PASSWORD_INFLUX
+      DOCKER_INFLUXDB_INIT_ORG: ewcontrol
+      DOCKER_INFLUXDB_INIT_BUCKET: signals_history
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: CAMBIAR_TOKEN_INFLUX
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+      - influxdb_config:/etc/influxdb2
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks: [ewcontrol]
+
+  backend:
+    image: <TU-USUARIO-DOCKERHUB>/ewcontrol-backend:demo
+    command: sh -c "pnpm run migration:run && pnpm run seed && node dist/main"
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ewcontrol
+      POSTGRES_USER: ewcontrol
+      POSTGRES_PASSWORD: CAMBIAR_PASSWORD_POSTGRES
+      INFLUXDB_URL: http://influxdb:8086
+      INFLUXDB_TOKEN: CAMBIAR_TOKEN_INFLUX
+      INFLUXDB_ORG: ewcontrol
+      INFLUXDB_BUCKET: signals_history
+      JWT_ACCESS_SECRET: CAMBIAR_JWT_ACCESS
+      JWT_REFRESH_SECRET: CAMBIAR_JWT_REFRESH
+      # Opcional para la demo: solo hace falta si vas a probar el envío de alarmas por email.
+      SMTP_HOST: CAMBIAR_SMTP_HOST
+      SMTP_PORT: "587"
+      SMTP_USER: CAMBIAR_SMTP_USER
+      SMTP_PASSWORD: CAMBIAR_SMTP_PASSWORD
+      SMTP_FROM: alerts@tudominio.com
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [ewcontrol]
+
+  frontend:
+    image: <TU-USUARIO-DOCKERHUB>/ewcontrol-frontend:demo
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks: [ewcontrol]
+
+volumes:
+  postgres_data:
+  influxdb_data:
+  influxdb_config:
+
+networks:
+  ewcontrol:
+    driver: bridge

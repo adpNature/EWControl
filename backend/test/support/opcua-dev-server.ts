@@ -10,6 +10,7 @@ async function main(): Promise<void> {
   const server = await startPlcLikeOpcUaServer(port);
   console.log(`Servidor OPC UA de desarrollo escuchando en ${server.endpointUrl}`);
   console.log('Variables en ns=3;s="Lectura"."REAL_1", "BOOL_1", "INT_1"... (Ctrl+C para parar)');
+  console.log(`Carpeta para sincronizar variables (spec 21): ${server.gvlHmi.rootNodeId}`);
 
   const shutdown = () => {
     void server.stop().then(() => process.exit(0));

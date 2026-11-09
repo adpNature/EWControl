@@ -17,6 +17,8 @@ export interface SimulatorConnectionConfig {
 export interface OpcUaNodeMapping {
   nodeId: string;
   signalVariableName: string;
+  /** docs/specs/21-sincronizacion-variables-opc-ua.md: nombre legible, no interviene en lecturas ni fórmulas. */
+  label?: string;
   /** docs/specs/20-paquetes-escritura-opc-ua.md: escribible por paquetes, con su tipo y límites. */
   writable?: boolean;
   dataType?: string;
@@ -33,6 +35,8 @@ export interface OpcUaConnectionConfig {
   timeoutMs: number;
   samplingIntervalMs: number;
   nodeMapping: OpcUaNodeMapping[];
+  /** spec 21: última carpeta sincronizada y guardada. */
+  variableSyncRootNodeId?: string;
 }
 
 export type ConnectionConfig = SimulatorConnectionConfig | OpcUaConnectionConfig;
@@ -68,7 +72,89 @@ export function isOpcUaConnectionConfig(config: ConnectionConfig): config is Opc
 
 /** Variables que expone la Machine: semillas del Simulador o `nodeMapping` de OPC UA. */
 export function listKnownVariableNames(config: ConnectionConfig): string[] {
+  return listKnownVariables(config).map((variable) => variable.name);
+}
+
+/** Variable conocida con su etiqueta, si la tiene (spec 21: sugerencias del formulario de Signal). */
+export interface KnownVariable {
+  name: string;
+  label?: string;
+}
+
+export function listKnownVariables(config: ConnectionConfig): KnownVariable[] {
   return isOpcUaConnectionConfig(config)
-    ? config.nodeMapping.map((entry) => entry.signalVariableName)
-    : config.signals.map((signal) => signal.variableName);
+    ? config.nodeMapping.map((entry) =>
+        entry.label
+          ? { name: entry.signalVariableName, label: entry.label }
+          : { name: entry.signalVariableName },
+      )
+    : config.signals.map((signal) => ({ name: signal.variableName }));
+}
+
+/** Respuesta de `POST .../connection/opcua/variables/sync` (docs/specs/21-sincronizacion-variables-opc-ua.md). */
+export type SyncedVariableStatus = 'new' | 'unchanged' | 'typeChanged';
+
+export interface SavedOpcUaVariable {
+  signalVariableName: string;
+  label: string | null;
+  dataType: string | null;
+}
+
+export interface SyncedOpcUaVariable {
+  nodeId: string;
+  path: string[];
+  dataType: string;
+  plcWritable: boolean;
+  status: SyncedVariableStatus;
+  saved: SavedOpcUaVariable | null;
+}
+
+export interface RemovedOpcUaVariable extends SavedOpcUaVariable {
+  nodeId: string;
+}
+
+export interface SkippedOpcUaVariable {
+  nodeId: string;
+  path: string[];
+  dataType: string;
+  valueRank: number;
+  arrayDimensions: number[] | null;
+  reason: 'nonScalar' | 'unsupportedType';
+}
+
+export interface OpcUaVariableSyncSummary {
+  total: number;
+  new: number;
+  unchanged: number;
+  typeChanged: number;
+  removed: number;
+  skipped: number;
+  byDataType: Record<string, number>;
+}
+
+export interface OpcUaVariableSyncResult {
+  rootNodeId: string;
+  syncedAt: string;
+  summary: OpcUaVariableSyncSummary;
+  variables: SyncedOpcUaVariable[];
+  removed: RemovedOpcUaVariable[];
+  skipped: SkippedOpcUaVariable[];
+}
+
+/** Body de `PUT .../connection/opcua/variables` (spec 21). */
+export interface SaveOpcUaVariablesRequest {
+  rootNodeId: string;
+  variables: {
+    nodeId: string;
+    signalVariableName: string;
+    label: string | null;
+    dataType: string;
+  }[];
+  remove: string[];
+}
+
+/** `details` de un `409 OPCUA_VARIABLE_IN_USE` (spec 21). */
+export interface OpcUaVariableInUse {
+  signalVariableName: string;
+  usedBy: { kind: 'Signal' | 'WritePackage'; id: string; name: string }[];
 }

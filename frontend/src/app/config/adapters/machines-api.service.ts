@@ -6,13 +6,16 @@ import {
   MachineConnection,
   OpcUaBrowseNode,
   OpcUaConnectionTestResult,
+  OpcUaVariableSyncResult,
   ReplaceConnectionRequest,
+  SaveOpcUaVariablesRequest,
 } from '../entities/machine-connection.model';
 import { CreateMachineRequest, Machine, UpdateMachineRequest } from '../entities/machine.model';
 
 /**
  * Interface Adapter: llamadas HTTP de docs/11-api-rest.md, secciones "Machine" y
- * "MachineConnection" (prueba de conexión y exploración OPC UA: docs/specs/18-integracion-opc-ua.md).
+ * "MachineConnection" (prueba de conexión y exploración OPC UA: docs/specs/18-integracion-opc-ua.md;
+ * sincronización de variables: docs/specs/21-sincronizacion-variables-opc-ua.md).
  */
 @Injectable({ providedIn: 'root' })
 export class MachinesApiService {
@@ -77,6 +80,25 @@ export class MachinesApiService {
     return this.api.post<{ nodes: OpcUaBrowseNode[] }>(
       `/machines/${machineId}/connection/opcua/browse`,
       nodeId ? { endpointUrl, nodeId } : { endpointUrl },
+    );
+  }
+
+  /** spec 21: lee las variables de `rootNodeId` y las compara con el mapeo guardado. Solo lectura. */
+  syncOpcUaVariables(machineId: string, rootNodeId: string): Observable<OpcUaVariableSyncResult> {
+    return this.api.post<OpcUaVariableSyncResult>(
+      `/machines/${machineId}/connection/opcua/variables/sync`,
+      { rootNodeId },
+    );
+  }
+
+  /** spec 21: guarda en el `nodeMapping` las variables de una sincronización. */
+  saveOpcUaVariables(
+    machineId: string,
+    request: SaveOpcUaVariablesRequest,
+  ): Observable<MachineConnection> {
+    return this.api.put<MachineConnection>(
+      `/machines/${machineId}/connection/opcua/variables`,
+      request,
     );
   }
 }

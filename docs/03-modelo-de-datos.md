@@ -952,6 +952,10 @@ Cuando `ProviderType = OpcUa`, `ConnectionConfig` incluye (implementado en [docs
   - `dataType`: tipo OPC UA del nodo (`Boolean`, `SByte`, `Byte`, `Int16`, `UInt16`, `Int32`, `UInt32`, `Float`, `Double`, `String`).
   - `writable`: con `true`, la variable puede formar parte de un paquete de escritura (apartado 3.2.10). Exige `dataType`.
   - `min`/`max`: límites de los valores que se pueden escribir, solo en tipos numéricos y con `min <= max`.
+- Desde [docs/specs/21-sincronizacion-variables-opc-ua.md](specs/21-sincronizacion-variables-opc-ua.md):
+  - Cada entrada de `nodeMapping` admite `label`, un nombre legible de hasta 120 caracteres (se recortan los espacios de los extremos). No interviene en la lectura ni en las fórmulas.
+  - La sincronización de variables rellena siempre `dataType`, porque con él detecta los cambios de tipo en el PLC.
+  - `variableSyncRootNodeId` (opcional, hasta 1024 caracteres) guarda el `NodeId` de la última carpeta sincronizada y guardada.
 
 ### Traducción de calidad
 
