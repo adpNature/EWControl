@@ -240,3 +240,57 @@ describe('parseOpcUaConnectionConfig', () => {
     });
   });
 });
+
+describe('parseOpcUaConnectionConfig — sincronización de variables (docs/specs/21-sincronizacion-variables-opc-ua.md, criterio 1)', () => {
+  const ROOT = 'ns=4;s=|var|Inovance-ARM-Linux.Application.GVL_HMI';
+
+  function withMapping(entry: Record<string, unknown>, extra: Record<string, unknown> = {}) {
+    return {
+      ...VALID_OPCUA_CONFIG,
+      ...extra,
+      nodeMapping: [{ nodeId: `${ROOT}.iEstado`, signalVariableName: 'GVL_HMI_iEstado', ...entry }],
+    };
+  }
+
+  it('acepta y conserva label y variableSyncRootNodeId', () => {
+    const result = parseOpcUaConnectionConfig(
+      withMapping(
+        { label: 'Estado de la máquina', dataType: 'Int16' },
+        { variableSyncRootNodeId: ROOT },
+      ),
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.config.variableSyncRootNodeId).toBe(ROOT);
+    expect(result.ok && result.config.nodeMapping[0]).toEqual({
+      nodeId: `${ROOT}.iEstado`,
+      signalVariableName: 'GVL_HMI_iEstado',
+      label: 'Estado de la máquina',
+      dataType: 'Int16',
+    });
+  });
+
+  it('recorta la label y la omite si queda vacía', () => {
+    const trimmed = parseOpcUaConnectionConfig(withMapping({ label: '  Velocidad  ' }));
+    const empty = parseOpcUaConnectionConfig(withMapping({ label: '   ' }));
+
+    expect(trimmed.ok && trimmed.config.nodeMapping[0].label).toBe('Velocidad');
+    expect(empty.ok && 'label' in empty.config.nodeMapping[0]).toBe(false);
+  });
+
+  it('no añade variableSyncRootNodeId si no viene', () => {
+    const result = parseOpcUaConnectionConfig(VALID_OPCUA_CONFIG);
+
+    expect(result.ok && 'variableSyncRootNodeId' in result.config).toBe(false);
+  });
+
+  it.each([
+    [{ label: 'x'.repeat(121) }, {}, /label/],
+    [{ label: 42 }, {}, /label/],
+    [{}, { variableSyncRootNodeId: '' }, /variableSyncRootNodeId/],
+    [{}, { variableSyncRootNodeId: 'x'.repeat(1025) }, /variableSyncRootNodeId/],
+    [{}, { variableSyncRootNodeId: 7 }, /variableSyncRootNodeId/],
+  ])('rechaza la entrada %o con la config %o', (entry, extra, reason) => {
+    expect(expectInvalid(withMapping(entry, extra))).toMatch(reason);
+  });
+});

@@ -164,6 +164,33 @@ Errores específicos de `MachineConnection` desde la spec 18:
 | `PROVIDER_NOT_SUPPORTED`     | 422  | `PUT` con `providerType` `Mqtt` o `ModbusTcp`.                                                              |
 | `OPCUA_ENDPOINT_UNREACHABLE` | 502  | `browse` sin respuesta del servidor OPC UA (el detalle técnico solo va al log del Backend, nunca a la API). |
 
+### Sincronización de variables OPC UA
+
+[docs/specs/21-sincronizacion-variables-opc-ua.md](specs/21-sincronizacion-variables-opc-ua.md). Solo `AdminCliente` y `SuperAdmin`. Usan siempre el `endpointUrl` **guardado** de la Machine, nunca uno recibido en la petición, sometido a `OPCUA_ALLOWED_HOSTS`.
+
+| Método | Ruta                                                          | Descripción                                                                                                                                                                                                                                                                  |
+| ------ | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/v1/machines/:machineId/connection/opcua/variables/sync` | Body `{ "rootNodeId": "…" }`. Recorre la carpeta (límites: 2000 variables, profundidad 8, 60 s) y compara con el `nodeMapping`. Solo lectura. `200 { rootNodeId, syncedAt, summary, variables, removed, skipped }`.                                                          |
+| PUT    | `/api/v1/machines/:machineId/connection/opcua/variables`      | Body `{ "rootNodeId": "…", "variables": [{ nodeId, signalVariableName, label?, dataType }], "remove"?: [nodeId] }`. Fusiona por `nodeId` con el `nodeMapping`, sin tocar el resto, guarda `variableSyncRootNodeId` y reinicia el provider. `200` con la `MachineConnection`. |
+
+- `variables[]` de `sync` tiene la forma `{ nodeId, path, dataType, plcWritable, status: "new" | "unchanged" | "typeChanged", saved: { signalVariableName, label, dataType } | null }`.
+- `removed[]` son las entradas guardadas que el servidor confirma inexistentes: `{ nodeId, signalVariableName, label, dataType }`.
+- `skipped[]` son las variables no mapeables: `{ nodeId, path, dataType, valueRank, arrayDimensions, reason: "nonScalar" | "unsupportedType" }`.
+- `summary` = `{ total, new, unchanged, typeChanged, removed, skipped, byDataType }`.
+- `PUT .../connection` acepta y conserva `variableSyncRootNodeId` y `nodeMapping[].label`.
+
+Errores específicos de la sincronización:
+
+| Código                      | HTTP | Cuándo                                                                                                                                                                                             |
+| --------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MACHINE_NOT_OPCUA`         | 409  | La Machine no tiene una conexión `OpcUa`.                                                                                                                                                          |
+| `OPCUA_VARIABLE_IN_USE`     | 409  | El guardado renombra o quita variables que usan Signals o paquetes de escritura activos. `details.variables = [{ signalVariableName, usedBy: [{ kind: "Signal" \| "WritePackage", id, name }] }]`. |
+| `OPCUA_SYNC_TOO_MANY_NODES` | 422  | La carpeta tiene más de 2000 variables. `details.maxVariables`.                                                                                                                                    |
+| `OPCUA_MAPPING_LIMIT`       | 422  | Tras guardar, el `nodeMapping` superaría las 500 entradas. `details = { resultingEntries, maxEntries }`.                                                                                           |
+| `OPCUA_SYNC_TIMEOUT`        | 504  | El recorrido de la carpeta supera los 60 s.                                                                                                                                                        |
+
+`OPCUA_INVALID_NODE_ID` (400), `OPCUA_ENDPOINT_NOT_ALLOWED` (422), `OPCUA_ENDPOINT_UNREACHABLE` (502) e `INVALID_CONNECTION_CONFIG` (400) se aplican igual que en la spec 18.
+
 ### Endpoints de control del Simulador
 
 Solo aplicables cuando `ProviderType = Simulator` (Documento 10). Devuelven `422` si la Machine usa otro proveedor.

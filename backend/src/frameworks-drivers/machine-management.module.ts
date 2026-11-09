@@ -4,6 +4,8 @@ import { NestEventEmitterPublisher } from '../interface-adapters/events/nest-eve
 import { MachineConnectionTypeOrmRepository } from '../interface-adapters/persistence/postgres/typeorm/machine-connection.typeorm-repository';
 import { MachineTypeOrmRepository } from '../interface-adapters/persistence/postgres/typeorm/machine.typeorm-repository';
 import { SignalTypeOrmRepository } from '../interface-adapters/persistence/postgres/typeorm/signal.typeorm-repository';
+import { WritePackageTypeOrmRepository } from '../interface-adapters/persistence/postgres/typeorm/write-package.typeorm-repository';
+import { SystemClock } from '../interface-adapters/system/system-clock';
 import { TypeOrmUnitOfWork } from '../interface-adapters/persistence/postgres/typeorm/typeorm-unit-of-work';
 import { SignalsHistoryController } from '../interface-adapters/rest/history/signals-history.controller';
 import { MachineConnectionController } from '../interface-adapters/rest/machine-management/machine-connection.controller';
@@ -36,6 +38,10 @@ import { ReplaceMachineConnectionUseCase } from '../use-cases/machine-management
 import { TestOpcUaConnectionUseCase } from '../use-cases/machine-management/test-opc-ua-connection.use-case';
 import { UpdateMachineUseCase } from '../use-cases/machine-management/update-machine.use-case';
 import { UpdateSignalUseCase } from '../use-cases/machine-management/update-signal.use-case';
+import { SaveOpcUaVariablesUseCase } from '../use-cases/machine-management/save-opc-ua-variables.use-case';
+import { SyncOpcUaVariablesUseCase } from '../use-cases/machine-management/sync-opc-ua-variables.use-case';
+import { CLOCK } from '../use-cases/history/ports/clock.port';
+import { WRITE_PACKAGE_REPOSITORY } from '../use-cases/write-packages/ports/write-package-repository.port';
 import { GetSignalHistoryUseCase } from '../use-cases/history/get-signal-history.use-case';
 import { GetSignalsHistoryUseCase } from '../use-cases/history/get-signals-history.use-case';
 
@@ -52,6 +58,9 @@ import { GetSignalsHistoryUseCase } from '../use-cases/history/get-signals-histo
  * exploración de nodos OPC UA (`NodeOpcUaExplorer`, sesiones efímeras), la
  * allowlist anti-SSRF `OPCUA_ALLOWED_HOSTS` y el `EVENT_PUBLISHER` con el que
  * se avisa a los registries de Data Providers de un cambio de conexión o una baja.
+ * docs/specs/21-sincronizacion-variables-opc-ua.md añade la sincronización de
+ * variables (`CLOCK` para `syncedAt`) y su guardado, que consulta los paquetes
+ * de escritura (`WRITE_PACKAGE_REPOSITORY`) para proteger las variables en uso.
  */
 @Module({
   imports: [DashboardModule, HistoryPersistenceModule],
@@ -72,6 +81,8 @@ import { GetSignalsHistoryUseCase } from '../use-cases/history/get-signals-histo
     ReplaceMachineConnectionUseCase,
     TestOpcUaConnectionUseCase,
     BrowseOpcUaNodesUseCase,
+    SyncOpcUaVariablesUseCase,
+    SaveOpcUaVariablesUseCase,
     OpcUaEndpointPolicy,
     CreateSignalUseCase,
     ListSignalsUseCase,
@@ -84,6 +95,8 @@ import { GetSignalsHistoryUseCase } from '../use-cases/history/get-signals-histo
     { provide: MACHINE_REPOSITORY, useClass: MachineTypeOrmRepository },
     { provide: MACHINE_CONNECTION_REPOSITORY, useClass: MachineConnectionTypeOrmRepository },
     { provide: SIGNAL_REPOSITORY, useClass: SignalTypeOrmRepository },
+    { provide: WRITE_PACKAGE_REPOSITORY, useClass: WritePackageTypeOrmRepository },
+    { provide: CLOCK, useClass: SystemClock },
     { provide: UNIT_OF_WORK, useClass: TypeOrmUnitOfWork },
     { provide: EVENT_PUBLISHER, useClass: NestEventEmitterPublisher },
     { provide: OPCUA_EXPLORER, useClass: NodeOpcUaExplorer },

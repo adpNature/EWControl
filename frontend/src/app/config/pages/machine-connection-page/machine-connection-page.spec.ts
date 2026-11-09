@@ -367,4 +367,46 @@ describe('MachineConnectionPage', () => {
       );
     });
   });
+
+  it('conserva la etiqueta y la carpeta de sincronización al guardar (spec 21, criterio frontend 8)', async () => {
+    const root = 'ns=4;s=|var|PLC.Application.GVL_HMI';
+    machinesApi.getConnection.mockReturnValue(
+      of({
+        ...OPCUA_CONNECTION,
+        connectionConfig: {
+          ...OPCUA_CONNECTION.connectionConfig,
+          variableSyncRootNodeId: root,
+          nodeMapping: [
+            {
+              nodeId: 'ns=3;s="Lectura"."REAL_1"',
+              signalVariableName: 'Lectura_REAL_1',
+              label: 'Real de lectura',
+              dataType: 'Float',
+            },
+          ],
+        },
+      }),
+    );
+    const user = userEvent.setup();
+    await renderPage();
+
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    expect(machinesApi.replaceConnection).toHaveBeenCalledWith(
+      'machine-1',
+      expect.objectContaining({
+        connectionConfig: expect.objectContaining({
+          variableSyncRootNodeId: root,
+          nodeMapping: [
+            {
+              nodeId: 'ns=3;s="Lectura"."REAL_1"',
+              signalVariableName: 'Lectura_REAL_1',
+              label: 'Real de lectura',
+              dataType: 'Float',
+            },
+          ],
+        }),
+      }),
+    );
+  });
 });

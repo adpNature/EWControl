@@ -1,0 +1,261 @@
+<div class="box opcua-variables-page">
+  <h1 class="title-xl">Variables OPC UA</h1>
+
+  @if (loading()) {
+    <p class="text-muted" role="status">Cargando conexión…</p>
+  } @else {
+    <section class="opcua-variables-page__section" aria-labelledby="opcua-sync-title">
+      <h2 id="opcua-sync-title" class="visually-hidden">Sincronización</h2>
+      <div class="form-field opcua-variables-page__root">
+        <label class="form-label" for="opcua-root-node-id">Carpeta OPC UA (NodeId)</label>
+        <input
+          id="opcua-root-node-id"
+          class="form-input"
+          type="text"
+          autocomplete="off"
+          spellcheck="false"
+          aria-describedby="opcua-root-node-id-help"
+          [value]="rootNodeId()"
+          (input)="setRootNodeId($event)"
+        />
+        <p id="opcua-root-node-id-help" class="text-muted opcua-variables-page__help">
+          Por ejemplo <code>ns=4;s=|var|…Application.GVL_HMI</code>. Se leen todas las variables que
+          cuelgan de esa carpeta; sincronizar no escribe nada en la máquina.
+        </p>
+      </div>
+      <div class="opcua-variables-page__actions">
+        <button type="button" class="btn-primary" [disabled]="!canSync()" (click)="sync()">
+          {{ syncing() ? 'Sincronizando…' : 'Sincronizar con OPC UA' }}
+        </button>
+        @if (result()) {
+          <button
+            type="button"
+            class="btn-secondary"
+            [disabled]="saving() || syncing()"
+            (click)="requestSave()"
+          >
+            {{ saving() ? 'Guardando…' : 'Guardar' }}
+          </button>
+        }
+      </div>
+      @if (syncError(); as message) {
+        <p class="form-error" role="alert">{{ message }}</p>
+      }
+      @if (saveError(); as message) {
+        <p class="form-error" role="alert">{{ message }}</p>
+      }
+    </section>
+
+    <div class="opcua-variables-page__results" [attr.aria-busy]="syncing()">
+      @if (summary(); as summary) {
+        <div
+          class="opcua-variables-page__summary"
+          [class.opcua-variables-page__summary--changes]="summary.hasChanges"
+          role="status"
+          aria-label="Resumen de la sincronización"
+        >
+          <p class="text-body opcua-variables-page__summary-changes">{{ summary.changes }}</p>
+          <p class="text-muted">{{ summary.counts }}</p>
+          @if (summary.types) {
+            <p class="text-muted">{{ summary.types }}</p>
+          }
+        </div>
+
+        <div class="opcua-variables-page__filters">
+          <div class="form-field">
+            <label class="form-label" for="opcua-filter-status">Estado</label>
+            <select
+              id="opcua-filter-status"
+              class="form-input"
+              [value]="statusFilter()"
+              (change)="setStatusFilter($event)"
+            >
+              <option value="all" [selected]="statusFilter() === 'all'">Todas</option>
+              <option value="new" [selected]="statusFilter() === 'new'">Nuevas</option>
+              <option value="typeChanged" [selected]="statusFilter() === 'typeChanged'">
+                Tipo cambiado
+              </option>
+              <option value="removed" [selected]="statusFilter() === 'removed'">Eliminadas</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="opcua-filter-type">Tipo</label>
+            <select
+              id="opcua-filter-type"
+              class="form-input"
+              [value]="typeFilter()"
+              (change)="setTypeFilter($event)"
+            >
+              <option value="" [selected]="typeFilter() === ''">Todos</option>
+              @for (option of typeOptions(); track option.value) {
+                <option [value]="option.value" [selected]="typeFilter() === option.value">
+                  {{ option.label }}
+                </option>
+              }
+            </select>
+          </div>
+          <div class="form-field opcua-variables-page__search">
+            <label class="form-label" for="opcua-filter-text">Buscar</label>
+            <input
+              id="opcua-filter-text"
+              class="form-input"
+              type="search"
+              autocomplete="off"
+              [value]="textFilter()"
+              (input)="setTextFilter($event)"
+            />
+          </div>
+        </div>
+
+        @if (statusFilter() !== 'removed') {
+          @if (visibleRows().length === 0) {
+            <p class="text-muted">No hay variables que coincidan con los filtros.</p>
+          } @else {
+            <div class="opcua-variables-page__table-wrapper">
+              <table class="opcua-variables-page__table">
+                <caption class="visually-hidden">
+                  Variables de la carpeta
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Estado</th>
+                    <th scope="col">Ruta</th>
+                    <th scope="col">Tipo</th>
+                    <th scope="col">Escritura PLC</th>
+                    <th scope="col">Identificador</th>
+                    <th scope="col">Etiqueta</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of visibleRows(); track row.nodeId; let index = $index) {
+                    <tr>
+                      <td>
+                        <span [class]="statusChipClasses[row.status]">
+                          {{ statusLabels[row.status] }}
+                        </span>
+                      </td>
+                      <th scope="row" class="opcua-variables-page__path">
+                        <code [title]="row.nodeId">{{ row.displayPath }}</code>
+                      </th>
+                      <td>
+                        @if (row.previousDataType) {
+                          <span class="opcua-variables-page__type"
+                            >{{ plcTypeLabel(row.previousDataType) }} →
+                            {{ plcTypeLabel(row.dataType) }}</span
+                          >
+                          <span class="text-muted opcua-variables-page__opc-type"
+                            >{{ row.previousDataType }} → {{ row.dataType }}</span
+                          >
+                        } @else {
+                          <span class="opcua-variables-page__type">{{
+                            plcTypeLabel(row.dataType)
+                          }}</span>
+                          <span class="text-muted opcua-variables-page__opc-type">{{
+                            row.dataType
+                          }}</span>
+                        }
+                      </td>
+                      <td>{{ row.plcWritable ? 'Sí' : 'No' }}</td>
+                      <td>
+                        <input
+                          class="form-input"
+                          [attr.aria-label]="'Identificador de ' + row.displayPath"
+                          [value]="row.signalVariableName"
+                          [attr.aria-invalid]="rowError(row) ? true : null"
+                          [attr.aria-describedby]="
+                            rowError(row) || usageFor(row.savedName)
+                              ? 'opcua-row-error-' + index
+                              : null
+                          "
+                          (input)="editRow(row.nodeId, 'signalVariableName', $event)"
+                        />
+                        @if (rowError(row) || usageFor(row.savedName)) {
+                          <p class="form-error" [id]="'opcua-row-error-' + index">
+                            {{ rowError(row) ?? usageFor(row.savedName) }}
+                          </p>
+                        }
+                      </td>
+                      <td>
+                        <input
+                          class="form-input"
+                          maxlength="120"
+                          [attr.aria-label]="'Etiqueta de ' + row.displayPath"
+                          [value]="row.label"
+                          (input)="editRow(row.nodeId, 'label', $event)"
+                        />
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        }
+
+        @if (removed().length > 0) {
+          <section class="opcua-variables-page__section" aria-labelledby="opcua-removed-title">
+            <h2 id="opcua-removed-title" class="title-lg">Eliminadas en el PLC</h2>
+            <p class="text-muted">
+              Están guardadas pero ya no existen en la máquina. Solo se quitan del mapeo si las
+              marcas.
+            </p>
+            <ul class="opcua-variables-page__removed">
+              @for (variable of removed(); track variable.nodeId) {
+                <li>
+                  <label class="form-label opcua-variables-page__removed-item">
+                    <input
+                      type="checkbox"
+                      [checked]="removeChecked().has(variable.nodeId)"
+                      [attr.aria-label]="'Quitar ' + variable.signalVariableName + ' del mapeo'"
+                      (change)="toggleRemove(variable.nodeId, $event)"
+                    />
+                    <code>{{ variable.signalVariableName }}</code>
+                    @if (variable.label) {
+                      <span>{{ variable.label }}</span>
+                    }
+                    <span class="text-muted">{{ plcTypeLabel(variable.dataType) }}</span>
+                  </label>
+                  @if (usageFor(variable.signalVariableName); as usage) {
+                    <p class="form-error">{{ usage }}</p>
+                  }
+                </li>
+              }
+            </ul>
+          </section>
+        }
+
+        @if (skipped().length > 0) {
+          <details class="opcua-variables-page__skipped">
+            <summary class="form-label">Omitidas ({{ skipped().length }})</summary>
+            <p class="text-muted">
+              Variables que no se pueden leer como un valor único: arrays (se listan sus elementos)
+              o tipos no soportados.
+            </p>
+            <ul>
+              @for (variable of skipped(); track variable.nodeId) {
+                <li>
+                  <code [title]="variable.nodeId">{{ displayPath(variable.path) }}</code>
+                  — <span>{{ skippedReasonText(variable) }}</span>
+                </li>
+              }
+            </ul>
+          </details>
+        }
+      } @else if (!syncing()) {
+        <p class="text-muted">
+          Pulsa «Sincronizar con OPC UA» para leer las variables de la máquina.
+        </p>
+      }
+    </div>
+  }
+</div>
+
+<app-confirm-dialog
+  [open]="confirmOpen()"
+  title="Guardar variables"
+  [message]="confirmMessage()"
+  confirmLabel="Guardar"
+  [danger]="false"
+  (confirmed)="save()"
+  (cancelled)="confirmOpen.set(false)"
+/>

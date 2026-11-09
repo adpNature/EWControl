@@ -7,6 +7,11 @@
           <a [routerLink]="['/config/machines', m.id, 'connection']" class="btn-secondary">
             Conexión
           </a>
+          @if (isOpcUa()) {
+            <a [routerLink]="['/config/machines', m.id, 'opcua-variables']" class="btn-secondary">
+              Variables OPC UA
+            </a>
+          }
           <button type="button" class="btn-edit" (click)="editMachine(m.id)">Editar</button>
           <button type="button" class="btn-danger" (click)="deleteMachineDialogOpen.set(true)">
             Eliminar Machine

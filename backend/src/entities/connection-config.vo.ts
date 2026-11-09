@@ -19,10 +19,13 @@ export type SimulatorConnectionConfig = {
  * interno. Desde docs/specs/20-paquetes-escritura-opc-ua.md una entrada puede
  * marcarse como escribible: `dataType` (obligatorio en ese caso) y `min`/`max`
  * (solo numéricos) acotan los valores que un paquete puede escribir en ella.
+ * docs/specs/21-sincronizacion-variables-opc-ua.md añade `label`, un nombre
+ * legible que no interviene en la lectura ni en las fórmulas.
  */
 export type OpcUaNodeMapping = {
   nodeId: string;
   signalVariableName: string;
+  label?: string;
   writable?: boolean;
   dataType?: string;
   min?: number;
@@ -59,6 +62,8 @@ export type OpcUaConnectionConfig = {
   timeoutMs: number;
   samplingIntervalMs: number;
   nodeMapping: OpcUaNodeMapping[];
+  /** spec 21: última carpeta sincronizada y guardada; la pantalla de variables la propone por defecto. */
+  variableSyncRootNodeId?: string;
 };
 
 export type ConnectionConfig = SimulatorConnectionConfig | OpcUaConnectionConfig;
@@ -75,9 +80,10 @@ export const VARIABLE_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 const OPCUA_SCHEME = 'opc.tcp:';
 const MAX_ENDPOINT_URL_LENGTH = 2048;
-const MAX_NODE_ID_LENGTH = 1024;
+export const MAX_NODE_ID_LENGTH = 1024;
 const MAX_VARIABLE_NAME_LENGTH = 100;
-const MAX_NODE_MAPPING_ENTRIES = 500;
+export const MAX_NODE_MAPPING_ENTRIES = 500;
+export const MAX_VARIABLE_LABEL_LENGTH = 120;
 const TIMEOUT_RANGE_MS = { min: 1000, max: 60000 };
 const SAMPLING_INTERVAL_RANGE_MS = { min: 100, max: 60000 };
 const OPCUA_CONFIG_KEYS = new Set([
@@ -88,10 +94,12 @@ const OPCUA_CONFIG_KEYS = new Set([
   'timeoutMs',
   'samplingIntervalMs',
   'nodeMapping',
+  'variableSyncRootNodeId',
 ]);
 const NODE_MAPPING_KEYS = new Set([
   'nodeId',
   'signalVariableName',
+  'label',
   'writable',
   'dataType',
   'min',
@@ -171,23 +179,36 @@ export function parseOpcUaConnectionConfig(raw: unknown): OpcUaConnectionConfigP
   if (!isIntegerInRange(samplingIntervalMs, SAMPLING_INTERVAL_RANGE_MS)) {
     return { ok: false, reason: rangeReason('samplingIntervalMs', SAMPLING_INTERVAL_RANGE_MS) };
   }
+  const { variableSyncRootNodeId } = raw;
+  if (
+    variableSyncRootNodeId !== undefined &&
+    (typeof variableSyncRootNodeId !== 'string' ||
+      variableSyncRootNodeId.length === 0 ||
+      variableSyncRootNodeId.length > MAX_NODE_ID_LENGTH)
+  ) {
+    return {
+      ok: false,
+      reason: `variableSyncRootNodeId debe ser un texto de 1 a ${MAX_NODE_ID_LENGTH} caracteres`,
+    };
+  }
   const nodeMapping = parseNodeMapping(raw.nodeMapping);
   if (!nodeMapping.ok) {
     return nodeMapping;
   }
 
-  return {
-    ok: true,
-    config: {
-      endpointUrl: raw.endpointUrl as string,
-      securityMode: 'None',
-      securityPolicy: 'None',
-      authMode: 'Anonymous',
-      timeoutMs,
-      samplingIntervalMs,
-      nodeMapping: nodeMapping.entries,
-    },
+  const config: OpcUaConnectionConfig = {
+    endpointUrl: raw.endpointUrl as string,
+    securityMode: 'None',
+    securityPolicy: 'None',
+    authMode: 'Anonymous',
+    timeoutMs,
+    samplingIntervalMs,
+    nodeMapping: nodeMapping.entries,
   };
+  if (variableSyncRootNodeId !== undefined) {
+    config.variableSyncRootNodeId = variableSyncRootNodeId;
+  }
+  return { ok: true, config };
 }
 
 function parseNodeMapping(
@@ -206,7 +227,7 @@ function parseNodeMapping(
     if (!isPlainObject(entry) || Object.keys(entry).some((key) => !NODE_MAPPING_KEYS.has(key))) {
       return {
         ok: false,
-        reason: `nodeMapping[${index}] solo admite nodeId, signalVariableName, writable, dataType, min y max`,
+        reason: `nodeMapping[${index}] solo admite nodeId, signalVariableName, label, writable, dataType, min y max`,
       };
     }
     const { nodeId, signalVariableName } = entry;
@@ -229,15 +250,45 @@ function parseNodeMapping(
     if (variableNames.has(signalVariableName)) {
       return { ok: false, reason: `nodeMapping[${index}].signalVariableName está repetido` };
     }
+    const label = parseLabel(entry.label);
+    if (label === null) {
+      return {
+        ok: false,
+        reason: `nodeMapping[${index}].label debe ser un texto de como mucho ${MAX_VARIABLE_LABEL_LENGTH} caracteres`,
+      };
+    }
     const writeSettings = parseWriteSettings(entry, index);
     if (!writeSettings.ok) {
       return writeSettings;
     }
     nodeIds.add(nodeId);
     variableNames.add(signalVariableName);
-    entries.push({ nodeId, signalVariableName, ...writeSettings.settings });
+    entries.push({
+      nodeId,
+      signalVariableName,
+      ...(label === undefined ? {} : { label }),
+      ...writeSettings.settings,
+    });
   }
   return { ok: true, entries };
+}
+
+/**
+ * spec 21: `label` recortada; `undefined` si no viene o queda vacía, `null` si
+ * no es un texto o supera `MAX_VARIABLE_LABEL_LENGTH`.
+ */
+function parseLabel(raw: unknown): string | undefined | null {
+  if (raw === undefined) {
+    return undefined;
+  }
+  if (typeof raw !== 'string') {
+    return null;
+  }
+  const trimmed = raw.trim();
+  if (trimmed.length > MAX_VARIABLE_LABEL_LENGTH) {
+    return null;
+  }
+  return trimmed.length === 0 ? undefined : trimmed;
 }
 
 type WriteSettings = Pick<OpcUaNodeMapping, 'writable' | 'dataType' | 'min' | 'max'>;

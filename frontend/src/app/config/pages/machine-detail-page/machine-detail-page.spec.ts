@@ -161,6 +161,20 @@ describe('MachineDetailPage', () => {
     expect(screen.getByText('Conexión').closest('a')).toBeInTheDocument();
   });
 
+  it('ofrece «Variables OPC UA» solo en Machines OPC UA (spec 21, criterio frontend 1)', async () => {
+    writePackagesApi.list.mockReturnValue(
+      of({ providerType: 'OpcUa', connected: true, packages: [] } as WritePackageList),
+    );
+    await renderPage();
+
+    expect(screen.getByText('Variables OPC UA').closest('a')).toBeInTheDocument();
+  });
+
+  it('no ofrece «Variables OPC UA» en una Machine del Simulador ni sin rol de configuración', async () => {
+    await renderPage();
+    expect(screen.queryByText('Variables OPC UA')).not.toBeInTheDocument();
+  });
+
   it('oculta el acceso a la conexión sin rol de configuración', async () => {
     await renderPage('none');
 

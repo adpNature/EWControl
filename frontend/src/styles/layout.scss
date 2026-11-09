@@ -98,3 +98,28 @@
     border-bottom: 1px solid var(--border-color);
   }
 }
+
+// Chip de estado sin comportamiento (regla 12.4): docs/specs/21-sincronizacion-variables-opc-ua.md.
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--spacing-sm);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+
+  &--saved {
+    background: var(--success-background);
+    color: var(--success-color);
+  }
+
+  &--new {
+    background: var(--info-background);
+    color: var(--info-color);
+  }
+
+  &--type-changed {
+    background: var(--warning-background);
+    color: var(--warning-color);
+  }
+}

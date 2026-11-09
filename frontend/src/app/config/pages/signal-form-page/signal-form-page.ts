@@ -10,7 +10,7 @@ import { TableColumn, TableComponent } from '../../../shared/ui/table/table.comp
 import { ToastService } from '../../../shared/ui/toast/toast.service';
 import { MachinesApiService } from '../../adapters/machines-api.service';
 import { SignalsApiService } from '../../adapters/signals-api.service';
-import { listKnownVariableNames } from '../../entities/machine-connection.model';
+import { KnownVariable, listKnownVariables } from '../../entities/machine-connection.model';
 import { SignalSource, SignalType } from '../../entities/signal.model';
 import { SignalsState } from '../../use-cases/signals.state';
 import { signalFormErrorMessage } from './signal-form-error-message';
@@ -68,7 +68,8 @@ export class SignalFormPage implements OnInit {
     variables: new FormControl('', { nonNullable: true }),
   });
 
-  readonly knownVariables = signal<string[]>([]);
+  /** spec 21: cada sugerencia lleva la etiqueta de la variable, si la tiene. */
+  readonly knownVariables = signal<KnownVariable[]>([]);
   readonly knownVariablesListId = 'signal-form-known-variables';
   readonly submitting = signal(false);
   readonly formError = signal<string | null>(null);
@@ -91,7 +92,7 @@ export class SignalFormPage implements OnInit {
     // Machine (semillas del Simulador o nodeMapping de OPC UA). Sin conexión, sin sugerencias.
     this.machinesApi.getConnection(this.machineId).subscribe({
       next: (connection) =>
-        this.knownVariables.set(listKnownVariableNames(connection.connectionConfig)),
+        this.knownVariables.set(listKnownVariables(connection.connectionConfig)),
       error: () => this.knownVariables.set([]),
     });
     this.signalId = this.route.snapshot.paramMap.get('signalId');

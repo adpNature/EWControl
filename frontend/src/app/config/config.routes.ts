@@ -10,6 +10,7 @@ import {
   machineDetailBreadcrumb,
   machineFormEditBreadcrumb,
   machineFormNewBreadcrumb,
+  machineOpcUaVariablesBreadcrumb,
   machinesListBreadcrumb,
   signalFormEditBreadcrumb,
   signalFormNewBreadcrumb,
@@ -26,6 +27,7 @@ import {
  * `superAdminGuard`) y `users` (sin guard adicional, ambos roles entran).
  * docs/specs/18-integracion-opc-ua.md añade `machines/:machineId/connection`.
  * docs/specs/20-paquetes-escritura-opc-ua.md añade el alta/edición de paquetes de escritura.
+ * docs/specs/21-sincronizacion-variables-opc-ua.md añade `machines/:machineId/opcua-variables`.
  */
 export const configRoutes: Routes = [
   {
@@ -97,6 +99,14 @@ export const configRoutes: Routes = [
     loadComponent: () =>
       import('./pages/machine-connection-page/machine-connection-page').then(
         (m) => m.MachineConnectionPage,
+      ),
+  },
+  {
+    path: 'machines/:machineId/opcua-variables',
+    data: { breadcrumb: machineOpcUaVariablesBreadcrumb },
+    loadComponent: () =>
+      import('./pages/machine-opcua-variables-page/machine-opcua-variables-page').then(
+        (m) => m.MachineOpcUaVariablesPage,
       ),
   },
   {

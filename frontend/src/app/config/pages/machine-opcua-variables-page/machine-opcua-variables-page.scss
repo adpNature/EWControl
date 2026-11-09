@@ -1,0 +1,149 @@
+@use 'breakpoints' as *;
+
+.opcua-variables-page {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--spacing-md);
+}
+
+.opcua-variables-page__section,
+.opcua-variables-page__results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.opcua-variables-page__root .form-input {
+  width: 100%;
+  font-family: monospace;
+}
+
+.opcua-variables-page__help {
+  margin: 0;
+  font-size: var(--font-size-sm);
+
+  code {
+    word-break: break-all;
+  }
+}
+
+.opcua-variables-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.opcua-variables-page__summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  background: var(--success-background);
+
+  p {
+    margin: 0;
+  }
+
+  &--changes {
+    background: var(--warning-background);
+  }
+}
+
+.opcua-variables-page__summary-changes {
+  font-weight: 500;
+}
+
+.opcua-variables-page__filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+
+  @include respond(md) {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+}
+
+.opcua-variables-page__search {
+  flex: 1;
+}
+
+// Excepción justificada a Flexbox (docs/12-convenciones-frontend.md, 12.7):
+// el listado es una tabla real de datos editable, con <table> semántica.
+.opcua-variables-page__table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.opcua-variables-page__table {
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+  color: var(--text-color);
+
+  th,
+  td {
+    padding: var(--spacing-sm);
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  thead th {
+    font-weight: 500;
+    color: var(--text-muted-color);
+  }
+
+  .form-input {
+    min-width: 12rem;
+  }
+
+  @include respond(md) {
+    font-size: var(--font-size-md);
+  }
+}
+
+.opcua-variables-page__path {
+  font-weight: 400;
+
+  code {
+    word-break: break-all;
+  }
+}
+
+.opcua-variables-page__type {
+  display: block;
+  font-weight: 500;
+}
+
+.opcua-variables-page__opc-type {
+  display: block;
+  font-size: var(--font-size-sm);
+}
+
+.opcua-variables-page__removed,
+.opcua-variables-page__skipped ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin: 0;
+  padding-left: var(--spacing-md);
+}
+
+.opcua-variables-page__removed {
+  padding-left: 0;
+  list-style: none;
+}
+
+.opcua-variables-page__removed-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.opcua-variables-page__skipped summary {
+  cursor: pointer;
+}

@@ -28,8 +28,8 @@
     }
 
     <datalist [id]="knownVariablesListId">
-      @for (variable of knownVariables(); track variable) {
-        <option [value]="variable"></option>
+      @for (variable of knownVariables(); track variable.name) {
+        <option [value]="variable.name" [attr.label]="variable.label ?? null"></option>
       }
     </datalist>
 
