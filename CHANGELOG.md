@@ -1,3 +1,9 @@
+# [1.17.0](https://github.com/adpNature/EWControl/compare/v1.16.0...v1.17.0) (2026-11-09)
+
+### Features
+
+- añade la sincronización de variables OPC UA por carpeta (spec 21) ([0be2a6e](https://github.com/adpNature/EWControl/commit/0be2a6e1cf9ccdfc1f49e2884564f279829919bd))
+
 # [1.16.0](https://github.com/adpNature/EWControl/compare/v1.15.0...v1.16.0) (2026-10-31)
 
 ### Features
