@@ -13,8 +13,37 @@ import {
   severityOf,
   standardDataTypeName,
   toDataChange,
+  variableMayHaveChildren,
   withTimeout,
 } from './node-opcua.mappers';
+
+describe('variableMayHaveChildren (spec 18, criterio backend 6)', () => {
+  const SCALAR = -1;
+
+  it('un escalar de tipo básico no tiene hijos', () => {
+    for (const id of ['i=1', 'i=4', 'i=7', 'i=10', 'i=12', 'i=13', 'i=21', 'i=290', 'i=294']) {
+      expect(variableMayHaveChildren(resolveNodeId(id), SCALAR)).toBe(false);
+    }
+  });
+
+  it('un array (ValueRank distinto de -1) puede tener hijos aunque su tipo sea básico', () => {
+    expect(variableMayHaveChildren(resolveNodeId('i=1'), 1)).toBe(true);
+    expect(variableMayHaveChildren(resolveNodeId('i=5'), 0)).toBe(true);
+    expect(variableMayHaveChildren(resolveNodeId('i=10'), -2)).toBe(true);
+  });
+
+  it('las estructuras, los tipos abstractos y los propios del servidor pueden tener hijos', () => {
+    expect(variableMayHaveChildren(resolveNodeId('i=22'), SCALAR)).toBe(true);
+    expect(variableMayHaveChildren(resolveNodeId('i=24'), SCALAR)).toBe(true);
+    expect(variableMayHaveChildren(resolveNodeId('ns=3;s=DT_"Lectura"."ARRAY_1"'), SCALAR)).toBe(
+      true,
+    );
+  });
+
+  it('sin DataType legible se asume que puede tener hijos', () => {
+    expect(variableMayHaveChildren(undefined, SCALAR)).toBe(true);
+  });
+});
 
 describe('severityOf', () => {
   it('clasifica los StatusCode por sus dos bits altos', () => {

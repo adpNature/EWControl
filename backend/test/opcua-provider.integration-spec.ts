@@ -127,6 +127,34 @@ describe('OPC UA (integración, servidor PLC-like en proceso)', () => {
       );
     }, 30000);
 
+    it('browse de una carpeta CODESYS deduce hasChildren de las Variables por su tipo (criterio 6)', async () => {
+      const nodes = await explorer.browse(endpointUrl, server.gvlHmi.rootNodeId, 10000);
+      const hasChildrenOf = (name: string) =>
+        nodes.find((node) => node.browseName === name)?.hasChildren;
+
+      expect(hasChildrenOf('xMarcha')).toBe(false);
+      expect(hasChildrenOf('sNombreReceta')).toBe(false);
+      expect(hasChildrenOf('dtUltimoCambio')).toBe(false);
+      expect(hasChildrenOf('axManualAvance')).toBe(true);
+      expect(nodes.find((node) => node.browseName === 'axManualAvance')).toMatchObject({
+        nodeClass: 'Variable',
+        dataType: 'Boolean',
+      });
+    }, 30000);
+
+    it('browse de un array CODESYS devuelve sus elementos escalares sin hijos', async () => {
+      const nodes = await explorer.browse(
+        endpointUrl,
+        server.gvlHmi.nodeIdOf('axManualAvance'),
+        10000,
+      );
+
+      expect(nodes.filter((node) => node.nodeClass === 'Variable')).toEqual([
+        expect.objectContaining({ browseName: 'axManualAvance[0]', hasChildren: false }),
+        expect.objectContaining({ browseName: 'axManualAvance[1]', hasChildren: false }),
+      ]);
+    }, 30000);
+
     it('browse con un NodeId inexistente o mal formado lanza OpcUaInvalidNodeIdError', async () => {
       await expect(explorer.browse(endpointUrl, MISSING_NODE, 10000)).rejects.toBeInstanceOf(
         OpcUaInvalidNodeIdError,

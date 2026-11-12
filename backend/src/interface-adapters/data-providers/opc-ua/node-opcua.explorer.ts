@@ -35,6 +35,7 @@ import {
   classifyConnectionError,
   OpcUaTimeoutError,
   standardDataTypeName,
+  variableMayHaveChildren,
   withTimeout,
 } from './node-opcua.mappers';
 
@@ -362,28 +363,50 @@ export class NodeOpcUaExplorer implements IOpcUaExplorer {
     if (references.length === 0) {
       return [];
     }
-    // Una sola petición para saber qué hijos tienen a su vez hijos.
-    const grandChildren = (await session.browse(
-      references.map((reference) => hierarchicalBrowse(reference.nodeId as NodeId)),
-    )) as BrowseResult[];
-    const dataTypes = await this.readDataTypeNames(session, references);
+    const variables = references.filter((reference) => reference.nodeClass === NodeClass.Variable);
+    const others = references.filter((reference) => reference.nodeClass !== NodeClass.Variable);
+    const described = await this.describeBrowsedVariables(session, variables);
+    const othersWithChildren = await this.nodesWithChildren(session, others);
 
-    return references.map((reference, index) => {
+    return references.map((reference) => {
       const nodeId = reference.nodeId.toString();
       const browseName = reference.browseName.name ?? reference.browseName.toString();
+      const variable = described.get(nodeId);
       const node: OpcUaBrowseNode = {
         nodeId,
         browseName,
         displayName: reference.displayName.text ?? browseName,
         nodeClass: NodeClass[reference.nodeClass],
-        hasChildren: (grandChildren[index]?.references?.length ?? 0) > 0,
+        hasChildren: variable ? variable.hasChildren : othersWithChildren.has(nodeId),
       };
-      const dataType = dataTypes.get(nodeId);
-      if (dataType) {
-        node.dataType = dataType;
+      if (variable?.dataType) {
+        node.dataType = variable.dataType;
       }
       return node;
     });
+  }
+
+  /**
+   * spec 18, criterio backend 6: `hasChildren` de los nodos que no son
+   * `Variable` (carpetas, Objects) con un `Browse` real, por lotes. Basta la
+   * primera página: no se siguen los `BrowseNext`.
+   */
+  private async nodesWithChildren(
+    session: ClientSession,
+    references: readonly ReferenceDescription[],
+  ): Promise<Set<string>> {
+    const withChildren = new Set<string>();
+    for (const batch of chunk(references, BROWSE_BATCH_SIZE)) {
+      const results = (await session.browse(
+        batch.map((reference) => hierarchicalBrowse(reference.nodeId as NodeId)),
+      )) as BrowseResult[];
+      batch.forEach((reference, index) => {
+        if ((results[index]?.references?.length ?? 0) > 0) {
+          withChildren.add(reference.nodeId.toString());
+        }
+      });
+    }
+    return withChildren;
   }
 
   private async browseAll(
@@ -403,34 +426,41 @@ export class NodeOpcUaExplorer implements IOpcUaExplorer {
     return references;
   }
 
-  /** Nombre del `DataType` de cada hijo `Variable`, indexado por el NodeId de la variable. */
-  private async readDataTypeNames(
+  /**
+   * Nombre del `DataType` de cada hijo `Variable` y si puede tener hijos
+   * (deducido de `DataType` + `ValueRank`, sin `Browse`), indexado por su NodeId.
+   */
+  private async describeBrowsedVariables(
     session: ClientSession,
-    references: ReferenceDescription[],
-  ): Promise<Map<string, string>> {
-    const variables = references.filter((reference) => reference.nodeClass === NodeClass.Variable);
-    const names = new Map<string, string>();
+    variables: readonly ReferenceDescription[],
+  ): Promise<Map<string, { dataType: string; hasChildren: boolean }>> {
+    const described = new Map<string, { dataType: string; hasChildren: boolean }>();
     if (variables.length === 0) {
-      return names;
+      return described;
     }
-    const dataTypeValues = await session.read(
-      variables.map((reference) => ({
-        nodeId: reference.nodeId as NodeId,
-        attributeId: AttributeIds.DataType,
-      })),
+    const values = await this.readMany(
+      session,
+      variables.flatMap((reference) => [
+        { nodeId: reference.nodeId as NodeId, attributeId: AttributeIds.DataType },
+        { nodeId: reference.nodeId as NodeId, attributeId: AttributeIds.ValueRank },
+      ]),
     );
-    const dataTypeIdByVariable = new Map<string, NodeId>();
+    const dataTypeIds = variables.map(
+      (_, index) => (values[index * 2]?.value?.value ?? undefined) as NodeId | undefined,
+    );
+    const typeNames = await this.resolveDataTypeNames(
+      session,
+      dataTypeIds.filter((id): id is NodeId => id !== undefined),
+    );
     variables.forEach((reference, index) => {
-      const dataTypeId = dataTypeValues[index]?.value?.value as NodeId | undefined;
-      if (dataTypeId) {
-        dataTypeIdByVariable.set(reference.nodeId.toString(), dataTypeId);
-      }
+      const dataTypeId = dataTypeIds[index];
+      const valueRank = Number(values[index * 2 + 1]?.value?.value ?? -1);
+      described.set(reference.nodeId.toString(), {
+        dataType: dataTypeId ? (typeNames.get(dataTypeId.toString()) ?? '') : '',
+        hasChildren: variableMayHaveChildren(dataTypeId, valueRank),
+      });
     });
-    const typeNames = await this.resolveDataTypeNames(session, [...dataTypeIdByVariable.values()]);
-    for (const [variableId, dataTypeId] of dataTypeIdByVariable) {
-      names.set(variableId, typeNames.get(dataTypeId.toString()) ?? '');
-    }
-    return names;
+    return described;
   }
 
   private async withSession<T>(

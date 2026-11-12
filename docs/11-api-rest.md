@@ -151,7 +151,7 @@ Se gestiona siempre en el contexto de su Machine (Documento 3: relación 1 a 1).
 | POST   | `/api/v1/machines/:machineId/connection/opcua/test`   | Body `{ "endpointUrl": "opc.tcp://…" }`. `200 { "reachable": true }` o `200 { "reachable": false, "reason": "UNREACHABLE" \| "TIMEOUT" \| "SECURITY_REJECTED" }`. |
 | POST   | `/api/v1/machines/:machineId/connection/opcua/browse` | Body `{ "endpointUrl": "opc.tcp://…", "nodeId"?: "…" }`. Hijos directos del nodo (sin `nodeId`, de `ObjectsFolder`): `200 { "nodes": [...] }`.                    |
 
-Cada nodo de `browse` tiene la forma `{ nodeId, browseName, displayName, nodeClass, dataType?, hasChildren }`; `dataType` solo aparece en nodos `Variable`.
+Cada nodo de `browse` tiene la forma `{ nodeId, browseName, displayName, nodeClass, dataType?, hasChildren }`; `dataType` solo aparece en nodos `Variable`. En una `Variable`, `hasChildren` se deduce de su tipo: es `false` solo en los escalares de tipo básico, y `true` en arrays y estructuras aunque luego no tengan hijos (spec 18, criterio backend 6).
 
 Errores específicos de `MachineConnection` desde la spec 18:
 
