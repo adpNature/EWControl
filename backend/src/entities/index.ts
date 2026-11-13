@@ -10,6 +10,8 @@ import { PasswordResetToken } from './password-reset-token.entity';
 import { RefreshToken } from './refresh-token.entity';
 import { Signal } from './signal.entity';
 import { User } from './user.entity';
+import { VariableCatalogEntry } from './variable-catalog-entry.entity';
+import { VariableCategory } from './variable-category.entity';
 import { WritePackageExecution } from './write-package-execution.entity';
 import { WritePackage } from './write-package.entity';
 
@@ -37,4 +39,6 @@ export const ENTITIES = [
   AlarmState,
   WritePackage,
   WritePackageExecution,
+  VariableCategory,
+  VariableCatalogEntry,
 ];

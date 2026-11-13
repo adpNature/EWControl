@@ -23,12 +23,14 @@ import {
   opcUaApiErrorMessage,
   opcUaTestResultMessage,
 } from '../../use-cases/opc-ua-error-messages';
+import { folderAddToast, planFolderAdd } from '../../use-cases/opc-ua-folder-add';
 import {
   MappingRowError,
   OPCUA_ENDPOINT_PATTERN,
   deriveVariableName,
   validateMapping,
 } from '../../use-cases/opc-ua-mapping';
+import { syncErrorMessage } from '../../use-cases/opc-ua-variable-sync';
 
 interface MappingRow {
   nodeId: string;
@@ -80,6 +82,10 @@ export class MachineConnectionPage implements OnInit {
   readonly testing = signal(false);
   readonly saving = signal(false);
   readonly confirmOpen = signal(false);
+  /** spec 22: endpoint OPC UA guardado; la sincronización de la spec 21 siempre usa este. */
+  readonly savedEndpoint = signal<string | null>(null);
+  /** spec 22, criterio frontend 4: carpeta cuyo «Añadir todas» está en curso. */
+  readonly addingFolderNodeId = signal<string | null>(null);
 
   readonly endpointControl = new FormControl('', {
     nonNullable: true,
@@ -104,6 +110,7 @@ export class MachineConnectionPage implements OnInit {
         const config = connection.connectionConfig;
         if (isOpcUaConnectionConfig(config)) {
           this.endpointControl.setValue(config.endpointUrl);
+          this.savedEndpoint.set(config.endpointUrl);
           this.mapping.set(config.nodeMapping.map((entry) => ({ ...entry })));
           this.timeoutMs = config.timeoutMs;
           this.samplingIntervalMs = config.samplingIntervalMs;
@@ -171,6 +178,37 @@ export class MachineConnectionPage implements OnInit {
         dataType: node.dataType,
       },
     ]);
+  }
+
+  /**
+   * docs/specs/22-anadir-carpeta-opc-ua-desde-explorador.md, criterio frontend 8:
+   * la sincronización usa el endpoint guardado, así que solo se permite si la
+   * Machine tiene guardada una conexión OPC UA con el mismo endpoint del formulario.
+   */
+  canAddFolders(): boolean {
+    return this.savedProvider() === 'OpcUa' && this.savedEndpoint() === this.endpointControl.value;
+  }
+
+  /** spec 22, criterios frontend 3, 5-7 y 9: añade al mapeo todas las variables de la carpeta, sin guardar. */
+  addFolder(node: OpcUaBrowseNode): void {
+    if (!this.canAddFolders() || this.addingFolderNodeId() !== null) {
+      return;
+    }
+    this.addingFolderNodeId.set(node.nodeId);
+    this.machinesApi.syncOpcUaVariables(this.machineId, node.nodeId).subscribe({
+      next: (result) => {
+        this.addingFolderNodeId.set(null);
+        const plan = planFolderAdd(result, this.mappedNodeIds(), this.mapping().length);
+        if (plan.kind === 'added') {
+          this.mapping.update((rows) => [...rows, ...plan.rows]);
+        }
+        this.toastService.show(folderAddToast(plan, node.displayName));
+      },
+      error: (error: ApiError) => {
+        this.addingFolderNodeId.set(null);
+        this.toastService.show({ type: 'danger', message: syncErrorMessage(error) });
+      },
+    });
   }
 
   renameRow(index: number, event: Event): void {
@@ -276,6 +314,8 @@ export class MachineConnectionPage implements OnInit {
       next: (connection) => {
         this.saving.set(false);
         this.savedProvider.set(connection.providerType);
+        const config = connection.connectionConfig;
+        this.savedEndpoint.set(isOpcUaConnectionConfig(config) ? config.endpointUrl : null);
         this.toastService.show({ type: 'success', message: 'Conexión guardada.' });
       },
       error: (error: ApiError) => {

@@ -1,0 +1,124 @@
+<div class="box variable-categories-page">
+  <h1 class="title-xl">Categorías de variables</h1>
+
+  <section class="variable-categories-page__section" aria-labelledby="categories-import-title">
+    <h2 id="categories-import-title" class="title-lg">Importar desde CSV</h2>
+    <p class="text-muted variable-categories-page__help">
+      Exporta la lista de variables globales (por ejemplo <code>GVL_HMI</code>) desde CODESYS en
+      CSV. Los títulos de sus comentarios entre <code>####</code> se convierten en categorías y los
+      que van entre <code>****</code>, en subcategorías.
+    </p>
+    <div class="form-field">
+      <label class="form-label" for="categories-root-node-id">Carpeta OPC UA (NodeId)</label>
+      <input
+        id="categories-root-node-id"
+        class="form-input variable-categories-page__root"
+        type="text"
+        autocomplete="off"
+        spellcheck="false"
+        [value]="rootNodeId()"
+        (input)="setRootNodeId($event)"
+      />
+    </div>
+    <div class="form-field">
+      <label class="form-label" for="categories-file">Fichero CSV de la GVL</label>
+      <input
+        id="categories-file"
+        class="form-input"
+        type="file"
+        accept=".csv,text/csv"
+        (change)="setFile($event)"
+      />
+    </div>
+    <div class="variable-categories-page__actions">
+      <button
+        type="button"
+        class="btn-primary"
+        [disabled]="!canImport()"
+        [attr.aria-busy]="importing() ? true : null"
+        (click)="requestImport()"
+      >
+        {{ importing() ? 'Importando…' : 'Importar' }}
+      </button>
+    </div>
+    @if (importError(); as message) {
+      <p class="form-error" role="alert">{{ message }}</p>
+    }
+  </section>
+
+  <section class="variable-categories-page__section" aria-labelledby="categories-tree-title">
+    <h2 id="categories-tree-title" class="title-lg">Categorías</h2>
+    @if (loading()) {
+      <p class="text-muted" role="status">Cargando categorías…</p>
+    } @else if (loadError(); as message) {
+      <p class="form-error" role="alert">{{ message }}</p>
+    } @else if (tree().length === 0) {
+      <p class="text-muted">
+        Todavía no hay categorías. Importa la exportación CSV de la GVL del PLC para crearlas.
+      </p>
+    } @else {
+      <ul class="variable-categories-page__tree" aria-label="Categorías de variables">
+        @for (node of tree(); track node.category.id) {
+          <li class="variable-categories-page__node">
+            <ng-container
+              [ngTemplateOutlet]="categoryRow"
+              [ngTemplateOutletContext]="{ $implicit: node.category }"
+            />
+            @if (node.children.length > 0) {
+              <ul class="variable-categories-page__children">
+                @for (child of node.children; track child.id) {
+                  <li class="variable-categories-page__node">
+                    <ng-container
+                      [ngTemplateOutlet]="categoryRow"
+                      [ngTemplateOutletContext]="{ $implicit: child }"
+                    />
+                  </li>
+                }
+              </ul>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </section>
+</div>
+
+<ng-template #categoryRow let-category>
+  <div class="variable-categories-page__row">
+    <input
+      class="form-input variable-categories-page__name"
+      maxlength="120"
+      [attr.aria-label]="'Nombre de la categoría ' + category.name"
+      [attr.aria-invalid]="rowError(category) ? true : null"
+      [attr.aria-describedby]="rowError(category) ? 'category-error-' + category.id : null"
+      [value]="nameOf(category)"
+      (input)="editName(category, $event)"
+      (keydown.enter)="saveName(category)"
+    />
+    <span class="text-muted variable-categories-page__count">{{
+      variableCountText(category)
+    }}</span>
+    <button
+      type="button"
+      class="btn-secondary"
+      [attr.aria-label]="'Guardar el nombre de ' + category.name"
+      [disabled]="!canSaveName(category)"
+      (click)="saveName(category)"
+    >
+      {{ renaming() === category.id ? 'Guardando…' : 'Guardar' }}
+    </button>
+  </div>
+  @if (rowError(category); as message) {
+    <p class="form-error" role="alert" [id]="'category-error-' + category.id">{{ message }}</p>
+  }
+</ng-template>
+
+<app-confirm-dialog
+  [open]="confirmOpen()"
+  title="Importar categorías"
+  message="Se sustituirán las categorías actuales y sus nombres por las del CSV. ¿Continuar?"
+  confirmLabel="Importar"
+  [danger]="false"
+  (confirmed)="import()"
+  (cancelled)="confirmOpen.set(false)"
+/>

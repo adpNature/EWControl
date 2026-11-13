@@ -1,8 +1,9 @@
 import { Logger } from '@nestjs/common';
 import {
   AttributeIds,
+  type ClientMonitoredItemBase,
+  ClientMonitoredItemGroup,
   type ClientSession,
-  ClientMonitoredItem,
   ClientSubscription,
   DataType,
   type DataValue,
@@ -24,19 +25,30 @@ import {
   type OpcUaWriteItem,
   type OpcUaWriteResult,
 } from './opc-ua-driver.port';
+import {
+  RECONNECTION_POLICY_DEFAULTS,
+  ReconnectionPolicy,
+  type ReconnectionPolicyOptions,
+} from './reconnection-policy';
 
 /** spec 18: reintento indefinido con backoff exponencial, máximo 30 s entre intentos. */
 const RECONNECTION_STRATEGY = { maxRetry: -1, initialDelay: 1000, maxDelay: 30000 };
 const SESSION_RETRY_MAX_DELAY_MS = 30000;
+/** spec 24, criterio 3: MonitoredItems por petición `CreateMonitoredItems`. */
+export const MONITORED_ITEMS_BATCH_SIZE = 100;
+/** spec 24, criterio 5: tiempo máximo de cada paso del cierre. */
+const CLOSE_STEP_TIMEOUT_MS = 2000;
+const DISCONNECT_TIMEOUT_MS = 1000;
 /** `Server_ServerStatus_CurrentTime` (OPC UA Part 5): solo para detectar desfases de reloj. */
 const SERVER_CURRENT_TIME_NODE_ID = 'ns=0;i=2258';
 
 /**
  * Implementación de `IOpcUaDriver` sobre `node-opcua-client` (spec 18). Una
- * sesión anónima sin cifrado con una única Subscription y un MonitoredItem por
- * `nodeMapping`. La reconexión tras perder el canal (y la reparación de sesión
- * y Subscription) la hace node-opcua; este driver solo reintenta si falla la
- * creación inicial de la sesión.
+ * sesión anónima sin cifrado con una única Subscription que monitoriza solo
+ * los NodeIds indicados, creados por lotes (docs/specs/24-conexion-opc-ua-estable.md).
+ * Una reconexión puntual la hace node-opcua; si la conexión se pierde demasiadas
+ * veces seguidas, el driver cierra todo de forma explícita y espera una pausa
+ * creciente (`ReconnectionPolicy`) antes de volver a conectar desde cero.
  */
 export class NodeOpcUaDriver implements IOpcUaDriver {
   private readonly logger = new Logger(NodeOpcUaDriver.name);
@@ -45,11 +57,23 @@ export class NodeOpcUaDriver implements IOpcUaDriver {
   private subscription: ClientSubscription | undefined;
   private retryTimer: ReturnType<typeof setTimeout> | undefined;
   private stopped = true;
+  private listener: IOpcUaDriverListener | undefined;
+  private monitoredNodeIds: string[] = [];
+  private readonly monitoredItems = new Map<string, ClientMonitoredItemBase>();
+  private readonly policy: ReconnectionPolicy;
 
-  constructor(private readonly config: OpcUaConnectionConfig) {}
+  /** `policyOptions` solo se cambia en tests; en producción, los valores de la spec 24. */
+  constructor(
+    private readonly config: OpcUaConnectionConfig,
+    policyOptions: ReconnectionPolicyOptions = RECONNECTION_POLICY_DEFAULTS,
+  ) {
+    this.policy = new ReconnectionPolicy(Date.now, policyOptions);
+  }
 
-  start(listener: IOpcUaDriverListener): void {
+  start(listener: IOpcUaDriverListener, nodeIds: readonly string[]): void {
     this.stopped = false;
+    this.listener = listener;
+    this.monitoredNodeIds = [...nodeIds];
     void this.connectWithRetry(listener, 0);
   }
 
@@ -57,6 +81,28 @@ export class NodeOpcUaDriver implements IOpcUaDriver {
     this.stopped = true;
     clearTimeout(this.retryTimer);
     await this.closeQuietly();
+  }
+
+  /** spec 24, criterio 2: añade y quita MonitoredItems en la Subscription actual. */
+  async setMonitoredNodeIds(nodeIds: readonly string[]): Promise<void> {
+    const wanted = new Set(nodeIds);
+    const current = new Set(this.monitoredNodeIds);
+    this.monitoredNodeIds = [...nodeIds];
+    const subscription = this.subscription;
+    const listener = this.listener;
+    if (!subscription || !listener || this.stopped) {
+      return;
+    }
+    const removed = [...current].filter((nodeId) => !wanted.has(nodeId));
+    await Promise.all(
+      removed.map(async (nodeId) => {
+        const item = this.monitoredItems.get(nodeId);
+        this.monitoredItems.delete(nodeId);
+        await item?.terminate().catch(() => undefined);
+      }),
+    );
+    const added = nodeIds.filter((nodeId) => !current.has(nodeId));
+    await this.monitorInBatches(subscription, added, listener);
   }
 
   /** docs/specs/20-paquetes-escritura-opc-ua.md: escritura con la sesión de la Subscription. */
@@ -156,6 +202,7 @@ export class NodeOpcUaDriver implements IOpcUaDriver {
   }
 
   private async open(listener: IOpcUaDriverListener): Promise<void> {
+    this.monitoredItems.clear();
     const client = OPCUAClient.create({
       applicationName: 'EWControl',
       securityMode: MessageSecurityMode.None,
@@ -172,12 +219,18 @@ export class NodeOpcUaDriver implements IOpcUaDriver {
       this.logger.debug(`Reintento ${count} de conexión OPC UA en ${delay} ms`),
     );
     client.on('connection_lost', () => {
-      if (!this.stopped) {
-        listener.onDisconnected();
+      if (this.stopped || client !== this.client) {
+        return;
+      }
+      listener.onDisconnected();
+      const decision = this.policy.recordDisconnection();
+      if (decision.pause) {
+        void this.pause(listener, decision.delayMs);
       }
     });
     client.on('connection_reestablished', () => {
-      if (!this.stopped) {
+      if (!this.stopped && client === this.client) {
+        this.policy.recordConnected();
         listener.onConnected();
         void this.reportServerTime(listener);
       }
@@ -195,44 +248,100 @@ export class NodeOpcUaDriver implements IOpcUaDriver {
       priority: 10,
     });
     this.subscription = subscription;
-    for (const { nodeId } of this.config.nodeMapping) {
-      this.monitor(subscription, nodeId, listener);
-    }
+    await this.monitorInBatches(subscription, this.monitoredNodeIds, listener);
     if (this.stopped) {
       return;
     }
+    this.policy.recordConnected();
     listener.onConnected();
     await this.reportServerTime(listener);
   }
 
-  private monitor(
+  /**
+   * spec 24, criterio 3: un `CreateMonitoredItems` por lote de como mucho
+   * `MONITORED_ITEMS_BATCH_SIZE` NodeIds, uno detrás de otro. Un NodeId mal
+   * formado o rechazado por el servidor se notifica sin afectar al resto.
+   */
+  private async monitorInBatches(
     subscription: ClientSubscription,
-    nodeId: string,
+    nodeIds: readonly string[],
     listener: IOpcUaDriverListener,
-  ): void {
-    let resolvedNodeId;
-    try {
-      resolvedNodeId = resolveNodeId(nodeId);
-    } catch {
-      listener.onMonitoredItemRejected(nodeId, 'BadNodeIdInvalid');
-      return;
+  ): Promise<void> {
+    const valid: { nodeId: string; resolved: NodeId }[] = [];
+    for (const nodeId of nodeIds) {
+      try {
+        valid.push({ nodeId, resolved: resolveNodeId(nodeId) });
+      } catch {
+        listener.onMonitoredItemRejected(nodeId, 'BadNodeIdInvalid');
+      }
     }
-    const item = ClientMonitoredItem.create(
+    for (let start = 0; start < valid.length; start += MONITORED_ITEMS_BATCH_SIZE) {
+      if (this.stopped || subscription !== this.subscription) {
+        return;
+      }
+      await this.monitorBatch(
+        subscription,
+        valid.slice(start, start + MONITORED_ITEMS_BATCH_SIZE),
+        listener,
+      );
+    }
+  }
+
+  private monitorBatch(
+    subscription: ClientSubscription,
+    batch: { nodeId: string; resolved: NodeId }[],
+    listener: IOpcUaDriverListener,
+  ): Promise<void> {
+    const group = ClientMonitoredItemGroup.create(
       subscription,
-      { nodeId: resolvedNodeId, attributeId: AttributeIds.Value },
+      batch.map(({ resolved }) => ({ nodeId: resolved, attributeId: AttributeIds.Value })),
       { samplingInterval: this.config.samplingIntervalMs, discardOldest: true, queueSize: 1 },
       TimestampsToReturn.Both,
     );
-    item.on('changed', (dataValue: DataValue) => {
+    group.monitoredItems.forEach((item, index) => {
+      const { nodeId } = batch[index];
+      this.monitoredItems.set(nodeId, item);
+      item.on('err', (message: string) => {
+        this.monitoredItems.delete(nodeId);
+        if (!this.stopped) {
+          listener.onMonitoredItemRejected(nodeId, message);
+        }
+      });
+    });
+    group.on('changed', (item: ClientMonitoredItemBase, dataValue: DataValue, index: number) => {
       if (!this.stopped) {
-        listener.onDataChange(toDataChange(nodeId, dataValue));
+        listener.onDataChange(toDataChange(batch[index].nodeId, dataValue));
       }
     });
-    item.on('err', (message: string) => {
-      if (!this.stopped) {
-        listener.onMonitoredItemRejected(nodeId, message);
-      }
+    return withTimeout(
+      new Promise<void>((resolve) => {
+        group.once('initialized', () => resolve());
+        group.once('terminated', () => resolve());
+      }),
+      this.config.timeoutMs,
+    ).catch(() => {
+      this.logger.warn(
+        `El servidor OPC UA ${this.config.endpointUrl} no confirmó ${batch.length} MonitoredItems ` +
+          `en ${this.config.timeoutMs} ms.`,
+      );
     });
+  }
+
+  /**
+   * spec 24, criterio 4: demasiados cortes seguidos. Se cierra todo de forma
+   * explícita y se vuelve a conectar desde cero tras la pausa.
+   */
+  private async pause(listener: IOpcUaDriverListener, delayMs: number): Promise<void> {
+    this.logger.warn(
+      `Conexión OPC UA inestable con ${this.config.endpointUrl}: se cierra la sesión y se ` +
+        `reintenta en ${Math.round(delayMs / 1000)} s.`,
+    );
+    clearTimeout(this.retryTimer);
+    await this.closeQuietly();
+    if (this.stopped) {
+      return;
+    }
+    this.retryTimer = setTimeout(() => void this.connectWithRetry(listener, 0), delayMs);
   }
 
   private async reportServerTime(listener: IOpcUaDriverListener): Promise<void> {
@@ -250,14 +359,26 @@ export class NodeOpcUaDriver implements IOpcUaDriver {
     }
   }
 
+  /**
+   * spec 24, criterio 5: borra la Subscription y cierra la sesión en el
+   * servidor antes de desconectar, cada paso con tiempo máximo; los fallos se
+   * ignoran. Como mucho 5 s en total.
+   */
   private async closeQuietly(): Promise<void> {
     const { subscription, session, client } = this;
     this.subscription = undefined;
     this.session = undefined;
     this.client = undefined;
-    await subscription?.terminate().catch(() => undefined);
-    await session?.close().catch(() => undefined);
-    await client?.disconnect().catch(() => undefined);
+    this.monitoredItems.clear();
+    if (subscription) {
+      await withTimeout(subscription.terminate(), CLOSE_STEP_TIMEOUT_MS).catch(() => undefined);
+    }
+    if (session) {
+      await withTimeout(session.close(true), CLOSE_STEP_TIMEOUT_MS).catch(() => undefined);
+    }
+    if (client) {
+      await withTimeout(client.disconnect(), DISCONNECT_TIMEOUT_MS).catch(() => undefined);
+    }
   }
 }
 

@@ -79,14 +79,16 @@ export function listKnownVariableNames(config: ConnectionConfig): string[] {
 export interface KnownVariable {
   name: string;
   label?: string;
+  /** NodeId OPC UA, para buscar su categoría (docs/specs/23-categorias-variables-plc.md). */
+  nodeId?: string;
 }
 
 export function listKnownVariables(config: ConnectionConfig): KnownVariable[] {
   return isOpcUaConnectionConfig(config)
     ? config.nodeMapping.map((entry) =>
         entry.label
-          ? { name: entry.signalVariableName, label: entry.label }
-          : { name: entry.signalVariableName },
+          ? { name: entry.signalVariableName, label: entry.label, nodeId: entry.nodeId }
+          : { name: entry.signalVariableName, nodeId: entry.nodeId },
       )
     : config.signals.map((signal) => ({ name: signal.variableName }));
 }

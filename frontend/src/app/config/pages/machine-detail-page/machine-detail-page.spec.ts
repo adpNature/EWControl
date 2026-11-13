@@ -168,11 +168,13 @@ describe('MachineDetailPage', () => {
     await renderPage();
 
     expect(screen.getByText('Variables OPC UA').closest('a')).toBeInTheDocument();
+    expect(screen.getByText('Categorías').closest('a')).toBeInTheDocument();
   });
 
   it('no ofrece «Variables OPC UA» en una Machine del Simulador ni sin rol de configuración', async () => {
     await renderPage();
     expect(screen.queryByText('Variables OPC UA')).not.toBeInTheDocument();
+    expect(screen.queryByText('Categorías')).not.toBeInTheDocument();
   });
 
   it('oculta el acceso a la conexión sin rol de configuración', async () => {

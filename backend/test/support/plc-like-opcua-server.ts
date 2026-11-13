@@ -21,6 +21,10 @@ import { type Namespace, OPCUAServer, type UAObject, type UAVariable } from 'nod
 export type PlcLikeOpcUaServer = {
   endpointUrl: string;
   gvlHmi: GvlHmiHandle;
+  /** Sesiones abiertas ahora mismo (docs/specs/24-conexion-opc-ua-estable.md). */
+  sessionCount(): number;
+  /** MonitoredItems de todas las Subscriptions abiertas (spec 24). */
+  monitoredItemCount(): number;
   stop(): Promise<void>;
 };
 
@@ -295,6 +299,12 @@ export async function startPlcLikeOpcUaServer(port: number): Promise<PlcLikeOpcU
   return {
     endpointUrl,
     gvlHmi,
+    sessionCount: () => server.engine.currentSessionCount,
+    monitoredItemCount: () =>
+      server.engine
+        .getSessions()
+        .flatMap((session) => session.publishEngine?.subscriptions ?? [])
+        .reduce((total, subscription) => total + subscription.monitoredItemCount, 0),
     async stop() {
       clearInterval(timer);
       await server.shutdown(0);

@@ -49,12 +49,16 @@ type LastPublished = PublishedValue & { name: string; quality: DataQuality };
  * Subscription a `Variable`s: nombre según `nodeMapping`, tipo y calidad
  * traducidos, y `timestamp` del reloj del Backend (el reloj del PLC piloto no
  * es fiable). La sesión, la Subscription y la reconexión viven en el `IOpcUaDriver`.
+ * docs/specs/24-conexion-opc-ua-estable.md: solo se suscriben las variables
+ * indicadas (las que usan las Signals); sin lista, todo el `nodeMapping`.
  */
 export class OpcUaProvider implements IDataProvider {
   private readonly logger = new Logger(OpcUaProvider.name);
   private readonly listeners = new Set<VariableListener>();
   private readonly connectionListeners = new Set<ConnectionChangeListener>();
   private readonly variableNameByNodeId: ReadonlyMap<string, string>;
+  private readonly nodeIdByVariableName: ReadonlyMap<string, string>;
+  private monitoredNodeIds: string[];
   private readonly lastValueByNodeId = new Map<string, LastPublished>();
   private readonly discardWarnedNodeIds = new Set<string>();
   private started = false;
@@ -65,10 +69,17 @@ export class OpcUaProvider implements IDataProvider {
     config: OpcUaConnectionConfig,
     private readonly driver: IOpcUaDriver,
     private readonly clock: () => Date = () => new Date(),
+    monitoredVariableNames?: readonly string[],
   ) {
     this.variableNameByNodeId = new Map(
       config.nodeMapping.map((entry) => [entry.nodeId, entry.signalVariableName]),
     );
+    this.nodeIdByVariableName = new Map(
+      config.nodeMapping.map((entry) => [entry.signalVariableName, entry.nodeId]),
+    );
+    this.monitoredNodeIds = monitoredVariableNames
+      ? this.nodeIdsFor(monitoredVariableNames)
+      : config.nodeMapping.map((entry) => entry.nodeId);
   }
 
   /** No espera a la conexión: el driver conecta y reintenta en segundo plano (spec 18, criterio 9). */
@@ -77,7 +88,36 @@ export class OpcUaProvider implements IDataProvider {
       return;
     }
     this.started = true;
-    this.driver.start(this.createDriverListener());
+    this.driver.start(this.createDriverListener(), this.monitoredNodeIds);
+  }
+
+  /**
+   * spec 24, criterio 2: cambia las variables suscritas en la sesión actual,
+   * sin reconectar. Las que dejan de suscribirse olvidan su último valor. Un
+   * fallo del driver solo se registra: se reintentará al reconectar.
+   */
+  async setMonitoredVariables(variableNames: readonly string[]): Promise<void> {
+    this.monitoredNodeIds = this.nodeIdsFor(variableNames);
+    const monitored = new Set(this.monitoredNodeIds);
+    for (const nodeId of [...this.lastValueByNodeId.keys()]) {
+      if (!monitored.has(nodeId)) {
+        this.lastValueByNodeId.delete(nodeId);
+      }
+    }
+    try {
+      await this.driver.setMonitoredNodeIds(this.monitoredNodeIds);
+    } catch (error) {
+      this.logger.warn(
+        `Machine ${this.machineId}: no se pudieron actualizar las variables suscritas: ` +
+          `${(error as Error).message}`,
+      );
+    }
+  }
+
+  private nodeIdsFor(variableNames: readonly string[]): string[] {
+    return variableNames
+      .map((name) => this.nodeIdByVariableName.get(name))
+      .filter((nodeId): nodeId is string => nodeId !== undefined);
   }
 
   async disconnect(): Promise<void> {

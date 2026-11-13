@@ -35,6 +35,7 @@ import {
   classifyConnectionError,
   OpcUaTimeoutError,
   standardDataTypeName,
+  variableMayHaveChildren,
   withTimeout,
 } from './node-opcua.mappers';
 
@@ -46,6 +47,9 @@ const INVALID_NODE_STATUS_CODES = new Set([
 
 /** Peticiones por mensaje `Browse`/`Read`: holgadas frente a los límites habituales de los servidores. */
 const BROWSE_BATCH_SIZE = 200;
+/** spec 24, criterio 6: si una sesión del explorador queda huérfana, el PLC la libera antes. */
+export const EXPLORER_SESSION_TIMEOUT_MS = 30000;
+const CLOSE_SESSION_TIMEOUT_MS = 2000;
 const READ_BATCH_SIZE = 500;
 /** Bit `CurrentWrite` del `AccessLevel` (OPC UA Part 3, 8.57). */
 const ACCESS_LEVEL_CURRENT_WRITE = 0x02;
@@ -88,6 +92,8 @@ function hierarchicalBrowse(nodeId: NodeId) {
 @Injectable()
 export class NodeOpcUaExplorer implements IOpcUaExplorer {
   private readonly logger = new Logger(NodeOpcUaExplorer.name);
+  /** spec 24, criterio 7: última operación encolada por endpoint. */
+  private readonly queues = new Map<string, Promise<void>>();
 
   async testConnection(endpointUrl: string, timeoutMs: number): Promise<OpcUaConnectionTestResult> {
     try {
@@ -362,28 +368,50 @@ export class NodeOpcUaExplorer implements IOpcUaExplorer {
     if (references.length === 0) {
       return [];
     }
-    // Una sola petición para saber qué hijos tienen a su vez hijos.
-    const grandChildren = (await session.browse(
-      references.map((reference) => hierarchicalBrowse(reference.nodeId as NodeId)),
-    )) as BrowseResult[];
-    const dataTypes = await this.readDataTypeNames(session, references);
+    const variables = references.filter((reference) => reference.nodeClass === NodeClass.Variable);
+    const others = references.filter((reference) => reference.nodeClass !== NodeClass.Variable);
+    const described = await this.describeBrowsedVariables(session, variables);
+    const othersWithChildren = await this.nodesWithChildren(session, others);
 
-    return references.map((reference, index) => {
+    return references.map((reference) => {
       const nodeId = reference.nodeId.toString();
       const browseName = reference.browseName.name ?? reference.browseName.toString();
+      const variable = described.get(nodeId);
       const node: OpcUaBrowseNode = {
         nodeId,
         browseName,
         displayName: reference.displayName.text ?? browseName,
         nodeClass: NodeClass[reference.nodeClass],
-        hasChildren: (grandChildren[index]?.references?.length ?? 0) > 0,
+        hasChildren: variable ? variable.hasChildren : othersWithChildren.has(nodeId),
       };
-      const dataType = dataTypes.get(nodeId);
-      if (dataType) {
-        node.dataType = dataType;
+      if (variable?.dataType) {
+        node.dataType = variable.dataType;
       }
       return node;
     });
+  }
+
+  /**
+   * spec 18, criterio backend 6: `hasChildren` de los nodos que no son
+   * `Variable` (carpetas, Objects) con un `Browse` real, por lotes. Basta la
+   * primera página: no se siguen los `BrowseNext`.
+   */
+  private async nodesWithChildren(
+    session: ClientSession,
+    references: readonly ReferenceDescription[],
+  ): Promise<Set<string>> {
+    const withChildren = new Set<string>();
+    for (const batch of chunk(references, BROWSE_BATCH_SIZE)) {
+      const results = (await session.browse(
+        batch.map((reference) => hierarchicalBrowse(reference.nodeId as NodeId)),
+      )) as BrowseResult[];
+      batch.forEach((reference, index) => {
+        if ((results[index]?.references?.length ?? 0) > 0) {
+          withChildren.add(reference.nodeId.toString());
+        }
+      });
+    }
+    return withChildren;
   }
 
   private async browseAll(
@@ -403,37 +431,68 @@ export class NodeOpcUaExplorer implements IOpcUaExplorer {
     return references;
   }
 
-  /** Nombre del `DataType` de cada hijo `Variable`, indexado por el NodeId de la variable. */
-  private async readDataTypeNames(
+  /**
+   * Nombre del `DataType` de cada hijo `Variable` y si puede tener hijos
+   * (deducido de `DataType` + `ValueRank`, sin `Browse`), indexado por su NodeId.
+   */
+  private async describeBrowsedVariables(
     session: ClientSession,
-    references: ReferenceDescription[],
-  ): Promise<Map<string, string>> {
-    const variables = references.filter((reference) => reference.nodeClass === NodeClass.Variable);
-    const names = new Map<string, string>();
+    variables: readonly ReferenceDescription[],
+  ): Promise<Map<string, { dataType: string; hasChildren: boolean }>> {
+    const described = new Map<string, { dataType: string; hasChildren: boolean }>();
     if (variables.length === 0) {
-      return names;
+      return described;
     }
-    const dataTypeValues = await session.read(
-      variables.map((reference) => ({
-        nodeId: reference.nodeId as NodeId,
-        attributeId: AttributeIds.DataType,
-      })),
+    const values = await this.readMany(
+      session,
+      variables.flatMap((reference) => [
+        { nodeId: reference.nodeId as NodeId, attributeId: AttributeIds.DataType },
+        { nodeId: reference.nodeId as NodeId, attributeId: AttributeIds.ValueRank },
+      ]),
     );
-    const dataTypeIdByVariable = new Map<string, NodeId>();
+    const dataTypeIds = variables.map(
+      (_, index) => (values[index * 2]?.value?.value ?? undefined) as NodeId | undefined,
+    );
+    const typeNames = await this.resolveDataTypeNames(
+      session,
+      dataTypeIds.filter((id): id is NodeId => id !== undefined),
+    );
     variables.forEach((reference, index) => {
-      const dataTypeId = dataTypeValues[index]?.value?.value as NodeId | undefined;
-      if (dataTypeId) {
-        dataTypeIdByVariable.set(reference.nodeId.toString(), dataTypeId);
-      }
+      const dataTypeId = dataTypeIds[index];
+      const valueRank = Number(values[index * 2 + 1]?.value?.value ?? -1);
+      described.set(reference.nodeId.toString(), {
+        dataType: dataTypeId ? (typeNames.get(dataTypeId.toString()) ?? '') : '',
+        hasChildren: variableMayHaveChildren(dataTypeId, valueRank),
+      });
     });
-    const typeNames = await this.resolveDataTypeNames(session, [...dataTypeIdByVariable.values()]);
-    for (const [variableId, dataTypeId] of dataTypeIdByVariable) {
-      names.set(variableId, typeNames.get(dataTypeId.toString()) ?? '');
-    }
-    return names;
+    return described;
   }
 
-  private async withSession<T>(
+  /**
+   * Sesión de corta duración para una operación del explorador o de la
+   * sincronización (docs/specs/24-conexion-opc-ua-estable.md, criterios 6 y 7):
+   * - una sola operación a la vez por endpoint (el tiempo límite cuenta desde
+   *   que se encola);
+   * - la sesión se cierra siempre en el servidor antes de desconectar, también
+   *   si vence el tiempo límite, para no dejar sesiones huérfanas en el PLC.
+   */
+  private withSession<T>(
+    endpointUrl: string,
+    timeoutMs: number,
+    work: (session: ClientSession) => Promise<T>,
+  ): Promise<T> {
+    const deadline = Date.now() + timeoutMs;
+    const queued = this.serialized(endpointUrl, () => {
+      const remainingMs = deadline - Date.now();
+      if (remainingMs <= 0) {
+        return Promise.reject(new OpcUaTimeoutError(timeoutMs));
+      }
+      return this.runSession(endpointUrl, remainingMs, work);
+    });
+    return withTimeout(queued, timeoutMs);
+  }
+
+  private async runSession<T>(
     endpointUrl: string,
     timeoutMs: number,
     work: (session: ClientSession) => Promise<T>,
@@ -444,21 +503,46 @@ export class NodeOpcUaExplorer implements IOpcUaExplorer {
       securityPolicy: SecurityPolicy.None,
       endpointMustExist: false,
       connectionStrategy: { maxRetry: 0, initialDelay: 100, maxDelay: 200 },
-      requestedSessionTimeout: 60000,
+      requestedSessionTimeout: EXPLORER_SESSION_TIMEOUT_MS,
     });
+    let session: ClientSession | undefined;
+    let finished = false;
     const run = (async () => {
       await client.connect(endpointUrl);
-      const session = await client.createSession();
-      try {
-        return await work(session);
-      } finally {
-        await session.close().catch(() => undefined);
+      const created = await client.createSession();
+      if (finished) {
+        // Llegó después del tiempo límite: se cierra en vez de dejarla huérfana.
+        await withTimeout(created.close(), CLOSE_SESSION_TIMEOUT_MS).catch(() => undefined);
+        throw new OpcUaTimeoutError(timeoutMs);
       }
+      session = created;
+      return work(created);
     })();
     try {
       return await withTimeout(run, timeoutMs);
     } finally {
-      await client.disconnect().catch(() => undefined);
+      finished = true;
+      if (session) {
+        await withTimeout(session.close(), CLOSE_SESSION_TIMEOUT_MS).catch(() => undefined);
+      }
+      await withTimeout(client.disconnect(), CLOSE_SESSION_TIMEOUT_MS).catch(() => undefined);
     }
+  }
+
+  /** Encadena las tareas de un mismo endpoint: cada una empieza cuando acaba la anterior. */
+  private serialized<T>(endpointUrl: string, task: () => Promise<T>): Promise<T> {
+    const previous = this.queues.get(endpointUrl) ?? Promise.resolve();
+    const result = previous.then(task, task);
+    const tail = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    this.queues.set(endpointUrl, tail);
+    void tail.then(() => {
+      if (this.queues.get(endpointUrl) === tail) {
+        this.queues.delete(endpointUrl);
+      }
+    });
+    return result;
   }
 }

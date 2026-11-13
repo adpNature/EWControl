@@ -11,6 +11,12 @@
             <a [routerLink]="['/config/machines', m.id, 'opcua-variables']" class="btn-secondary">
               Variables OPC UA
             </a>
+            <a
+              [routerLink]="['/config/machines', m.id, 'variable-categories']"
+              class="btn-secondary"
+            >
+              Categorías
+            </a>
           }
           <button type="button" class="btn-edit" (click)="editMachine(m.id)">Editar</button>
           <button type="button" class="btn-danger" (click)="deleteMachineDialogOpen.set(true)">

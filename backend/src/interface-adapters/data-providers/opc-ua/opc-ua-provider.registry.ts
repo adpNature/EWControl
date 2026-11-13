@@ -8,6 +8,7 @@ import {
 import { OnEvent } from '@nestjs/event-emitter';
 import type { OpcUaConnectionConfig } from '../../../entities/connection-config.vo';
 import { ProviderType } from '../../../entities/provider-type.enum';
+import { listReferencedVariableNames } from '../../../entities/signal-source.vo';
 import { IngestSignalTickUseCase } from '../../../use-cases/dashboard/ingest-signal-tick.use-case';
 import { CLOCK, type IClock } from '../../../use-cases/history/ports/clock.port';
 import {
@@ -18,6 +19,10 @@ import {
   type IMachineRepository,
   MACHINE_REPOSITORY,
 } from '../../../use-cases/seed-demo-environment/ports/machine-repository.port';
+import {
+  type ISignalRepository,
+  SIGNAL_REPOSITORY,
+} from '../../../use-cases/seed-demo-environment/ports/signal-repository.port';
 import {
   type IUnitOfWork,
   UNIT_OF_WORK,
@@ -69,6 +74,7 @@ export class OpcUaProviderRegistry implements OnModuleInit, OnModuleDestroy, IMa
     @Inject(MACHINE_CONNECTION_REPOSITORY)
     private readonly machineConnectionRepository: IMachineConnectionRepository,
     @Inject(MACHINE_REPOSITORY) private readonly machineRepository: IMachineRepository,
+    @Inject(SIGNAL_REPOSITORY) private readonly signalRepository: ISignalRepository,
     @Inject(UNIT_OF_WORK) private readonly unitOfWork: IUnitOfWork,
     private readonly ingestSignalTick: IngestSignalTickUseCase,
     @Inject(EVENT_PUBLISHER) private readonly eventPublisher: IEventPublisher,
@@ -112,12 +118,35 @@ export class OpcUaProviderRegistry implements OnModuleInit, OnModuleDestroy, IMa
   }
 
   /**
-   * spec 18: una Signal creada o editada después de suscribirse no recibiría
-   * valor hasta que el PLC cambie; se republican los últimos valores conocidos.
+   * docs/specs/24-conexion-opc-ua-estable.md, criterio 2: ajusta las variables
+   * suscritas a las que usan ahora las Signals, en la misma sesión. Después,
+   * como en la spec 18, republica los últimos valores conocidos para que una
+   * Signal nueva no espere a que el PLC cambie.
    */
   @OnEvent('MachineSignalsChanged')
-  onMachineSignalsChanged(payload: MachineSignalsChangedPayload): void {
-    this.running.get(payload.machineId)?.provider.republishLastValues();
+  async onMachineSignalsChanged(payload: MachineSignalsChangedPayload): Promise<void> {
+    const entry = this.running.get(payload.machineId);
+    if (!entry) {
+      return;
+    }
+    try {
+      const names = await this.loadReferencedVariableNames(payload.machineId);
+      await entry.provider.setMonitoredVariables(names);
+    } catch (error) {
+      this.logger.error(
+        `No se pudieron actualizar las variables suscritas de la Machine ${payload.machineId}: ` +
+          `${(error as Error).message}`,
+      );
+    }
+    entry.provider.republishLastValues();
+  }
+
+  /** Variables que usan las Signals activas de la Machine (spec 24, criterio 1). */
+  private async loadReferencedVariableNames(machineId: string): Promise<string[]> {
+    const signals = await this.unitOfWork.runInTransaction((ctx) =>
+      this.signalRepository.findAllByMachineId(machineId, ctx),
+    );
+    return listReferencedVariableNames(signals);
   }
 
   /**
@@ -161,18 +190,33 @@ export class OpcUaProviderRegistry implements OnModuleInit, OnModuleDestroy, IMa
     const loaded = await this.unitOfWork.runInTransaction(async (ctx) => {
       const machine = await this.machineRepository.findById(machineId, ctx);
       const connection = await this.machineConnectionRepository.findByMachineId(machineId, ctx);
-      return { machine, connection };
+      const signals = await this.signalRepository.findAllByMachineId(machineId, ctx);
+      return { machine, connection, signals };
     });
-    const { machine, connection } = loaded;
+    const { machine, connection, signals } = loaded;
     if (!machine?.isActive || connection?.providerType !== ProviderType.OpcUa) {
       return;
     }
-    this.start(machineId, machine.companyId, connection.connectionConfig as OpcUaConnectionConfig);
+    this.start(
+      machineId,
+      machine.companyId,
+      connection.connectionConfig as OpcUaConnectionConfig,
+      listReferencedVariableNames(signals),
+    );
   }
 
-  private start(machineId: string, companyId: string, config: OpcUaConnectionConfig): void {
-    const provider = new OpcUaProvider(machineId, config, this.driverFactory(config), () =>
-      this.clock.now(),
+  private start(
+    machineId: string,
+    companyId: string,
+    config: OpcUaConnectionConfig,
+    monitoredVariableNames: readonly string[],
+  ): void {
+    const provider = new OpcUaProvider(
+      machineId,
+      config,
+      this.driverFactory(config),
+      () => this.clock.now(),
+      monitoredVariableNames,
     );
     const entry: RunningProvider = { provider, companyId, hasConnected: false };
     provider.subscribe((variable) =>
@@ -184,7 +228,10 @@ export class OpcUaProviderRegistry implements OnModuleInit, OnModuleDestroy, IMa
     this.running.set(machineId, entry);
     this.metrics.setDataProviderConnected(machineId, false);
     void provider.connect();
-    this.logger.log(`OpcUaProvider iniciado para la Machine ${machineId} (${config.endpointUrl}).`);
+    this.logger.log(
+      `OpcUaProvider iniciado para la Machine ${machineId} (${config.endpointUrl}): ` +
+        `${monitoredVariableNames.length} variables suscritas de ${config.nodeMapping.length} mapeadas.`,
+    );
   }
 
   private handleConnectionChange(

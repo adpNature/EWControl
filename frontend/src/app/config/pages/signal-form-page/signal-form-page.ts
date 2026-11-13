@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AlarmDefinition } from '../../../alarms/entities/alarm-definition.model';
@@ -9,6 +9,9 @@ import { InputComponent } from '../../../shared/ui/input/input.component';
 import { TableColumn, TableComponent } from '../../../shared/ui/table/table.component';
 import { ToastService } from '../../../shared/ui/toast/toast.service';
 import { MachinesApiService } from '../../adapters/machines-api.service';
+import { VariableCategoriesApiService } from '../../adapters/variable-categories-api.service';
+import { indexCatalog, sortByCatalog } from '../../use-cases/variable-categories';
+import { VariableCategoryList } from '../../entities/variable-category.model';
 import { SignalsApiService } from '../../adapters/signals-api.service';
 import { KnownVariable, listKnownVariables } from '../../entities/machine-connection.model';
 import { SignalSource, SignalType } from '../../entities/signal.model';
@@ -48,6 +51,7 @@ export class SignalFormPage implements OnInit {
   private readonly router = inject(Router);
   private readonly signalsApi = inject(SignalsApiService);
   private readonly machinesApi = inject(MachinesApiService);
+  private readonly categoriesApi = inject(VariableCategoriesApiService);
   private readonly signalsState = inject(SignalsState);
   protected readonly alarmDefinitionsState = inject(AlarmDefinitionsState);
   private readonly toastService = inject(ToastService);
@@ -69,7 +73,21 @@ export class SignalFormPage implements OnInit {
   });
 
   /** spec 21: cada sugerencia lleva la etiqueta de la variable, si la tiene. */
-  readonly knownVariables = signal<KnownVariable[]>([]);
+  private readonly mappedVariables = signal<KnownVariable[]>([]);
+  private readonly categoryList = signal<VariableCategoryList>({ categories: [], variables: [] });
+  /**
+   * docs/specs/23-categorias-variables-plc.md, criterio frontend 6: sugerencias
+   * ordenadas por categoría, con «Categoría › Subcategoría · etiqueta».
+   */
+  readonly knownVariables = computed<KnownVariable[]>(() => {
+    const catalog = indexCatalog(this.categoryList());
+    return sortByCatalog(this.mappedVariables(), catalog).map((variable) => {
+      const path = catalog.pathFor(variable.nodeId);
+      const text = variable.label ?? catalog.commentFor(variable.nodeId) ?? undefined;
+      const label = path ? (text ? `${path} · ${text}` : path) : text;
+      return label ? { name: variable.name, label } : { name: variable.name };
+    });
+  });
   readonly knownVariablesListId = 'signal-form-known-variables';
   readonly submitting = signal(false);
   readonly formError = signal<string | null>(null);
@@ -92,8 +110,12 @@ export class SignalFormPage implements OnInit {
     // Machine (semillas del Simulador o nodeMapping de OPC UA). Sin conexión, sin sugerencias.
     this.machinesApi.getConnection(this.machineId).subscribe({
       next: (connection) =>
-        this.knownVariables.set(listKnownVariables(connection.connectionConfig)),
-      error: () => this.knownVariables.set([]),
+        this.mappedVariables.set(listKnownVariables(connection.connectionConfig)),
+      error: () => this.mappedVariables.set([]),
+    });
+    this.categoriesApi.list(this.machineId).subscribe({
+      next: (list) => this.categoryList.set(list),
+      error: () => undefined,
     });
     this.signalId = this.route.snapshot.paramMap.get('signalId');
     if (!this.signalId) {

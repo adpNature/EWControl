@@ -5,7 +5,11 @@ import userEvent from '@testing-library/user-event';
 import { of, throwError } from 'rxjs';
 import { ToastService } from '../../../shared/ui/toast/toast.service';
 import { MachinesApiService } from '../../adapters/machines-api.service';
-import { MachineConnection, OpcUaBrowseNode } from '../../entities/machine-connection.model';
+import {
+  MachineConnection,
+  OpcUaBrowseNode,
+  OpcUaVariableSyncResult,
+} from '../../entities/machine-connection.model';
 import { MachineConnectionPage } from './machine-connection-page';
 
 const ENDPOINT = 'opc.tcp://192.168.1.1:4840';
@@ -45,12 +49,57 @@ const ANCHO: OpcUaBrowseNode = {
   hasChildren: false,
 };
 
+/** Respuesta de la sincronización de la carpeta Lectura (spec 21) para «Añadir todas» (spec 22). */
+const LECTURA_SYNC: OpcUaVariableSyncResult = {
+  rootNodeId: LECTURA.nodeId,
+  syncedAt: '2026-11-12T16:00:00.000Z',
+  summary: {
+    total: 2,
+    new: 1,
+    unchanged: 1,
+    typeChanged: 0,
+    removed: 0,
+    skipped: 1,
+    byDataType: {},
+  },
+  variables: [
+    {
+      nodeId: 'ns=3;s="Lectura"."REAL_1"',
+      path: ['Lectura', 'REAL_1'],
+      dataType: 'Float',
+      plcWritable: true,
+      status: 'unchanged',
+      saved: { signalVariableName: 'Lectura_REAL_1', label: null, dataType: 'Float' },
+    },
+    {
+      nodeId: 'ns=3;s="Lectura"."BOOL_1"',
+      path: ['Lectura', 'BOOL_1'],
+      dataType: 'Boolean',
+      plcWritable: true,
+      status: 'new',
+      saved: null,
+    },
+  ],
+  removed: [],
+  skipped: [
+    {
+      nodeId: 'ns=3;s="Lectura"."ARRAY_1"',
+      path: ['Lectura', 'ARRAY_1'],
+      dataType: 'Structure',
+      valueRank: -1,
+      arrayDimensions: null,
+      reason: 'unsupportedType',
+    },
+  ],
+};
+
 describe('MachineConnectionPage', () => {
   let machinesApi: {
     getConnection: ReturnType<typeof vi.fn>;
     replaceConnection: ReturnType<typeof vi.fn>;
     testOpcUaConnection: ReturnType<typeof vi.fn>;
     browseOpcUaNodes: ReturnType<typeof vi.fn>;
+    syncOpcUaVariables: ReturnType<typeof vi.fn>;
   };
   let toastService: { show: ReturnType<typeof vi.fn> };
 
@@ -62,6 +111,7 @@ describe('MachineConnectionPage', () => {
       ),
       testOpcUaConnection: vi.fn().mockReturnValue(of({ reachable: true })),
       browseOpcUaNodes: vi.fn((...args: unknown[]) => of({ nodes: args[2] ? [ANCHO] : [LECTURA] })),
+      syncOpcUaVariables: vi.fn().mockReturnValue(of(LECTURA_SYNC)),
     };
     toastService = { show: vi.fn() };
   });
@@ -408,5 +458,122 @@ describe('MachineConnectionPage', () => {
         }),
       }),
     );
+  });
+
+  describe('«Añadir todas» desde el explorador (docs/specs/22-anadir-carpeta-opc-ua-desde-explorador.md)', () => {
+    const ADD_ALL_LECTURA = 'Añadir todas las variables de Lectura';
+    const SAVE_FIRST =
+      'Para añadir carpetas enteras, guarda primero la conexión con este endpoint.';
+
+    async function exploreSavedOpcUa(user: ReturnType<typeof userEvent.setup>) {
+      machinesApi.getConnection.mockReturnValue(of(OPCUA_CONNECTION));
+      await renderPage();
+      await user.click(screen.getByRole('button', { name: 'Explorar nodos' }));
+    }
+
+    it('sincroniza la carpeta y añade solo las variables nuevas, sin guardar (criterios 3 y 5)', async () => {
+      const user = userEvent.setup();
+      await exploreSavedOpcUa(user);
+
+      await user.click(screen.getByRole('button', { name: ADD_ALL_LECTURA }));
+
+      expect(machinesApi.syncOpcUaVariables).toHaveBeenCalledWith('machine-1', LECTURA.nodeId);
+      expect(
+        screen.getByLabelText('Nombre de variable para ns=3;s="Lectura"."BOOL_1"'),
+      ).toHaveValue('Lectura_BOOL_1');
+      expect(
+        screen.getAllByLabelText(/^Nombre de variable para ns=3;s="Lectura"."REAL_1"$/),
+      ).toHaveLength(1);
+      expect(machinesApi.replaceConnection).not.toHaveBeenCalled();
+      expect(toastService.show).toHaveBeenCalledWith({
+        type: 'success',
+        message:
+          'Añadida 1 variable de Lectura. 1 ya estaba en el mapeo. ' +
+          '1 omitida (array o tipo no soportado). Pulsa Guardar para aplicar los cambios.',
+      });
+    });
+
+    it('al guardar envía las filas añadidas con su tipo', async () => {
+      const user = userEvent.setup();
+      await exploreSavedOpcUa(user);
+      await user.click(screen.getByRole('button', { name: ADD_ALL_LECTURA }));
+
+      await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+      expect(machinesApi.replaceConnection).toHaveBeenCalledWith(
+        'machine-1',
+        expect.objectContaining({
+          connectionConfig: expect.objectContaining({
+            nodeMapping: [
+              { nodeId: 'ns=3;s="Lectura"."REAL_1"', signalVariableName: 'Lectura_REAL_1' },
+              {
+                nodeId: 'ns=3;s="Lectura"."BOOL_1"',
+                signalVariableName: 'Lectura_BOOL_1',
+                dataType: 'Boolean',
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
+    it('si el mapeo superaría el máximo no añade nada y lo explica (criterio 6)', async () => {
+      const user = userEvent.setup();
+      const many = Array.from({ length: 500 }, (item, index) => ({
+        ...LECTURA_SYNC.variables[1],
+        nodeId: `ns=3;s="Lectura"."X_${index}"`,
+        path: ['Lectura', `X_${index}`],
+      }));
+      machinesApi.syncOpcUaVariables.mockReturnValue(of({ ...LECTURA_SYNC, variables: many }));
+      await exploreSavedOpcUa(user);
+
+      await user.click(screen.getByRole('button', { name: ADD_ALL_LECTURA }));
+
+      expect(toastService.show).toHaveBeenCalledWith({
+        type: 'danger',
+        message: 'Añadir 500 variables superaría el máximo de 500 del mapeo (ya hay 1).',
+      });
+      expect(screen.queryByLabelText(/X_0/)).not.toBeInTheDocument();
+    });
+
+    it('con el endpoint cambiado o sin conexión OPC UA guardada, deshabilita el botón y avisa (criterio 8)', async () => {
+      const user = userEvent.setup();
+      await exploreSavedOpcUa(user);
+      expect(screen.getByRole('button', { name: ADD_ALL_LECTURA })).toBeEnabled();
+      expect(screen.queryByText(SAVE_FIRST)).not.toBeInTheDocument();
+
+      const endpoint = screen.getByLabelText('Endpoint (opc.tcp://host:puerto)');
+      await user.clear(endpoint);
+      await user.type(endpoint, 'opc.tcp://10.0.0.5:4840');
+
+      expect(screen.getByRole('button', { name: ADD_ALL_LECTURA })).toBeDisabled();
+      expect(screen.getByText(SAVE_FIRST)).toBeInTheDocument();
+    });
+
+    it('en una Machine que aún es Simulador el botón está deshabilitado (criterio 8)', async () => {
+      const user = userEvent.setup();
+      await renderPage();
+      await chooseOpcUaAndTypeEndpoint(user);
+      await user.click(screen.getByRole('button', { name: 'Explorar nodos' }));
+
+      expect(screen.getByRole('button', { name: ADD_ALL_LECTURA })).toBeDisabled();
+      expect(screen.getByText(SAVE_FIRST)).toBeInTheDocument();
+    });
+
+    it('un error de la sincronización se muestra con el mensaje de la spec 21 (criterio 9)', async () => {
+      const user = userEvent.setup();
+      machinesApi.syncOpcUaVariables.mockReturnValue(
+        throwError(() => ({ status: 504, code: 'OPCUA_SYNC_TIMEOUT', message: 'timeout' })),
+      );
+      await exploreSavedOpcUa(user);
+
+      await user.click(screen.getByRole('button', { name: ADD_ALL_LECTURA }));
+
+      expect(toastService.show).toHaveBeenCalledWith({
+        type: 'danger',
+        message: 'La máquina ha tardado demasiado en responder.',
+      });
+      expect(screen.getByRole('button', { name: ADD_ALL_LECTURA })).toBeEnabled();
+    });
   });
 });

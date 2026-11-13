@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { findUnknownVariables, isFormulaSignalSource } from './signal-source.vo';
+import {
+  findUnknownVariables,
+  isFormulaSignalSource,
+  listReferencedVariableNames,
+} from './signal-source.vo';
 
 describe('isFormulaSignalSource', () => {
   it('devuelve true para una FormulaSignalSource', () => {
@@ -31,5 +35,22 @@ describe('findUnknownVariables', () => {
     const source = { expression: 'a + b', variables: ['a', 'b'] };
 
     expect(findUnknownVariables(source, [])).toEqual(['a', 'b']);
+  });
+});
+
+describe('listReferencedVariableNames (docs/specs/24-conexion-opc-ua-estable.md, criterio 1)', () => {
+  it('reúne las variables de Signals activas DIRECT y FORMULA, sin repetir', () => {
+    expect(
+      listReferencedVariableNames([
+        { isActive: true, signalSource: { variableName: 'a' } },
+        { isActive: true, signalSource: { expression: 'a + b', variables: ['a', 'b'] } },
+        { isActive: false, signalSource: { variableName: 'inactiva' } },
+        { isActive: true, signalSource: { variableName: 'c' } },
+      ]),
+    ).toEqual(['a', 'b', 'c']);
+  });
+
+  it('sin Signals devuelve una lista vacía', () => {
+    expect(listReferencedVariableNames([])).toEqual([]);
   });
 });

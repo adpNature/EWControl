@@ -3,7 +3,10 @@ import { createServer } from 'net';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { OpcUaConnectionConfig } from '../src/entities/connection-config.vo';
 import { DataQuality } from '../src/interface-adapters/data-providers/data-quality.enum';
-import { createNodeOpcUaDriver } from '../src/interface-adapters/data-providers/opc-ua/node-opcua.driver';
+import {
+  createNodeOpcUaDriver,
+  NodeOpcUaDriver,
+} from '../src/interface-adapters/data-providers/opc-ua/node-opcua.driver';
 import { NodeOpcUaExplorer } from '../src/interface-adapters/data-providers/opc-ua/node-opcua.explorer';
 import { OpcUaProvider } from '../src/interface-adapters/data-providers/opc-ua/opc-ua-provider';
 import { VariableType } from '../src/interface-adapters/data-providers/variable-type.enum';
@@ -127,6 +130,34 @@ describe('OPC UA (integración, servidor PLC-like en proceso)', () => {
       );
     }, 30000);
 
+    it('browse de una carpeta CODESYS deduce hasChildren de las Variables por su tipo (criterio 6)', async () => {
+      const nodes = await explorer.browse(endpointUrl, server.gvlHmi.rootNodeId, 10000);
+      const hasChildrenOf = (name: string) =>
+        nodes.find((node) => node.browseName === name)?.hasChildren;
+
+      expect(hasChildrenOf('xMarcha')).toBe(false);
+      expect(hasChildrenOf('sNombreReceta')).toBe(false);
+      expect(hasChildrenOf('dtUltimoCambio')).toBe(false);
+      expect(hasChildrenOf('axManualAvance')).toBe(true);
+      expect(nodes.find((node) => node.browseName === 'axManualAvance')).toMatchObject({
+        nodeClass: 'Variable',
+        dataType: 'Boolean',
+      });
+    }, 30000);
+
+    it('browse de un array CODESYS devuelve sus elementos escalares sin hijos', async () => {
+      const nodes = await explorer.browse(
+        endpointUrl,
+        server.gvlHmi.nodeIdOf('axManualAvance'),
+        10000,
+      );
+
+      expect(nodes.filter((node) => node.nodeClass === 'Variable')).toEqual([
+        expect.objectContaining({ browseName: 'axManualAvance[0]', hasChildren: false }),
+        expect.objectContaining({ browseName: 'axManualAvance[1]', hasChildren: false }),
+      ]);
+    }, 30000);
+
     it('browse con un NodeId inexistente o mal formado lanza OpcUaInvalidNodeIdError', async () => {
       await expect(explorer.browse(endpointUrl, MISSING_NODE, 10000)).rejects.toBeInstanceOf(
         OpcUaInvalidNodeIdError,
@@ -134,6 +165,26 @@ describe('OPC UA (integración, servidor PLC-like en proceso)', () => {
       await expect(explorer.browse(endpointUrl, 'no es un nodeid', 10000)).rejects.toBeInstanceOf(
         OpcUaInvalidNodeIdError,
       );
+    }, 30000);
+  });
+
+  describe('NodeOpcUaExplorer — sesiones (docs/specs/24-conexion-opc-ua-estable.md)', () => {
+    it('varias operaciones a la vez sobre el mismo endpoint se ejecutan de una en una (criterio 7)', async () => {
+      let maxSessions = 0;
+      const probe = setInterval(() => {
+        maxSessions = Math.max(maxSessions, server.sessionCount());
+      }, 5);
+      try {
+        const results = await Promise.all(
+          Array.from({ length: 4 }, () => explorer.browse(endpointUrl, undefined, 10000)),
+        );
+        expect(results.every((nodes) => nodes.length > 0)).toBe(true);
+      } finally {
+        clearInterval(probe);
+      }
+
+      expect(maxSessions).toBe(1);
+      await waitFor(() => server.sessionCount() === 0, 5000);
     }, 30000);
   });
 
@@ -229,5 +280,98 @@ describe('OPC UA (integración, servidor PLC-like en proceso)', () => {
 
       expect(connectionChanges).toEqual([true, false, true]);
     }, 90000);
+
+    describe('variables suscritas (docs/specs/24-conexion-opc-ua-estable.md)', () => {
+      const BIG_MAPPING: OpcUaConnectionConfig['nodeMapping'] = [
+        { nodeId: REAL_NODE, signalVariableName: 'Lectura_REAL_1' },
+        { nodeId: BOOL_NODE, signalVariableName: 'Lectura_BOOL_1' },
+        { nodeId: 'ns=3;s="Lectura"."INT_1"', signalVariableName: 'Lectura_INT_1' },
+        { nodeId: 'ns=3;s="Lectura"."DINT_1"', signalVariableName: 'Lectura_DINT_1' },
+        ...Array.from({ length: 446 }, (_unused, index) => ({
+          nodeId: `ns=3;s="Lectura"."RELLENO_${index}"`,
+          signalVariableName: `Relleno_${index}`,
+        })),
+      ];
+
+      it('de 450 variables mapeadas solo monitoriza las 3 de las Signals y añade otra sin reconectar (criterios 1, 2 y 9)', async () => {
+        const config: OpcUaConnectionConfig = {
+          ...configFor(endpointUrl),
+          nodeMapping: BIG_MAPPING,
+        };
+        provider = new OpcUaProvider(
+          'machine-1',
+          config,
+          createNodeOpcUaDriver(config),
+          undefined,
+          ['Lectura_REAL_1', 'Lectura_BOOL_1', 'Lectura_INT_1'],
+        );
+        const connectionChanges: boolean[] = [];
+        const variables: Variable[] = [];
+        provider.onConnectionChange((connected) => connectionChanges.push(connected));
+        provider.subscribe((variable) => variables.push(variable));
+
+        await provider.connect();
+        await waitFor(() => provider!.isConnected(), 20000);
+        await waitFor(() => server.monitoredItemCount() === 3, 10000);
+
+        await provider.setMonitoredVariables([
+          'Lectura_REAL_1',
+          'Lectura_BOOL_1',
+          'Lectura_INT_1',
+          'Lectura_DINT_1',
+        ]);
+        await waitFor(() => server.monitoredItemCount() === 4, 10000);
+        await waitFor(
+          () => variables.some((variable) => variable.name === 'Lectura_DINT_1'),
+          10000,
+        );
+
+        await provider.setMonitoredVariables(['Lectura_REAL_1']);
+        await waitFor(() => server.monitoredItemCount() === 1, 10000);
+
+        expect(connectionChanges).toEqual([true]);
+        expect(variables.some((variable) => variable.name.startsWith('Relleno_'))).toBe(false);
+      }, 60000);
+
+      it('tras demasiados cortes cierra todo, no reconecta durante la pausa y después sí (criterio 4)', async () => {
+        const warn = vi.mocked(Logger.prototype.warn);
+        warn.mockClear();
+        const config = configFor(endpointUrl);
+        const driver = new NodeOpcUaDriver(config, {
+          maxDisconnections: 1,
+          windowMs: 60000,
+          initialPauseMs: 4000,
+          maxPauseMs: 4000,
+          stableMs: 60000,
+        });
+        provider = new OpcUaProvider('machine-1', config, driver);
+        const connectionChanges: boolean[] = [];
+        provider.onConnectionChange((connected) => connectionChanges.push(connected));
+        await provider.connect();
+        await waitFor(() => provider!.isConnected(), 20000);
+
+        await server.stop();
+        await waitFor(() => connectionChanges.includes(false), 20000);
+        server = await startPlcLikeOpcUaServer(port);
+        const restartedAt = Date.now();
+
+        await waitFor(() => provider!.isConnected(), 30000);
+        expect(Date.now() - restartedAt).toBeGreaterThanOrEqual(2000);
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('Conexión OPC UA inestable'));
+        expect(connectionChanges).toEqual([true, false, true]);
+      }, 90000);
+
+      it('al parar cierra la sesión en el servidor (criterio 5)', async () => {
+        const config = configFor(endpointUrl);
+        provider = new OpcUaProvider('machine-1', config, createNodeOpcUaDriver(config));
+        await provider.connect();
+        await waitFor(() => provider!.isConnected() && server.sessionCount() === 1, 20000);
+
+        await provider.disconnect();
+        provider = undefined;
+
+        await waitFor(() => server.sessionCount() === 0, 5000);
+      }, 40000);
+    });
   });
 });

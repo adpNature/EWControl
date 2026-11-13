@@ -50,8 +50,17 @@ export interface IOpcUaDriverListener {
  * vive detrás de esta interfaz, de modo que el provider se prueba con fakes.
  */
 export interface IOpcUaDriver {
-  /** No bloquea: conecta en segundo plano y reintenta indefinidamente hasta `stop()`. */
-  start(listener: IOpcUaDriverListener): void;
+  /**
+   * No bloquea: conecta en segundo plano y reintenta hasta `stop()`, con el
+   * freno de reconexiones de docs/specs/24-conexion-opc-ua-estable.md.
+   * Monitoriza solo `nodeIds`.
+   */
+  start(listener: IOpcUaDriverListener, nodeIds: readonly string[]): void;
+  /**
+   * spec 24, criterio 2: cambia los NodeIds monitorizados en la sesión actual
+   * (añade y quita MonitoredItems, sin reconectar). Sin sesión, se aplica al conectar.
+   */
+  setMonitoredNodeIds(nodeIds: readonly string[]): Promise<void>;
   /** Cierra Subscription, sesión y canal; tras resolverse no emite más eventos. */
   stop(): Promise<void>;
   /**

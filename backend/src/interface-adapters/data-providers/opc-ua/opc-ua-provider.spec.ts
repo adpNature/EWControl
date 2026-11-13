@@ -30,9 +30,14 @@ const CONFIG: OpcUaConnectionConfig = {
 
 class FakeDriver implements IOpcUaDriver {
   listener: IOpcUaDriverListener | undefined;
-  start = vi.fn((listener: IOpcUaDriverListener) => {
-    this.listener = listener;
-  });
+  start = vi.fn<(listener: IOpcUaDriverListener, nodeIds: readonly string[]) => void>(
+    (listener) => {
+      this.listener = listener;
+    },
+  );
+  setMonitoredNodeIds = vi.fn<(nodeIds: readonly string[]) => Promise<void>>(() =>
+    Promise.resolve(),
+  );
   stop = vi.fn(() => Promise.resolve());
   write = vi.fn((items: { nodeId: string }[]) =>
     Promise.resolve(items.map((item) => ({ nodeId: item.nodeId, statusCode: 'Good' }))),
@@ -325,6 +330,61 @@ describe('OpcUaProvider', () => {
 
       await expect(provider.write(ITEMS)).rejects.toBeInstanceOf(OpcUaSessionUnavailableError);
       expect(driver.write).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('variables suscritas (docs/specs/24-conexion-opc-ua-estable.md, criterios 1 y 2)', () => {
+    it('sin lista de variables suscribe todo el mapeo', async () => {
+      const driver = new FakeDriver();
+      const provider = new OpcUaProvider('machine-1', CONFIG, driver, () => NOW);
+
+      await provider.connect();
+
+      expect(driver.start).toHaveBeenCalledWith(expect.anything(), [REAL_NODE, BOOL_NODE]);
+    });
+
+    it('con lista suscribe solo los NodeIds de esas variables e ignora las que no están en el mapeo', async () => {
+      const driver = new FakeDriver();
+      const provider = new OpcUaProvider('machine-1', CONFIG, driver, () => NOW, [
+        'Lectura_BOOL_1',
+        'NoMapeada',
+      ]);
+
+      await provider.connect();
+
+      expect(driver.start).toHaveBeenCalledWith(expect.anything(), [BOOL_NODE]);
+    });
+
+    it('setMonitoredVariables cambia los NodeIds en el driver sin reconectar', async () => {
+      const { driver, provider } = await createConnectedProvider();
+
+      await provider.setMonitoredVariables(['Lectura_REAL_1']);
+
+      expect(driver.setMonitoredNodeIds).toHaveBeenCalledWith([REAL_NODE]);
+      expect(driver.stop).not.toHaveBeenCalled();
+      expect(provider.isConnected()).toBe(true);
+    });
+
+    it('al dejar de suscribir una variable deja de republicar su último valor', async () => {
+      const { driver, provider, variables } = await createConnectedProvider();
+      driver.listener!.onDataChange(change());
+      driver.listener!.onDataChange(
+        change({ nodeId: BOOL_NODE, value: true, builtInType: 'Boolean' }),
+      );
+      variables.length = 0;
+
+      await provider.setMonitoredVariables(['Lectura_BOOL_1']);
+      provider.republishLastValues();
+
+      expect(variables.map((variable) => variable.name)).toEqual(['Lectura_BOOL_1']);
+    });
+
+    it('un fallo del driver al cambiar las variables solo se registra', async () => {
+      const { driver, provider } = await createConnectedProvider();
+      driver.setMonitoredNodeIds.mockRejectedValue(new Error('BadTooManyMonitoredItems'));
+
+      await expect(provider.setMonitoredVariables([])).resolves.toBeUndefined();
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('BadTooManyMonitoredItems'));
     });
   });
 });

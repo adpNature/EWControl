@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { of, throwError } from 'rxjs';
 import { AlarmDefinitionsState } from '../../../alarms/use-cases/alarm-definitions.state';
 import { MachinesApiService } from '../../adapters/machines-api.service';
+import { VariableCategoriesApiService } from '../../adapters/variable-categories-api.service';
 import { SignalsApiService } from '../../adapters/signals-api.service';
 import { SignalsState } from '../../use-cases/signals.state';
 import { SignalFormPage } from './signal-form-page';
@@ -32,6 +33,7 @@ describe('SignalFormPage', () => {
   };
   let router: { navigate: ReturnType<typeof vi.fn> };
   let machinesApi: { getConnection: ReturnType<typeof vi.fn> };
+  let categoriesApi: { list: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     machinesApi = {
@@ -59,6 +61,7 @@ describe('SignalFormPage', () => {
         }),
       ),
     };
+    categoriesApi = { list: vi.fn().mockReturnValue(of({ categories: [], variables: [] })) };
     signalsApi = { get: vi.fn() };
     signalsState = { create: vi.fn(), update: vi.fn() };
     alarmDefinitionsState = {
@@ -74,6 +77,7 @@ describe('SignalFormPage', () => {
       providers: [
         { provide: SignalsApiService, useValue: signalsApi },
         { provide: MachinesApiService, useValue: machinesApi },
+        { provide: VariableCategoriesApiService, useValue: categoriesApi },
         { provide: SignalsState, useValue: signalsState },
         { provide: AlarmDefinitionsState, useValue: alarmDefinitionsState },
         { provide: Router, useValue: router },
@@ -287,5 +291,41 @@ describe('SignalFormPage', () => {
 
     expect(screen.getByLabelText('Variable')).toBeInTheDocument();
     expect(container.querySelectorAll('datalist option')).toHaveLength(0);
+  });
+
+  it('ordena las sugerencias por categoría y muestra su ruta (docs/specs/23-categorias-variables-plc.md, criterio 6)', async () => {
+    categoriesApi.list.mockReturnValue(
+      of({
+        categories: [
+          { id: 'c-1', parentId: null, name: 'Página receta', position: 0, variableCount: 1 },
+          { id: 'c-2', parentId: 'c-1', name: 'Programación', position: 1, variableCount: 1 },
+        ],
+        variables: [
+          {
+            nodeId: 'ns=3;s="Lectura"."BOOL_1"',
+            categoryId: 'c-2',
+            comment: 'Marcha',
+            position: 0,
+          },
+        ],
+      }),
+    );
+    const { container } = await renderPage();
+
+    const options = Array.from(container.querySelectorAll('datalist option')).map((option) => [
+      option.getAttribute('value'),
+      option.getAttribute('label'),
+    ]);
+    expect(options).toEqual([
+      ['Lectura_BOOL_1', 'Página receta › Programación · Marcha'],
+      ['Lectura_REAL_1', 'Real de lectura'],
+    ]);
+  });
+
+  it('si las categorías fallan, las sugerencias siguen igual', async () => {
+    categoriesApi.list.mockReturnValue(throwError(() => ({ status: 500 })));
+    const { container } = await renderPage();
+
+    expect(container.querySelectorAll('datalist option')).toHaveLength(2);
   });
 });

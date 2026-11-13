@@ -45,6 +45,33 @@ export function standardDataTypeName(dataTypeNodeId: NodeId): string | undefined
   return DataType[dataTypeNodeId.value];
 }
 
+/** `Boolean` (i=1) a `LocalizedText` (i=21): tipos básicos que nunca tienen hijos. */
+const LAST_BASIC_BUILT_IN_TYPE = 21;
+/** Subtipos simples habituales de tipos básicos: `Duration` (Double) y `UtcTime` (DateTime). */
+const SIMPLE_SUBTYPES = new Set([290, 294]);
+const SCALAR_VALUE_RANK = -1;
+
+/**
+ * spec 18, criterio backend 6: deduce si una `Variable` puede tener hijos sin
+ * hacer `Browse` (CODESYS tarda ~30 ms por nodo). Solo un escalar de tipo
+ * básico da `false`; arrays, estructuras y tipos propios del servidor dan
+ * `true`, aunque luego resulten no tener hijos.
+ */
+export function variableMayHaveChildren(
+  dataTypeNodeId: NodeId | undefined,
+  valueRank: number,
+): boolean {
+  if (valueRank !== SCALAR_VALUE_RANK || !dataTypeNodeId) {
+    return true;
+  }
+  if (dataTypeNodeId.namespace !== 0 || typeof dataTypeNodeId.value !== 'number') {
+    return true;
+  }
+  const id = dataTypeNodeId.value;
+  const isBasic = (id >= 1 && id <= LAST_BASIC_BUILT_IN_TYPE) || SIMPLE_SUBTYPES.has(id);
+  return !isBasic;
+}
+
 /**
  * Motivo genérico de un fallo de conexión (spec 18, criterio backend 5): nunca
  * se devuelve el mensaje técnico de node-opcua, solo una de estas categorías.

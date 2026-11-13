@@ -57,11 +57,19 @@
       @if (browseEndpoint(); as endpoint) {
         <section class="machine-connection-page__section" aria-labelledby="opc-ua-nodes-title">
           <h2 id="opc-ua-nodes-title" class="title-lg">Nodos del servidor</h2>
+          @if (!canAddFolders()) {
+            <p class="text-muted">
+              Para añadir carpetas enteras, guarda primero la conexión con este endpoint.
+            </p>
+          }
           <app-opc-ua-node-browser
             [machineId]="machineId"
             [endpointUrl]="endpoint"
             [mappedNodeIds]="mappedNodeIds()"
+            [folderAddEnabled]="canAddFolders()"
+            [addingFolderNodeId]="addingFolderNodeId()"
             (nodeAdded)="addNode($event)"
+            (folderAdded)="addFolder($event)"
           />
         </section>
       }

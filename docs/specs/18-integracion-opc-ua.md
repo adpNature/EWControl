@@ -110,7 +110,7 @@ Esta spec cubre **la modalidad local**. El `OpcUaProvider` se ejecuta dentro del
 - **Given** una Machine `OpcUa` cuyo endpoint es alcanzable.
 - **When** el `OpcUaProvider` arranca, ya sea al iniciar la aplicación o tras un `PUT .../connection`.
 - **Then**:
-  - Conecta y crea **una Subscription** con un MonitoredItem por cada entrada de `nodeMapping`, usando el `samplingIntervalMs` configurado.
+  - Conecta y crea **una Subscription** con un MonitoredItem por cada entrada de `nodeMapping`, usando el `samplingIntervalMs` configurado. Desde [24-conexion-opc-ua-estable.md](24-conexion-opc-ua-estable.md), solo las entradas que usan las Signals activas, creadas por lotes, y con un freno de reconexiones.
   - Publica `MachineConnected` y pone a `1` la métrica `ewcontrol_data_provider_connected{machineId}`.
 - **And** cada notificación de cambio de valor se traduce a una `Variable`:
   - `name` es el `signalVariableName` mapeado.
@@ -224,6 +224,9 @@ Validación de variables conocidas: las Signals `FORMULA` (criterio backend 5 de
 4. Con `OPCUA_ALLOWED_HOSTS` definida, `PUT`, `test` y `browse` contra un host fuera de la lista responden `422 OPCUA_ENDPOINT_NOT_ALLOWED` sin abrir ninguna conexión. Si la variable no está definida, se permite cualquier host `opc.tcp://`.
 5. `test` responde `{ reachable: true }` contra un servidor alcanzable y `{ reachable: false, reason }` contra uno inalcanzable, sin exponer el detalle técnico del error.
 6. `browse` sin `nodeId` devuelve los hijos de `ObjectsFolder`, y con `nodeId` los hijos de ese nodo, cada uno con `nodeId`, `browseName`, `displayName`, `nodeClass`, `dataType` (solo en Variables) y `hasChildren`.
+   - `hasChildren` de un nodo que no es `Variable` (carpetas, Objects) se obtiene con un `Browse` real de sus hijos.
+   - `hasChildren` de una `Variable` se deduce de su `ValueRank` y su `DataType`, sin hacer `Browse`. Vale `false` solo si es un escalar (`ValueRank = -1`) de un tipo básico (`Boolean` a `LocalizedText`, más `Duration` y `UtcTime`). Los arrays, las estructuras y los tipos propios del servidor dan `true`. Si una de esas variables no tiene hijos, al expandirla el árbol simplemente queda vacío.
+   - Motivo: CODESYS 3.5 SP11 tarda unos 12 s en responder un `Browse` de 412 nodos, lo que superaba el `timeoutMs` de 5 s al explorar `GVL_HMI` (`502`). Leer los atributos de esos nodos tarda menos de 1 s.
 7. El `OpcUaProvider` se suscribe (Subscription + MonitoredItems, sin polling) a todos los nodos de `nodeMapping` y publica una `Variable` por notificación, con `name = signalVariableName`, el valor y tipo del `Variant`, la calidad traducida según la tabla `StatusCode` y `timestamp` igual a la hora de recepción del reloj del Backend, nunca el timestamp del PLC. Un desfase de reloj de más de 5 minutos solo produce un warning por conexión.
 8. Al perder la conexión, la Machine publica `MachineDisconnected` (sus Signals pasan a `OFFLINE`) y la métrica de conexión pasa a `0`. Al recuperarla, publica `MachineConnected`, incrementa `ewcontrol_data_provider_reconnects_total` y los valores vuelven a fluir sin intervención.
 9. Un endpoint inalcanzable al arrancar no impide ni bloquea el arranque del Backend.
@@ -254,7 +257,7 @@ Validación de variables conocidas: las Signals `FORMULA` (criterio backend 5 de
   - El nodo se añade a la tabla de mapeo con su `nodeId` y su `dataType`.
   - Tiene un `signalVariableName` editable que por defecto se deriva de la ruta desde el DB, saneada como identificador. Por ejemplo, `"Lectura"."ARRAY_1"[0]."Ancho"` da `Lectura_ARRAY_1_0_Ancho`. Usar solo el `browseName` produciría duplicados (`Ancho` aparece once veces).
   - Un nodo ya añadido muestra el botón deshabilitado.
-- **And** las `Variable` de tipo array o struct (`ExtensionObject`) no tienen botón "Añadir", pero se pueden expandir para llegar a sus miembros escalares.
+- **And** las `Variable` de tipo array o struct (`ExtensionObject`) no tienen botón "Añadir", pero se pueden expandir para llegar a sus miembros escalares. Un array de tipo escalar (p. ej. `UInt16[4]`) también cuenta: se reconoce por `hasChildren` y no solo por el `dataType` (corregido en [22-anadir-carpeta-opc-ua-desde-explorador.md](22-anadir-carpeta-opc-ua-desde-explorador.md)).
 
 - **Given** una tabla de mapeo con al menos un nodo.
 - **When** el usuario pulsa "Guardar".
