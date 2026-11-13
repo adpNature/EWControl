@@ -1,3 +1,13 @@
+# [1.18.0](https://github.com/adpNature/EWControl/compare/v1.17.0...v1.18.0) (2026-11-13)
+
+### Bug Fixes
+
+- deduce hasChildren de las variables OPC UA sin Browse (spec 18) ([b3361b0](https://github.com/adpNature/EWControl/commit/b3361b0086bd038b2c3a9c4fa473209432bcbcf4))
+
+### Features
+
+- añade categorías de variables y estabiliza la conexión OPC UA (specs 22-24) ([aa5a1ec](https://github.com/adpNature/EWControl/commit/aa5a1ec1c189d41cb5d8c6e2e8d2afc8fc65f0bd))
+
 # [1.17.0](https://github.com/adpNature/EWControl/compare/v1.16.0...v1.17.0) (2026-11-09)
 
 ### Features
