@@ -112,6 +112,13 @@ export const machineOpcUaVariablesBreadcrumb: BreadcrumbCrumb[] = [
   { label: 'Variables OPC UA' },
 ];
 
+/** docs/specs/23-categorias-variables-plc.md: categorías de variables del PLC. */
+export const machineVariableCategoriesBreadcrumb: BreadcrumbCrumb[] = [
+  machinesCrumb,
+  { label: machineNameResolver, link: machineLink },
+  { label: 'Categorías' },
+];
+
 /** docs/specs/20-paquetes-escritura-opc-ua.md: alta y edición de paquetes de escritura. */
 export const writePackagesPseudoCrumb: BreadcrumbCrumb = { label: 'Paquetes' };
 

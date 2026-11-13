@@ -110,7 +110,7 @@ Esta spec cubre **la modalidad local**. El `OpcUaProvider` se ejecuta dentro del
 - **Given** una Machine `OpcUa` cuyo endpoint es alcanzable.
 - **When** el `OpcUaProvider` arranca, ya sea al iniciar la aplicación o tras un `PUT .../connection`.
 - **Then**:
-  - Conecta y crea **una Subscription** con un MonitoredItem por cada entrada de `nodeMapping`, usando el `samplingIntervalMs` configurado.
+  - Conecta y crea **una Subscription** con un MonitoredItem por cada entrada de `nodeMapping`, usando el `samplingIntervalMs` configurado. Desde [24-conexion-opc-ua-estable.md](24-conexion-opc-ua-estable.md), solo las entradas que usan las Signals activas, creadas por lotes, y con un freno de reconexiones.
   - Publica `MachineConnected` y pone a `1` la métrica `ewcontrol_data_provider_connected{machineId}`.
 - **And** cada notificación de cambio de valor se traduce a una `Variable`:
   - `name` es el `signalVariableName` mapeado.
@@ -257,7 +257,7 @@ Validación de variables conocidas: las Signals `FORMULA` (criterio backend 5 de
   - El nodo se añade a la tabla de mapeo con su `nodeId` y su `dataType`.
   - Tiene un `signalVariableName` editable que por defecto se deriva de la ruta desde el DB, saneada como identificador. Por ejemplo, `"Lectura"."ARRAY_1"[0]."Ancho"` da `Lectura_ARRAY_1_0_Ancho`. Usar solo el `browseName` produciría duplicados (`Ancho` aparece once veces).
   - Un nodo ya añadido muestra el botón deshabilitado.
-- **And** las `Variable` de tipo array o struct (`ExtensionObject`) no tienen botón "Añadir", pero se pueden expandir para llegar a sus miembros escalares.
+- **And** las `Variable` de tipo array o struct (`ExtensionObject`) no tienen botón "Añadir", pero se pueden expandir para llegar a sus miembros escalares. Un array de tipo escalar (p. ej. `UInt16[4]`) también cuenta: se reconoce por `hasChildren` y no solo por el `dataType` (corregido en [22-anadir-carpeta-opc-ua-desde-explorador.md](22-anadir-carpeta-opc-ua-desde-explorador.md)).
 
 - **Given** una tabla de mapeo con al menos un nodo.
 - **When** el usuario pulsa "Guardar".

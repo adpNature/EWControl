@@ -47,6 +47,9 @@ const INVALID_NODE_STATUS_CODES = new Set([
 
 /** Peticiones por mensaje `Browse`/`Read`: holgadas frente a los límites habituales de los servidores. */
 const BROWSE_BATCH_SIZE = 200;
+/** spec 24, criterio 6: si una sesión del explorador queda huérfana, el PLC la libera antes. */
+export const EXPLORER_SESSION_TIMEOUT_MS = 30000;
+const CLOSE_SESSION_TIMEOUT_MS = 2000;
 const READ_BATCH_SIZE = 500;
 /** Bit `CurrentWrite` del `AccessLevel` (OPC UA Part 3, 8.57). */
 const ACCESS_LEVEL_CURRENT_WRITE = 0x02;
@@ -89,6 +92,8 @@ function hierarchicalBrowse(nodeId: NodeId) {
 @Injectable()
 export class NodeOpcUaExplorer implements IOpcUaExplorer {
   private readonly logger = new Logger(NodeOpcUaExplorer.name);
+  /** spec 24, criterio 7: última operación encolada por endpoint. */
+  private readonly queues = new Map<string, Promise<void>>();
 
   async testConnection(endpointUrl: string, timeoutMs: number): Promise<OpcUaConnectionTestResult> {
     try {
@@ -463,7 +468,31 @@ export class NodeOpcUaExplorer implements IOpcUaExplorer {
     return described;
   }
 
-  private async withSession<T>(
+  /**
+   * Sesión de corta duración para una operación del explorador o de la
+   * sincronización (docs/specs/24-conexion-opc-ua-estable.md, criterios 6 y 7):
+   * - una sola operación a la vez por endpoint (el tiempo límite cuenta desde
+   *   que se encola);
+   * - la sesión se cierra siempre en el servidor antes de desconectar, también
+   *   si vence el tiempo límite, para no dejar sesiones huérfanas en el PLC.
+   */
+  private withSession<T>(
+    endpointUrl: string,
+    timeoutMs: number,
+    work: (session: ClientSession) => Promise<T>,
+  ): Promise<T> {
+    const deadline = Date.now() + timeoutMs;
+    const queued = this.serialized(endpointUrl, () => {
+      const remainingMs = deadline - Date.now();
+      if (remainingMs <= 0) {
+        return Promise.reject(new OpcUaTimeoutError(timeoutMs));
+      }
+      return this.runSession(endpointUrl, remainingMs, work);
+    });
+    return withTimeout(queued, timeoutMs);
+  }
+
+  private async runSession<T>(
     endpointUrl: string,
     timeoutMs: number,
     work: (session: ClientSession) => Promise<T>,
@@ -474,21 +503,46 @@ export class NodeOpcUaExplorer implements IOpcUaExplorer {
       securityPolicy: SecurityPolicy.None,
       endpointMustExist: false,
       connectionStrategy: { maxRetry: 0, initialDelay: 100, maxDelay: 200 },
-      requestedSessionTimeout: 60000,
+      requestedSessionTimeout: EXPLORER_SESSION_TIMEOUT_MS,
     });
+    let session: ClientSession | undefined;
+    let finished = false;
     const run = (async () => {
       await client.connect(endpointUrl);
-      const session = await client.createSession();
-      try {
-        return await work(session);
-      } finally {
-        await session.close().catch(() => undefined);
+      const created = await client.createSession();
+      if (finished) {
+        // Llegó después del tiempo límite: se cierra en vez de dejarla huérfana.
+        await withTimeout(created.close(), CLOSE_SESSION_TIMEOUT_MS).catch(() => undefined);
+        throw new OpcUaTimeoutError(timeoutMs);
       }
+      session = created;
+      return work(created);
     })();
     try {
       return await withTimeout(run, timeoutMs);
     } finally {
-      await client.disconnect().catch(() => undefined);
+      finished = true;
+      if (session) {
+        await withTimeout(session.close(), CLOSE_SESSION_TIMEOUT_MS).catch(() => undefined);
+      }
+      await withTimeout(client.disconnect(), CLOSE_SESSION_TIMEOUT_MS).catch(() => undefined);
     }
+  }
+
+  /** Encadena las tareas de un mismo endpoint: cada una empieza cuando acaba la anterior. */
+  private serialized<T>(endpointUrl: string, task: () => Promise<T>): Promise<T> {
+    const previous = this.queues.get(endpointUrl) ?? Promise.resolve();
+    const result = previous.then(task, task);
+    const tail = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    this.queues.set(endpointUrl, tail);
+    void tail.then(() => {
+      if (this.queues.get(endpointUrl) === tail) {
+        this.queues.delete(endpointUrl);
+      }
+    });
+    return result;
   }
 }

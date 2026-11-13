@@ -11,6 +11,7 @@ import {
   machineFormEditBreadcrumb,
   machineFormNewBreadcrumb,
   machineOpcUaVariablesBreadcrumb,
+  machineVariableCategoriesBreadcrumb,
   machinesListBreadcrumb,
   signalFormEditBreadcrumb,
   signalFormNewBreadcrumb,
@@ -28,6 +29,7 @@ import {
  * docs/specs/18-integracion-opc-ua.md añade `machines/:machineId/connection`.
  * docs/specs/20-paquetes-escritura-opc-ua.md añade el alta/edición de paquetes de escritura.
  * docs/specs/21-sincronizacion-variables-opc-ua.md añade `machines/:machineId/opcua-variables`.
+ * docs/specs/23-categorias-variables-plc.md añade `machines/:machineId/variable-categories`.
  */
 export const configRoutes: Routes = [
   {
@@ -107,6 +109,14 @@ export const configRoutes: Routes = [
     loadComponent: () =>
       import('./pages/machine-opcua-variables-page/machine-opcua-variables-page').then(
         (m) => m.MachineOpcUaVariablesPage,
+      ),
+  },
+  {
+    path: 'machines/:machineId/variable-categories',
+    data: { breadcrumb: machineVariableCategoriesBreadcrumb },
+    loadComponent: () =>
+      import('./pages/machine-variable-categories-page/machine-variable-categories-page').then(
+        (m) => m.MachineVariableCategoriesPage,
       ),
   },
   {

@@ -49,8 +49,17 @@ export class OpcUaNodeBrowserComponent implements OnChanges {
   @Input({ required: true }) endpointUrl!: string;
   /** NodeIds ya presentes en la tabla de mapeo: su botón "Añadir" queda deshabilitado. */
   @Input() mappedNodeIds: ReadonlySet<string> = new Set();
+  /**
+   * docs/specs/22-anadir-carpeta-opc-ua-desde-explorador.md, criterio frontend 8:
+   * `false` deshabilita «Añadir todas» (conexión no guardada o endpoint distinto).
+   */
+  @Input() folderAddEnabled = false;
+  /** spec 22, criterio frontend 4: nodo cuyo «Añadir todas» está en curso; mientras tanto, todos deshabilitados. */
+  @Input() addingFolderNodeId: string | null = null;
 
   @Output() nodeAdded = new EventEmitter<OpcUaBrowseNode>();
+  /** spec 22: el usuario pide añadir todas las variables que cuelgan de este nodo. */
+  @Output() folderAdded = new EventEmitter<OpcUaBrowseNode>();
 
   private readonly machinesApi = inject(MachinesApiService);
   private readonly browserId = nextBrowserId++;
@@ -106,8 +115,29 @@ export class OpcUaNodeBrowserComponent implements OnChanges {
     return id;
   }
 
+  /** spec 22, criterio frontend 2: un nodo con hijos (array, estructura) no se mapea entero. */
   isMappable(node: OpcUaBrowseNode): boolean {
-    return isMappableNode(node);
+    return isMappableNode(node) && !node.hasChildren;
+  }
+
+  /** spec 22, criterio frontend 1: «Añadir todas» en carpetas y Variables con hijos. */
+  canAddFolder(node: OpcUaBrowseNode): boolean {
+    return node.hasChildren;
+  }
+
+  isAddingFolder(node: OpcUaBrowseNode): boolean {
+    return this.addingFolderNodeId === node.nodeId;
+  }
+
+  isFolderAddDisabled(): boolean {
+    return !this.folderAddEnabled || this.addingFolderNodeId !== null;
+  }
+
+  addFolder(event: Event, node: OpcUaBrowseNode): void {
+    event.stopPropagation();
+    if (!this.isFolderAddDisabled()) {
+      this.folderAdded.emit(node);
+    }
   }
 
   isMapped(node: OpcUaBrowseNode): boolean {

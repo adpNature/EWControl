@@ -191,6 +191,25 @@ Errores específicos de la sincronización:
 
 `OPCUA_INVALID_NODE_ID` (400), `OPCUA_ENDPOINT_NOT_ALLOWED` (422), `OPCUA_ENDPOINT_UNREACHABLE` (502) e `INVALID_CONNECTION_CONFIG` (400) se aplican igual que en la spec 18.
 
+### Categorías de variables
+
+[docs/specs/23-categorias-variables-plc.md](specs/23-categorias-variables-plc.md). Solo `AdminCliente` y `SuperAdmin`, con tenencia de la Machine. Organizan las variables del PLC; no cambian qué se lee ni qué se puede usar en Signals.
+
+| Método | Ruta                                                     | Descripción                                                                                                                                                                                                                                                                                                                              |
+| ------ | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/v1/machines/:machineId/variable-categories`        | `200 { categories: [{ id, parentId, name, position, variableCount }], variables: [{ nodeId, categoryId, comment, position }] }`. `variableCount` de una categoría raíz incluye las de sus subcategorías.                                                                                                                                 |
+| POST   | `/api/v1/machines/:machineId/variable-categories/import` | Body `{ "rootNodeId": "…", "csv": "…" }` (exportación CSV de la GVL de CODESYS, máx. 90.000 caracteres). Sustituye en una transacción todas las categorías y el catálogo de la Machine. Cada variable se identifica como `<rootNodeId>.<Name>`. `200 { categories, subcategories, variables, categorized, uncategorized, withComment }`. |
+| PATCH  | `/api/v1/machines/:machineId/variable-categories/:id`    | Body `{ "name": "…" }` (1–120 caracteres, se recorta). `200` con la categoría.                                                                                                                                                                                                                                                           |
+
+| Código                           | HTTP | Cuándo                                                                                                                                                                                                                |
+| -------------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `INVALID_GVL_EXPORT`             | 400  | CSV sin columnas `Name`/`Comment`, sin variables, con comillas sin cerrar, con nombres no válidos o repetidos, o por encima de 5000 variables / 300 categorías; carpeta vacía. `details.reason`. No se modifica nada. |
+| `INVALID_VARIABLE_CATEGORY_NAME` | 400  | Nombre vacío o de más de 120 caracteres.                                                                                                                                                                              |
+| `VARIABLE_CATEGORY_NOT_FOUND`    | 404  | La categoría no existe o no es de esa Machine.                                                                                                                                                                        |
+| `VARIABLE_CATEGORY_NAME_TAKEN`   | 409  | Otra categoría del mismo padre ya tiene ese nombre (sin distinguir mayúsculas).                                                                                                                                       |
+
+`MACHINE_NOT_FOUND` (404) y `MACHINE_INACTIVE` (422, al importar o renombrar) se aplican como en el resto de endpoints de Machine.
+
 ### Endpoints de control del Simulador
 
 Solo aplicables cuando `ProviderType = Simulator` (Documento 10). Devuelven `422` si la Machine usa otro proveedor.

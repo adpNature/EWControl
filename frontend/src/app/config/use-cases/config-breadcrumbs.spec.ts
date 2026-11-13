@@ -13,6 +13,7 @@ import {
   machineNameResolver,
   machinesCrumb,
   machinesListBreadcrumb,
+  machineVariableCategoriesBreadcrumb,
   signalNameResolver,
   userNameResolver,
   usersCrumb,
@@ -27,6 +28,14 @@ describe('config-breadcrumbs — breadcrumbs de listado (1 tramo, página actual
     expect(machinesListBreadcrumb).toEqual([machinesCrumb]);
     expect(usersListBreadcrumb).toEqual([usersCrumb]);
     expect(companiesListBreadcrumb).toEqual([companiesCrumb]);
+  });
+});
+
+describe('config-breadcrumbs — categorías (docs/specs/23-categorias-variables-plc.md)', () => {
+  it('machineVariableCategoriesBreadcrumb: Machines › máquina › Categorías', () => {
+    expect(machineVariableCategoriesBreadcrumb[0]).toBe(machinesCrumb);
+    expect(machineVariableCategoriesBreadcrumb.at(-1)).toEqual({ label: 'Categorías' });
+    expect(machineVariableCategoriesBreadcrumb).toHaveLength(3);
   });
 });
 

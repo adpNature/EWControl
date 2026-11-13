@@ -5,11 +5,13 @@ import { OpcUaProviderRegistry } from '../interface-adapters/data-providers/opc-
 import { NestEventEmitterPublisher } from '../interface-adapters/events/nest-event-emitter.publisher';
 import { MachineConnectionTypeOrmRepository } from '../interface-adapters/persistence/postgres/typeorm/machine-connection.typeorm-repository';
 import { MachineTypeOrmRepository } from '../interface-adapters/persistence/postgres/typeorm/machine.typeorm-repository';
+import { SignalTypeOrmRepository } from '../interface-adapters/persistence/postgres/typeorm/signal.typeorm-repository';
 import { TypeOrmUnitOfWork } from '../interface-adapters/persistence/postgres/typeorm/typeorm-unit-of-work';
 import { SystemClock } from '../interface-adapters/system/system-clock';
 import { CLOCK } from '../use-cases/history/ports/clock.port';
 import { MACHINE_CONNECTION_REPOSITORY } from '../use-cases/seed-demo-environment/ports/machine-connection-repository.port';
 import { MACHINE_REPOSITORY } from '../use-cases/seed-demo-environment/ports/machine-repository.port';
+import { SIGNAL_REPOSITORY } from '../use-cases/seed-demo-environment/ports/signal-repository.port';
 import { UNIT_OF_WORK } from '../use-cases/seed-demo-environment/ports/unit-of-work.port';
 import { EVENT_PUBLISHER } from '../use-cases/simulator-control/ports/event-publisher.port';
 import { MACHINE_WRITER } from '../use-cases/write-packages/ports/machine-writer.port';
@@ -31,6 +33,7 @@ import { SimulatorModule } from './simulator.module';
     { provide: OPCUA_DRIVER_FACTORY, useValue: createNodeOpcUaDriver },
     { provide: MACHINE_REPOSITORY, useClass: MachineTypeOrmRepository },
     { provide: MACHINE_CONNECTION_REPOSITORY, useClass: MachineConnectionTypeOrmRepository },
+    { provide: SIGNAL_REPOSITORY, useClass: SignalTypeOrmRepository },
     { provide: UNIT_OF_WORK, useClass: TypeOrmUnitOfWork },
     { provide: EVENT_PUBLISHER, useClass: NestEventEmitterPublisher },
     { provide: CLOCK, useClass: SystemClock },

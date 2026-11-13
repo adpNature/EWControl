@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { of, throwError } from 'rxjs';
 import { ToastService } from '../../../shared/ui/toast/toast.service';
 import { MachinesApiService } from '../../adapters/machines-api.service';
+import { VariableCategoriesApiService } from '../../adapters/variable-categories-api.service';
 import {
   MachineConnection,
   OpcUaVariableSyncResult,
@@ -99,6 +100,7 @@ describe('MachineOpcUaVariablesPage (docs/specs/21-sincronizacion-variables-opc-
     saveOpcUaVariables: ReturnType<typeof vi.fn>;
   };
   let toastService: { show: ReturnType<typeof vi.fn> };
+  let categoriesApi: { list: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     machinesApi = {
@@ -107,6 +109,7 @@ describe('MachineOpcUaVariablesPage (docs/specs/21-sincronizacion-variables-opc-
       saveOpcUaVariables: vi.fn().mockReturnValue(of(CONNECTION)),
     };
     toastService = { show: vi.fn() };
+    categoriesApi = { list: vi.fn().mockReturnValue(of({ categories: [], variables: [] })) };
   });
 
   function renderPage() {
@@ -115,6 +118,7 @@ describe('MachineOpcUaVariablesPage (docs/specs/21-sincronizacion-variables-opc-
         provideHttpClient(),
         { provide: MachinesApiService, useValue: machinesApi },
         { provide: ToastService, useValue: toastService },
+        { provide: VariableCategoriesApiService, useValue: categoriesApi },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: { get: () => 'machine-1' } } },
@@ -365,5 +369,69 @@ describe('MachineOpcUaVariablesPage (docs/specs/21-sincronizacion-variables-opc-
     expect(screen.getByRole('alert')).toHaveTextContent(
       'El mapeo superaría el máximo de 500 variables (503).',
     );
+  });
+
+  describe('categorías (docs/specs/23-categorias-variables-plc.md)', () => {
+    beforeEach(() => {
+      categoriesApi.list.mockReturnValue(
+        of({
+          categories: [
+            { id: 'c-1', parentId: null, name: 'Página receta', position: 0, variableCount: 2 },
+            { id: 'c-2', parentId: 'c-1', name: 'Programación', position: 1, variableCount: 2 },
+            { id: 'c-3', parentId: null, name: 'Datos del HMI', position: 2, variableCount: 1 },
+          ],
+          variables: [
+            { nodeId: `${ROOT}.ax`, categoryId: 'c-2', comment: 'Avance manual', position: 0 },
+            { nodeId: `${ROOT}.iEstado`, categoryId: 'c-2', comment: 'Estado', position: 1 },
+            { nodeId: `${ROOT}.rVel`, categoryId: 'c-3', comment: null, position: 2 },
+          ],
+        }),
+      );
+    });
+
+    it('muestra la categoría de cada fila, también en los elementos de array (criterio 4)', async () => {
+      const user = userEvent.setup();
+      await syncWith(user);
+
+      expect(within(rowOf('ax[0]')).getByText('Página receta › Programación')).toBeInTheDocument();
+      expect(within(rowOf('rVel')).getByText('Datos del HMI')).toBeInTheDocument();
+    });
+
+    it('filtra por categoría (incluidas sus subcategorías) o sin categoría (criterio 4)', async () => {
+      const user = userEvent.setup();
+      await syncWith(user);
+      const filter = screen.getByLabelText('Categoría');
+
+      await user.selectOptions(filter, 'c-1');
+      expect(screen.getByLabelText('Identificador de ax[0]')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Identificador de rVel')).not.toBeInTheDocument();
+
+      await user.selectOptions(filter, 'c-3');
+      expect(screen.getByLabelText('Identificador de rVel')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Identificador de ax[0]')).not.toBeInTheDocument();
+
+      await user.selectOptions(filter, 'none');
+      expect(
+        screen.getByText('No hay variables que coincidan con los filtros.'),
+      ).toBeInTheDocument();
+    });
+
+    it('propone la descripción del CSV como etiqueta de las filas sin etiqueta (criterio 5)', async () => {
+      const user = userEvent.setup();
+      await syncWith(user);
+
+      expect(screen.getByLabelText('Etiqueta de ax[0]')).toHaveValue('Avance manual');
+      expect(screen.getByLabelText('Etiqueta de iEstado')).toHaveValue('Estado');
+      expect(screen.getByLabelText('Etiqueta de rVel')).toHaveValue('Velocidad');
+    });
+
+    it('sin categorías (o si fallan) no hay filtro de categoría y la columna muestra «—»', async () => {
+      const user = userEvent.setup();
+      categoriesApi.list.mockReturnValue(throwError(() => ({ status: 500 })));
+      await syncWith(user);
+
+      expect(screen.queryByLabelText('Categoría')).not.toBeInTheDocument();
+      expect(within(rowOf('rVel')).getAllByText('—').length).toBeGreaterThan(0);
+    });
   });
 });

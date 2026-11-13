@@ -28,9 +28,14 @@ const CONFIG: OpcUaConnectionConfig = {
 
 class FakeDriver implements IOpcUaDriver {
   listener: IOpcUaDriverListener | undefined;
-  start = vi.fn((listener: IOpcUaDriverListener) => {
-    this.listener = listener;
-  });
+  start = vi.fn<(listener: IOpcUaDriverListener, nodeIds: readonly string[]) => void>(
+    (listener) => {
+      this.listener = listener;
+    },
+  );
+  setMonitoredNodeIds = vi.fn<(nodeIds: readonly string[]) => Promise<void>>(() =>
+    Promise.resolve(),
+  );
   stop = vi.fn(() => Promise.resolve());
   write = vi.fn((items: { nodeId: string }[]) =>
     Promise.resolve(items.map((item) => ({ nodeId: item.nodeId, statusCode: 'Good' }))),
@@ -69,6 +74,15 @@ function createFakes(options: { machines?: MachineRow[]; connections?: Connectio
   const machineRepository = {
     findById: vi.fn((machineId: string) => Promise.resolve(machines.get(machineId) ?? null)),
   };
+  const signalRepository = {
+    findAllByMachineId: vi.fn((machineId: string) =>
+      Promise.resolve(
+        machineId === 'machine-1'
+          ? [{ isActive: true, signalSource: { variableName: 'Lectura_REAL_1' } }]
+          : [],
+      ),
+    ),
+  };
   const unitOfWork = {
     runInTransaction: vi.fn((work: (ctx: unknown) => Promise<unknown>) => work(Symbol('ctx'))),
   };
@@ -89,6 +103,7 @@ function createFakes(options: { machines?: MachineRow[]; connections?: Connectio
     connections,
     machineConnectionRepository,
     machineRepository,
+    signalRepository,
     unitOfWork,
     ingestSignalTick,
     eventPublisher,
@@ -103,6 +118,7 @@ function createRegistry(fakes: ReturnType<typeof createFakes>) {
   return new OpcUaProviderRegistry(
     fakes.machineConnectionRepository as never,
     fakes.machineRepository as never,
+    fakes.signalRepository as never,
     fakes.unitOfWork,
     fakes.ingestSignalTick as never,
     fakes.eventPublisher,
@@ -344,13 +360,98 @@ describe('OpcUaProviderRegistry', () => {
     });
     fakes.ingestSignalTick.execute.mockClear();
 
-    registry.onMachineSignalsChanged({ machineId: 'machine-1', companyId: 'company-1' });
-    registry.onMachineSignalsChanged({ machineId: 'otra-machine', companyId: 'company-1' });
+    await registry.onMachineSignalsChanged({ machineId: 'machine-1', companyId: 'company-1' });
+    await registry.onMachineSignalsChanged({ machineId: 'otra-machine', companyId: 'company-1' });
 
     expect(fakes.ingestSignalTick.execute).toHaveBeenCalledTimes(1);
     expect(fakes.ingestSignalTick.execute).toHaveBeenCalledWith(
       expect.objectContaining({ variableName: 'Lectura_REAL_1', value: 4.5 }),
     );
+  });
+
+  describe('variables suscritas (docs/specs/24-conexion-opc-ua-estable.md)', () => {
+    const TWO_VARIABLES: OpcUaConnectionConfig = {
+      ...CONFIG,
+      nodeMapping: [
+        { nodeId: NODE, signalVariableName: 'Lectura_REAL_1' },
+        { nodeId: 'ns=3;s="Lectura"."BOOL_1"', signalVariableName: 'Lectura_BOOL_1' },
+        { nodeId: 'ns=3;s="Lectura"."INT_1"', signalVariableName: 'Lectura_INT_1' },
+      ],
+    };
+
+    it('al arrancar suscribe solo las variables que usan las Signals activas (criterio 1)', async () => {
+      const fakes = createFakes({
+        connections: [
+          {
+            machineId: 'machine-1',
+            providerType: ProviderType.OpcUa,
+            connectionConfig: TWO_VARIABLES,
+          },
+        ],
+      });
+      fakes.signalRepository.findAllByMachineId.mockResolvedValue([
+        {
+          isActive: true,
+          signalSource: { expression: 'Lectura_BOOL_1', variables: ['Lectura_BOOL_1'] },
+        },
+        { isActive: false, signalSource: { variableName: 'Lectura_INT_1' } },
+      ]);
+      const registry = createRegistry(fakes);
+
+      await registry.onModuleInit();
+
+      expect(fakes.signalRepository.findAllByMachineId).toHaveBeenCalledWith(
+        'machine-1',
+        expect.anything(),
+      );
+      expect(fakes.drivers[0].start).toHaveBeenCalledWith(expect.anything(), [
+        'ns=3;s="Lectura"."BOOL_1"',
+      ]);
+    });
+
+    it('MachineSignalsChanged actualiza las variables suscritas sin reconectar (criterio 2)', async () => {
+      const fakes = createFakes({
+        connections: [
+          {
+            machineId: 'machine-1',
+            providerType: ProviderType.OpcUa,
+            connectionConfig: TWO_VARIABLES,
+          },
+        ],
+      });
+      const registry = createRegistry(fakes);
+      await registry.onModuleInit();
+      fakes.drivers[0].listener!.onConnected();
+      fakes.signalRepository.findAllByMachineId.mockResolvedValue([
+        { isActive: true, signalSource: { variableName: 'Lectura_REAL_1' } },
+        { isActive: true, signalSource: { variableName: 'Lectura_INT_1' } },
+      ]);
+
+      await registry.onMachineSignalsChanged({ machineId: 'machine-1', companyId: 'company-1' });
+
+      expect(fakes.drivers[0].setMonitoredNodeIds).toHaveBeenCalledWith([
+        NODE,
+        'ns=3;s="Lectura"."INT_1"',
+      ]);
+      expect(fakes.drivers[0].stop).not.toHaveBeenCalled();
+      expect(fakes.driverFactory).toHaveBeenCalledTimes(1);
+      expect(fakes.eventPublisher.publish).not.toHaveBeenCalledWith(
+        'MachineDisconnected',
+        expect.anything(),
+      );
+    });
+
+    it('si falla la carga de Signals en MachineSignalsChanged solo se registra el error', async () => {
+      const fakes = createFakes();
+      const registry = createRegistry(fakes);
+      await registry.onModuleInit();
+      fakes.signalRepository.findAllByMachineId.mockRejectedValue(new Error('db down'));
+
+      await expect(
+        registry.onMachineSignalsChanged({ machineId: 'machine-1', companyId: 'company-1' }),
+      ).resolves.toBeUndefined();
+      expect(fakes.drivers[0].setMonitoredNodeIds).not.toHaveBeenCalled();
+    });
   });
 
   describe('write / IMachineWriter (docs/specs/20-paquetes-escritura-opc-ua.md)', () => {

@@ -63,6 +63,19 @@
               {{ isMapped(item.node) ? 'Añadido' : 'Añadir' }}
             </button>
           }
+          @if (canAddFolder(item.node)) {
+            <button
+              type="button"
+              class="btn-secondary node-browser__add"
+              tabindex="-1"
+              [disabled]="isFolderAddDisabled()"
+              [attr.aria-busy]="isAddingFolder(item.node) ? true : null"
+              [attr.aria-label]="'Añadir todas las variables de ' + item.node.displayName"
+              (click)="addFolder($event, item.node)"
+            >
+              {{ isAddingFolder(item.node) ? 'Añadiendo…' : 'Añadir todas' }}
+            </button>
+          }
         </li>
       }
     </ul>

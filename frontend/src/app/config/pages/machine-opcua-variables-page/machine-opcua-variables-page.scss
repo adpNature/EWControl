@@ -147,3 +147,8 @@
 .opcua-variables-page__skipped summary {
   cursor: pointer;
 }
+
+.opcua-variables-page__category {
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}

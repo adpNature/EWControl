@@ -42,15 +42,106 @@ describe('OpcUaNodeBrowserComponent', () => {
     };
   });
 
-  async function renderBrowser(mappedNodeIds: ReadonlySet<string> = new Set()) {
+  async function renderBrowser(
+    mappedNodeIds: ReadonlySet<string> = new Set(),
+    folderInputs: { folderAddEnabled?: boolean; addingFolderNodeId?: string | null } = {},
+  ) {
     const nodeAdded = vi.fn();
+    const folderAdded = vi.fn();
     const result = await render(OpcUaNodeBrowserComponent, {
-      inputs: { machineId: 'machine-1', endpointUrl: ENDPOINT, mappedNodeIds },
-      on: { nodeAdded },
+      inputs: { machineId: 'machine-1', endpointUrl: ENDPOINT, mappedNodeIds, ...folderInputs },
+      on: { nodeAdded, folderAdded },
       providers: [provideHttpClient(), { provide: MachinesApiService, useValue: machinesApi }],
     });
-    return { ...result, nodeAdded };
+    return { ...result, nodeAdded, folderAdded };
   }
+
+  describe('«Añadir todas» (spec 22)', () => {
+    const UINT_ARRAY: OpcUaBrowseNode = {
+      nodeId: 'ns=4;s=|var|PLC.Application.GVL_HMI.awIPaddressHMI',
+      browseName: 'awIPaddressHMI',
+      displayName: 'awIPaddressHMI',
+      nodeClass: 'Variable',
+      dataType: 'UInt16',
+      hasChildren: true,
+    };
+
+    it('aparece en los nodos con hijos y emite el nodo sin desplegarlo (criterio 1)', async () => {
+      const user = userEvent.setup();
+      const { folderAdded } = await renderBrowser(new Set(), { folderAddEnabled: true });
+
+      await user.click(
+        screen.getByRole('button', { name: 'Añadir todas las variables de Lectura' }),
+      );
+
+      expect(folderAdded).toHaveBeenCalledWith(LECTURA);
+      expect(screen.getByRole('treeitem', { name: /Lectura/ })).toHaveAttribute(
+        'aria-expanded',
+        'false',
+      );
+      expect(machinesApi.browseOpcUaNodes).toHaveBeenCalledTimes(1);
+    });
+
+    it('no aparece en las Variables escalares (criterio 1)', async () => {
+      const user = userEvent.setup();
+      await renderBrowser(new Set(), { folderAddEnabled: true });
+      await user.click(screen.getByRole('treeitem', { name: /Lectura/ }));
+
+      expect(
+        screen.queryByRole('button', { name: 'Añadir todas las variables de REAL_1' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Añadir todas las variables de ARRAY_1' }),
+      ).toBeInTheDocument();
+    });
+
+    it('un array de tipo mapeable no ofrece «Añadir», solo «Añadir todas» (criterio 2)', async () => {
+      const user = userEvent.setup();
+      machinesApi.browseOpcUaNodes.mockImplementation((...args: unknown[]) =>
+        of({ nodes: args[2] ? [UINT_ARRAY] : [LECTURA] }),
+      );
+      await renderBrowser(new Set(), { folderAddEnabled: true });
+      await user.click(screen.getByRole('treeitem', { name: /Lectura/ }));
+
+      const arrayItem = screen.getByRole('treeitem', { name: /awIPaddressHMI/ });
+      expect(
+        within(arrayItem).queryByRole('button', { name: /Añadir al mapeo/ }),
+      ).not.toBeInTheDocument();
+      expect(
+        within(arrayItem).getByRole('button', {
+          name: 'Añadir todas las variables de awIPaddressHMI',
+        }),
+      ).toBeInTheDocument();
+    });
+
+    it('está deshabilitado si no se permite añadir carpetas (criterio 8)', async () => {
+      await renderBrowser(new Set(), { folderAddEnabled: false });
+
+      expect(
+        screen.getByRole('button', { name: 'Añadir todas las variables de Lectura' }),
+      ).toBeDisabled();
+    });
+
+    it('marca el nodo en curso y deshabilita todos mientras dura (criterio 4)', async () => {
+      await renderBrowser(new Set(), {
+        folderAddEnabled: true,
+        addingFolderNodeId: LECTURA.nodeId,
+      });
+
+      const button = screen.getByRole('button', { name: 'Añadir todas las variables de Lectura' });
+      expect(button).toHaveTextContent('Añadiendo…');
+      expect(button).toHaveAttribute('aria-busy', 'true');
+      expect(button).toBeDisabled();
+    });
+
+    it('queda fuera del orden de tabulación del árbol (criterio 10)', async () => {
+      await renderBrowser(new Set(), { folderAddEnabled: true });
+
+      expect(
+        screen.getByRole('button', { name: 'Añadir todas las variables de Lectura' }),
+      ).toHaveAttribute('tabindex', '-1');
+    });
+  });
 
   it('carga solo los hijos de ObjectsFolder al iniciarse (criterio 3)', async () => {
     await renderBrowser();
@@ -89,7 +180,9 @@ describe('OpcUaNodeBrowserComponent', () => {
     await user.click(screen.getByRole('treeitem', { name: /Lectura/ }));
 
     const arrayItem = screen.getByRole('treeitem', { name: /ARRAY_1/ });
-    expect(within(arrayItem).queryByRole('button')).not.toBeInTheDocument();
+    expect(
+      within(arrayItem).queryByRole('button', { name: /Añadir al mapeo/ }),
+    ).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Añadir al mapeo: REAL_1' }));
     expect(nodeAdded).toHaveBeenCalledWith(REAL_1);
