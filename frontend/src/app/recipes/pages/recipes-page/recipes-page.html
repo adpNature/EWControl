@@ -1,0 +1,173 @@
+<div class="box recipes-page">
+  <h1 class="title-xl">Recetas</h1>
+  <p class="text-muted">
+    Plantillas con los valores de «{{ categoryName }}» para poner la máquina en marcha más adelante.
+    Guardarlas o activarlas no envía nada a la máquina.
+  </p>
+
+  <div class="recipes-page__filters">
+    <div class="form-field recipes-page__machine">
+      <label class="form-label" for="recipes-machine">Máquina</label>
+      <select
+        id="recipes-machine"
+        class="form-input"
+        (change)="selectMachine($any($event.target).value)"
+      >
+        <option value="" [selected]="!selectedMachineId()">Selecciona una máquina</option>
+        @for (machine of machines(); track machine.id) {
+          <option [value]="machine.id" [selected]="machine.id === selectedMachineId()">
+            {{ machine.name }}
+          </option>
+        }
+      </select>
+    </div>
+
+    @if (selectedMachineId()) {
+      <div class="form-field recipes-page__search">
+        <label class="form-label" for="recipes-search">Buscar por título o descripción</label>
+        <input
+          id="recipes-search"
+          class="form-input"
+          type="search"
+          maxlength="100"
+          autocomplete="off"
+          [value]="search()"
+          (input)="onSearchInput($event)"
+        />
+      </div>
+    }
+  </div>
+
+  @if (error()) {
+    <p class="form-error" role="alert">{{ error() }}</p>
+  }
+
+  @if (selectedMachineId() && variableSet(); as variableSet) {
+    @if (canCreate()) {
+      <div class="recipes-page__actions">
+        <a class="btn-primary" [routerLink]="['/recetas', selectedMachineId(), 'nueva']"
+          >Nueva receta</a
+        >
+      </div>
+    } @else {
+      <div class="recipes-page__notice" role="status">
+        <p class="text-body">
+          Esta máquina no tiene la categoría «{{ categoryName }}». Importa las categorías de la GVL.
+        </p>
+        @if (isAdmin()) {
+          <a [routerLink]="['/config/machines', selectedMachineId(), 'variable-categories']"
+            >Ir a las categorías de variables</a
+          >
+        } @else {
+          <p class="text-muted">Pide a un administrador que importe las categorías.</p>
+        }
+      </div>
+    }
+  }
+
+  @if (selectedMachineId()) {
+    @if (loading()) {
+      <p class="text-muted" role="status">Cargando recetas…</p>
+    }
+
+    <p class="visually-hidden" role="status">
+      @if (appliedSearch()) {
+        {{ total() }} resultados para "{{ appliedSearch() }}"
+      }
+    </p>
+
+    <app-table
+      [columns]="columns"
+      [rows]="recipes()"
+      [rowKey]="rowKey"
+      [emptyMessage]="emptyMessage()"
+      [actionsTemplate]="actions"
+    />
+
+    @if (totalPages() > 1) {
+      <nav class="recipes-page__pagination" aria-label="Páginas de recetas">
+        <button
+          type="button"
+          class="btn-secondary"
+          [disabled]="page() === 0"
+          (click)="goToPage(page() - 1)"
+        >
+          Anterior
+        </button>
+        <span class="text-muted">Página {{ page() + 1 }} de {{ totalPages() }}</span>
+        <button
+          type="button"
+          class="btn-secondary"
+          [disabled]="page() + 1 >= totalPages()"
+          (click)="goToPage(page() + 1)"
+        >
+          Siguiente
+        </button>
+      </nav>
+    }
+  }
+
+  <ng-template #actions let-recipe>
+    <div class="recipes-page__row-actions">
+      <a
+        class="btn-edit"
+        [routerLink]="['/recetas', selectedMachineId(), recipe.id]"
+        [attr.aria-label]="'Editar ' + recipe.title"
+        >Editar</a
+      >
+      <a
+        class="btn-secondary"
+        [routerLink]="['/recetas', selectedMachineId(), 'nueva']"
+        [queryParams]="{ duplicar: recipe.id }"
+        [attr.aria-label]="'Duplicar ' + recipe.title"
+        >Duplicar</a
+      >
+      @if (recipe.isActivated) {
+        <button
+          type="button"
+          class="btn-secondary"
+          [attr.aria-label]="'Desactivar ' + recipe.title"
+          (click)="deactivate(recipe)"
+        >
+          Desactivar
+        </button>
+      } @else {
+        <button
+          type="button"
+          class="btn-secondary"
+          [disabled]="!recipe.isComplete"
+          [attr.aria-label]="'Activar ' + recipe.title"
+          [attr.aria-describedby]="recipe.isComplete ? null : 'incomplete-' + recipe.id"
+          (click)="requestActivate(recipe)"
+        >
+          Activar
+        </button>
+        @if (!recipe.isComplete) {
+          <span class="text-muted recipes-page__hint" [id]="'incomplete-' + recipe.id"
+            >Complétala antes de activarla</span
+          >
+        }
+      }
+      <button
+        type="button"
+        class="btn-danger"
+        [attr.aria-label]="'Eliminar ' + recipe.title"
+        (click)="requestDelete(recipe)"
+      >
+        Eliminar
+      </button>
+    </div>
+  </ng-template>
+
+  @if (pendingAction(); as action) {
+    <app-confirm-dialog
+      [open]="true"
+      [title]="dialogTitle(action)"
+      [message]="dialogMessage(action)"
+      [confirmLabel]="action.kind === 'activate' ? 'Activar' : 'Eliminar'"
+      [danger]="action.kind === 'delete'"
+      (confirmed)="confirmPendingAction()"
+      (cancelled)="cancelPendingAction()"
+    />
+  }
+</div>

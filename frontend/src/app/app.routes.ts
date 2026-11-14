@@ -75,6 +75,12 @@ export const routes: Routes = [
           ),
       },
       {
+        // docs/specs/25-recetas.md: las recetas son de los tres roles (también el
+        // Operador), así que viven fuera de `config`, como los paquetes.
+        path: 'recetas',
+        loadChildren: () => import('./recipes/recipes.routes').then((m) => m.recipesRoutes),
+      },
+      {
         // docs/specs/10-gestion-companies-users.md: top-level porque auth.routes.ts
         // no lleva guard propio (todo lo que cuelga de `login` es público por diseño).
         path: 'account/change-password',

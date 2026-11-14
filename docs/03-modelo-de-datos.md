@@ -1443,6 +1443,36 @@ Implementadas en [docs/specs/20-paquetes-escritura-opc-ua.md](specs/20-paquetes-
 
 ---
 
+## 3.2.11 Recipe
+
+### Introducción
+
+Implementada en [docs/specs/25-recetas.md](specs/25-recetas.md). Una **Recipe** es una plantilla de trabajo de una Machine: un título y un valor para cada **variable de receta**, es decir, cada variable de la categoría «Programación para la receta» de la GVL ([docs/specs/23-categorias-variables-plc.md](specs/23-categorias-variables-plc.md)) que está mapeada con un tipo escalar soportado. A diferencia de un WritePackage, no se escribe en el PLC: hoy solo se guarda, y la marca «Activa» deja preparada una carga futura en la máquina.
+
+---
+
+### Responsabilidades
+
+- Pertenece a una Machine (y hereda su Company); se borra físicamente.
+- `title` único en la Machine sin distinguir mayúsculas ni tildes; `description` opcional.
+- `values`: un valor por variable de receta, validado contra su `dataType` y sus límites.
+- `isActivated` (con quién y cuándo): marca sin efecto sobre la máquina.
+- `version`: sube en cada edición, para detectar ediciones simultáneas.
+
+---
+
+### Reglas del Dominio
+
+**Regla 1.** Al crear o editar una receta, todas las variables de receta tienen un valor válido, y no hay valores de otras variables.
+
+**Regla 2.** Si después cambian las variables de receta, la receta queda incompleta (valores que faltan o que ya no valen), pero no se pierde. Una receta incompleta no se puede activar.
+
+**Regla 3.** Como mucho hay una receta activa por Machine.
+
+**Regla 4.** Una receta nunca genera lecturas ni escrituras en el PLC, ni puntos en el histórico.
+
+---
+
 # 3.3 Relaciones del Dominio
 
 ## Objetivo

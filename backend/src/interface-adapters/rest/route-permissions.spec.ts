@@ -45,6 +45,15 @@ const OPERADOR_ALLOWED = new Set([
   'GET machines/:machineId/write-packages/:id',
   'POST machines/:machineId/write-packages/:id/execute',
   'GET machines/:machineId/write-packages/:id/executions',
+  // docs/specs/25-recetas.md: el Operador gestiona recetas igual que los administradores.
+  'GET machines/:machineId/recipe-variables',
+  'GET machines/:machineId/recipes',
+  'POST machines/:machineId/recipes',
+  'GET machines/:machineId/recipes/:recipeId',
+  'PUT machines/:machineId/recipes/:recipeId',
+  'DELETE machines/:machineId/recipes/:recipeId',
+  'POST machines/:machineId/recipes/:recipeId/activate',
+  'POST machines/:machineId/recipes/:recipeId/deactivate',
 ]);
 
 const controllerModules = (

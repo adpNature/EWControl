@@ -1,0 +1,102 @@
+<div class="box recipe-form-page">
+  <h1 class="title-xl">{{ isEditMode ? 'Editar receta' : 'Nueva receta' }}</h1>
+
+  @if (loading()) {
+    <p class="text-muted" role="status">Cargando…</p>
+  } @else if (loadError()) {
+    <p class="form-error" role="alert">{{ loadError() }}</p>
+    <a routerLink="/recetas">Volver a las recetas</a>
+  } @else if (variables().length === 0) {
+    <p class="text-body">
+      Esta máquina no tiene la categoría «{{ categoryName }}». Importa las categorías de la GVL.
+    </p>
+    <a routerLink="/recetas">Volver a las recetas</a>
+  } @else {
+    @if (staleValues().length > 0 || missingVariables().length > 0) {
+      <div class="recipe-form-page__notice" role="status">
+        <p class="text-body">
+          Han cambiado las variables de la receta desde que se guardó. Revisa los campos marcados
+          antes de guardar.
+        </p>
+        @if (missingVariables().length > 0) {
+          <p class="text-body">Variables sin valor: {{ missingVariables().join(', ') }}.</p>
+        }
+        @if (staleValues().length > 0) {
+          <p class="text-body">Se quitarán al guardar:</p>
+          <ul class="recipe-form-page__stale">
+            @for (stale of staleValues(); track stale.signalVariableName) {
+              <li>{{ staleMessage(stale) }}</li>
+            }
+          </ul>
+        }
+      </div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <app-input
+        formControlName="title"
+        label="Título"
+        [errorMessage]="titleError()"
+        (input)="onTitleInput()"
+      />
+      <app-input
+        formControlName="description"
+        label="Descripción (opcional)"
+        [errorMessage]="descriptionError()"
+      />
+
+      <fieldset class="recipe-form-page__values">
+        <legend class="title-lg">Valores de «{{ categoryName }}»</legend>
+        <p class="text-muted" aria-live="polite">
+          {{ filledCount() }} de {{ variables().length }} variables con valor. Todas son
+          obligatorias.
+        </p>
+
+        <div class="form-field recipe-form-page__filter">
+          <label class="form-label" for="recipe-variables-filter">Filtrar variables</label>
+          <input
+            id="recipe-variables-filter"
+            class="form-input"
+            type="search"
+            autocomplete="off"
+            [value]="filter()"
+            (input)="onFilterInput($event)"
+          />
+        </div>
+
+        @for (variable of visibleVariables(); track variable.signalVariableName) {
+          <app-recipe-value-field
+            [variable]="variable"
+            [value]="valueOf(variable)"
+            [error]="visibleError(variable)"
+            (valueChange)="setValue(variable, $event)"
+          />
+        } @empty {
+          <p class="text-muted">Ninguna variable coincide con el filtro.</p>
+        }
+      </fieldset>
+
+      @if (formError()) {
+        <p class="form-error" role="alert">{{ formError() }}</p>
+      }
+
+      <div class="recipe-form-page__actions">
+        <button type="submit" class="btn-primary" [disabled]="submitting()">
+          {{ submitting() ? 'Guardando…' : 'Guardar' }}
+        </button>
+        <a class="btn-secondary" routerLink="/recetas">Cancelar</a>
+      </div>
+    </form>
+  }
+
+  <app-confirm-dialog
+    [open]="conflictOpen()"
+    title="La receta ha cambiado"
+    message="Otra persona ha guardado cambios en esta receta mientras la editabas. Puedes recargarla (perderás tus cambios) o seguir editando para copiarlos a mano."
+    confirmLabel="Recargar la receta"
+    cancelLabel="Seguir editando"
+    [danger]="false"
+    (confirmed)="reloadAfterConflict()"
+    (cancelled)="keepEditing()"
+  />
+</div>

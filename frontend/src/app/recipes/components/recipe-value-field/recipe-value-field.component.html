@@ -1,0 +1,51 @@
+<div class="recipe-value-field" [class.recipe-value-field--invalid]="!!error">
+  @if (isBoolean) {
+    <label class="recipe-value-field__switch" [for]="controlId">
+      <input
+        type="checkbox"
+        role="switch"
+        class="recipe-value-field__checkbox"
+        [id]="controlId"
+        [checked]="value === true"
+        [attr.aria-checked]="value === true"
+        [attr.aria-describedby]="describedBy"
+        (change)="onToggle($event)"
+      />
+      <span class="recipe-value-field__name">{{ variable.signalVariableName }}</span>
+      <span class="recipe-value-field__state" aria-hidden="true">{{
+        value === true ? 'Sí' : 'No'
+      }}</span>
+    </label>
+  } @else {
+    <label class="form-label recipe-value-field__name" [for]="controlId">
+      {{ variable.signalVariableName }}
+    </label>
+    <input
+      class="form-input"
+      [id]="controlId"
+      [type]="isString ? 'text' : 'number'"
+      [attr.step]="isString ? null : 'any'"
+      [attr.inputmode]="isString ? null : 'decimal'"
+      [attr.min]="variable.min"
+      [attr.max]="variable.max"
+      [attr.maxlength]="isString ? 256 : null"
+      [value]="value ?? ''"
+      required
+      [attr.aria-invalid]="error ? true : null"
+      [attr.aria-describedby]="describedBy"
+      (input)="onInput($event)"
+    />
+  }
+
+  @if (variable.comment || limitsText) {
+    <p class="text-muted recipe-value-field__help" [id]="helpId">
+      {{ variable.comment }}
+      @if (limitsText) {
+        <span>{{ limitsText }}</span>
+      }
+    </p>
+  }
+  @if (error) {
+    <p class="form-error" [id]="errorId">{{ error }}</p>
+  }
+</div>
