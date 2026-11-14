@@ -7,6 +7,7 @@ import { DashboardWidget } from './dashboard-widget.entity';
 import { MachineConnection } from './machine-connection.entity';
 import { Machine } from './machine.entity';
 import { PasswordResetToken } from './password-reset-token.entity';
+import { RecipeTemplate } from './recipe-template.entity';
 import { Recipe } from './recipe.entity';
 import { RefreshToken } from './refresh-token.entity';
 import { Signal } from './signal.entity';
@@ -43,4 +44,5 @@ export const ENTITIES = [
   VariableCategory,
   VariableCatalogEntry,
   Recipe,
+  RecipeTemplate,
 ];

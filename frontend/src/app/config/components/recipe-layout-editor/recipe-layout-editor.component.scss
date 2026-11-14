@@ -1,0 +1,267 @@
+@use 'breakpoints' as *;
+
+.layout-editor {
+  --layout-gap: var(--spacing-sm);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.layout-editor__row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  background: var(--surface-color);
+}
+
+.layout-editor__row--invalid {
+  border-color: var(--danger-color);
+}
+
+.layout-editor__row-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.layout-editor__row-title {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-color);
+  white-space: nowrap;
+}
+
+// Cuánto de la fila está ocupado: ayuda a ver de un vistazo si cabe algo más.
+.layout-editor__meter {
+  display: flex;
+  flex: 1 1 auto;
+  max-width: 10rem;
+  height: 0.375rem;
+  overflow: hidden;
+  border-radius: var(--border-radius-sm);
+  background: var(--border-color);
+}
+
+.layout-editor__meter-fill {
+  display: flex;
+  background: var(--success-color);
+  transition: width 0.15s ease;
+}
+
+.layout-editor__meter-fill--over {
+  background: var(--danger-color);
+}
+
+.layout-editor__row-width {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted-color);
+  white-space: nowrap;
+}
+
+.layout-editor__row-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-left: auto;
+}
+
+.layout-editor__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--layout-gap);
+  min-height: 3rem;
+}
+
+// Mismo cálculo de ancho que el formulario real (recipe-layout): lo que se ve es lo que habrá.
+.layout-editor__item {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 100%;
+  gap: var(--spacing-xs);
+  min-width: 0;
+  box-sizing: border-box;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  background: var(--background-color);
+
+  @include respond(md) {
+    flex-basis: calc(var(--span) / 12 * (100% + var(--layout-gap)) - var(--layout-gap));
+  }
+}
+
+.layout-editor__item--variable {
+  border-top: 3px solid var(--primary-color);
+}
+
+.layout-editor__item--title {
+  border-top: 3px solid var(--text-color);
+}
+
+.layout-editor__item--spacer {
+  border-style: dashed;
+  background: transparent;
+}
+
+.layout-editor__item--invalid {
+  border-color: var(--danger-color);
+}
+
+.layout-editor__item-top,
+.layout-editor__item-bottom {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.layout-editor__item-bottom {
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-top: auto;
+}
+
+// Asa de arrastre: rejilla de puntos dibujada con el color del texto (sin icono).
+.layout-editor__handle {
+  display: flex;
+  flex-shrink: 0;
+  width: 0.75rem;
+  height: 1.25rem;
+  background-image: radial-gradient(circle, var(--text-muted-color) 1.5px, transparent 2px);
+  background-size: 6px 6px;
+  cursor: grab;
+}
+
+.layout-editor__type {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted-color);
+}
+
+.layout-editor__remove {
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm);
+  color: var(--danger-color);
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+}
+
+.layout-editor__name {
+  font-weight: 500;
+  color: var(--text-color);
+  overflow-wrap: anywhere;
+}
+
+.layout-editor__name--muted {
+  font-weight: 400;
+  color: var(--text-muted-color);
+}
+
+.layout-editor__text {
+  font-size: var(--font-size-sm);
+}
+
+.layout-editor__span {
+  width: auto;
+  min-width: 5.5rem;
+  padding-top: var(--spacing-xs);
+  padding-bottom: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+}
+
+.layout-editor__moves {
+  display: flex;
+  gap: 2px;
+}
+
+.layout-editor__icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.875rem;
+  height: 1.875rem;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  background: var(--background-color);
+  color: var(--text-color);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: var(--text-muted-color);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 1px;
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+}
+
+// `arrow-left.svg` es el único icono de flecha descargado: se gira para las demás direcciones.
+.layout-editor__arrow--right {
+  transform: rotate(180deg);
+}
+
+.layout-editor__arrow--up {
+  transform: rotate(90deg);
+}
+
+.layout-editor__arrow--down {
+  transform: rotate(-90deg);
+}
+
+.layout-editor__error {
+  margin: 0;
+}
+
+.layout-editor__new-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  border: 2px dashed var(--border-color);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted-color);
+}
+
+.layout-editor__add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+// Estados de arrastre de @angular/cdk: el elemento que se arrastra y su hueco.
+.cdk-drag-preview {
+  box-sizing: border-box;
+  border-radius: var(--border-radius-sm);
+  opacity: 0.9;
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.3;
+}
+
+.cdk-drag-animating,
+.layout-editor__items.cdk-drop-list-dragging .layout-editor__item:not(.cdk-drag-placeholder) {
+  transition: transform 200ms ease;
+}

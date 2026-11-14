@@ -1,0 +1,367 @@
+<article
+  class="template-variable"
+  [class.template-variable--muted]="!isVisible"
+  [class.template-variable--invalid]="errorCount > 0"
+  [attr.aria-labelledby]="id('title')"
+>
+  <div class="template-variable__main">
+    <div class="template-variable__identity">
+      <h3 class="template-variable__title" [id]="id('title')">
+        @if (config.label) {
+          <span class="template-variable__label">{{ config.label }}</span>
+          <span class="template-variable__code">{{ name }}</span>
+        } @else {
+          <span class="template-variable__code template-variable__code--main">{{ name }}</span>
+        }
+      </h3>
+      <p class="template-variable__meta">
+        <span>{{ typeLabel }}</span>
+        @if (variable.isUnconfigured) {
+          <span class="template-variable__chip template-variable__chip--new">Sin configurar</span>
+        }
+        @if (hasSuggestion && isVisible && !config.options && !config.booleanLabels) {
+          <span class="template-variable__chip template-variable__chip--hint">Sugerencia</span>
+        }
+      </p>
+      @if (variable.comment) {
+        <p class="template-variable__comment">{{ variable.comment }}</p>
+      }
+    </div>
+
+    <fieldset class="template-variable__modes">
+      <legend class="visually-hidden">Modo de {{ config.label || name }}</legend>
+      @for (option of modeOptions; track option.mode) {
+        <label class="template-variable__mode" [title]="option.description">
+          <input
+            type="radio"
+            class="template-variable__mode-input"
+            [name]="id('mode')"
+            [value]="option.mode"
+            [checked]="config.mode === option.mode"
+            (change)="setMode(option.mode)"
+          />
+          <span class="template-variable__mode-label">{{ option.label }}</span>
+        </label>
+      }
+    </fieldset>
+  </div>
+
+  @if (isFixed) {
+    <div class="template-variable__fixed">
+      <app-recipe-value-field
+        [variable]="valueVariable('fixed')"
+        [value]="config.fixedValue"
+        [error]="error('fixedValue')"
+        [idPrefix]="id('fixed')"
+        [hideTechnicalName]="true"
+        (valueChange)="onFixedValue($event)"
+      />
+    </div>
+  }
+
+  @if (hasSettings) {
+    <button
+      type="button"
+      class="template-variable__toggle"
+      [attr.aria-expanded]="expanded()"
+      [attr.aria-controls]="id('settings')"
+      (click)="toggleExpanded()"
+    >
+      <span
+        class="template-variable__chevron"
+        [class.template-variable__chevron--open]="expanded()"
+        aria-hidden="true"
+      ></span>
+      {{ expanded() ? 'Ocultar ajustes' : 'Nombre, ayuda y más ajustes' }}
+      @if (settingsErrorCount > 0) {
+        <span class="template-variable__chip template-variable__chip--error"
+          >{{ settingsErrorCount }} {{ settingsErrorCount === 1 ? 'error' : 'errores' }}</span
+        >
+      }
+    </button>
+  }
+
+  @if (hasSettings && expanded()) {
+    <div class="template-variable__settings" [id]="id('settings')">
+      <div class="template-variable__grid">
+        <div class="form-field template-variable__field template-variable__field--wide">
+          <label class="form-label" [for]="id('label')">Nombre visible</label>
+          <input
+            class="form-input"
+            [id]="id('label')"
+            maxlength="60"
+            [placeholder]="name"
+            [value]="config.label ?? ''"
+            (input)="onText('label', $event)"
+          />
+        </div>
+
+        <div class="form-field template-variable__field template-variable__field--wide">
+          <label class="form-label" [for]="id('help')">Texto de ayuda</label>
+          <input
+            class="form-input"
+            [id]="id('help')"
+            maxlength="300"
+            [placeholder]="variable.comment ?? 'Sin texto de ayuda'"
+            [attr.aria-describedby]="variable.comment ? id('help-hint') : null"
+            [value]="config.helpText ?? ''"
+            (input)="onText('helpText', $event)"
+          />
+          @if (variable.comment) {
+            <p class="text-muted" [id]="id('help-hint')">
+              Si lo dejas vacío se muestra la descripción de la GVL.
+            </p>
+          }
+        </div>
+
+        @if (applies('unit')) {
+          <div class="form-field template-variable__field">
+            <label class="form-label" [for]="id('unit')">Unidad</label>
+            <input
+              class="form-input"
+              [id]="id('unit')"
+              maxlength="16"
+              placeholder="mm, rpm…"
+              [value]="config.unit ?? ''"
+              (input)="onText('unit', $event)"
+            />
+          </div>
+        }
+
+        @if (applies('decimals')) {
+          <div class="form-field template-variable__field">
+            <label class="form-label" [for]="id('decimals')">Decimales</label>
+            <input
+              class="form-input"
+              [id]="id('decimals')"
+              type="number"
+              min="0"
+              max="6"
+              step="1"
+              inputmode="numeric"
+              placeholder="Sin límite"
+              [value]="config.decimals ?? ''"
+              [attr.aria-invalid]="error('decimals') ? true : null"
+              [attr.aria-describedby]="describedBy('decimals')"
+              (input)="onNumber('decimals', $event)"
+            />
+            @if (error('decimals')) {
+              <p class="form-error" [id]="id('decimals-error')">{{ error('decimals') }}</p>
+            }
+          </div>
+        }
+
+        @if (applies('min')) {
+          <div class="form-field template-variable__field">
+            <label class="form-label" [for]="id('min')">Mínimo</label>
+            <input
+              class="form-input"
+              [id]="id('min')"
+              type="number"
+              step="any"
+              inputmode="decimal"
+              [placeholder]="variable.mappingMin ?? 'Sin mínimo'"
+              [value]="config.min ?? ''"
+              [attr.aria-invalid]="error('min') ? true : null"
+              [attr.aria-describedby]="
+                describedBy('min', mappingText ? id('range-hint') : undefined)
+              "
+              (input)="onNumber('min', $event)"
+            />
+            @if (error('min')) {
+              <p class="form-error" [id]="id('min-error')">{{ error('min') }}</p>
+            }
+          </div>
+          <div class="form-field template-variable__field">
+            <label class="form-label" [for]="id('max')">Máximo</label>
+            <input
+              class="form-input"
+              [id]="id('max')"
+              type="number"
+              step="any"
+              inputmode="decimal"
+              [placeholder]="variable.mappingMax ?? 'Sin máximo'"
+              [value]="config.max ?? ''"
+              [attr.aria-invalid]="error('max') ? true : null"
+              [attr.aria-describedby]="
+                describedBy('max', mappingText ? id('range-hint') : undefined)
+              "
+              (input)="onNumber('max', $event)"
+            />
+            @if (error('max')) {
+              <p class="form-error" [id]="id('max-error')">{{ error('max') }}</p>
+            }
+          </div>
+          @if (mappingText) {
+            <p class="text-muted template-variable__field--wide" [id]="id('range-hint')">
+              {{ mappingText }} El rango de la receta debe quedar dentro.
+            </p>
+          }
+        }
+
+        @if (applies('minLength')) {
+          <div class="form-field template-variable__field">
+            <label class="form-label" [for]="id('minLength')">Longitud mínima</label>
+            <input
+              class="form-input"
+              [id]="id('minLength')"
+              type="number"
+              min="0"
+              max="256"
+              step="1"
+              inputmode="numeric"
+              placeholder="0"
+              [value]="config.minLength ?? ''"
+              [attr.aria-invalid]="error('minLength') ? true : null"
+              [attr.aria-describedby]="describedBy('minLength')"
+              (input)="onNumber('minLength', $event)"
+            />
+            @if (error('minLength')) {
+              <p class="form-error" [id]="id('minLength-error')">{{ error('minLength') }}</p>
+            }
+          </div>
+          <div class="form-field template-variable__field">
+            <label class="form-label" [for]="id('maxLength')">Longitud máxima</label>
+            <input
+              class="form-input"
+              [id]="id('maxLength')"
+              type="number"
+              min="0"
+              max="256"
+              step="1"
+              inputmode="numeric"
+              placeholder="256"
+              [value]="config.maxLength ?? ''"
+              [attr.aria-invalid]="error('maxLength') ? true : null"
+              [attr.aria-describedby]="describedBy('maxLength')"
+              (input)="onNumber('maxLength', $event)"
+            />
+            @if (error('maxLength')) {
+              <p class="form-error" [id]="id('maxLength-error')">{{ error('maxLength') }}</p>
+            }
+          </div>
+        }
+
+        @if (applies('booleanLabels')) {
+          <fieldset class="template-variable__group template-variable__field--wide">
+            <legend class="form-label">Textos del interruptor</legend>
+            <div class="template-variable__pair">
+              <div class="form-field">
+                <label class="form-label" [for]="id('false-label')">Cuando está apagado</label>
+                <input
+                  class="form-input"
+                  [id]="id('false-label')"
+                  maxlength="30"
+                  placeholder="No"
+                  [value]="config.booleanLabels?.falseLabel ?? ''"
+                  (input)="onBooleanLabel('falseLabel', $event)"
+                />
+              </div>
+              <div class="form-field">
+                <label class="form-label" [for]="id('true-label')">Cuando está encendido</label>
+                <input
+                  class="form-input"
+                  [id]="id('true-label')"
+                  maxlength="30"
+                  placeholder="Sí"
+                  [value]="config.booleanLabels?.trueLabel ?? ''"
+                  (input)="onBooleanLabel('trueLabel', $event)"
+                />
+              </div>
+            </div>
+            @if (variable.suggestedBooleanLabels) {
+              <button
+                type="button"
+                class="template-variable__link"
+                (click)="applySuggestedBooleanLabels()"
+              >
+                Usar {{ suggestionText() }} de la descripción
+              </button>
+            }
+            @if (error('booleanLabels')) {
+              <p class="form-error">{{ error('booleanLabels') }}</p>
+            }
+          </fieldset>
+        }
+
+        @if (applies('options')) {
+          <fieldset class="template-variable__group template-variable__field--wide">
+            <legend class="form-label">Lista de opciones</legend>
+            @if (options.length === 0) {
+              <p class="text-muted">
+                Sin lista: se escribe un número. Con lista, se elige entre las opciones.
+              </p>
+            } @else {
+              <ul class="template-variable__options">
+                @for (option of options; track $index; let index = $index) {
+                  <li class="template-variable__option">
+                    <input
+                      class="form-input template-variable__option-value"
+                      type="number"
+                      step="1"
+                      inputmode="numeric"
+                      [attr.aria-label]="'Valor de la opción ' + (index + 1)"
+                      [value]="option.value"
+                      (input)="onOptionValue(index, $event)"
+                    />
+                    <input
+                      class="form-input"
+                      maxlength="60"
+                      [attr.aria-label]="'Texto de la opción ' + (index + 1)"
+                      placeholder="Texto"
+                      [value]="option.label"
+                      (input)="onOptionLabel(index, $event)"
+                    />
+                    <button
+                      type="button"
+                      class="template-variable__link"
+                      [attr.aria-label]="'Quitar la opción ' + (index + 1)"
+                      (click)="removeOption(index)"
+                    >
+                      Quitar
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+            <div class="template-variable__actions">
+              <button type="button" class="template-variable__link" (click)="addOption()">
+                Añadir opción
+              </button>
+              @if (variable.suggestedOptions) {
+                <button
+                  type="button"
+                  class="template-variable__link"
+                  (click)="applySuggestedOptions()"
+                >
+                  Usar las opciones de la descripción ({{ suggestionText() }})
+                </button>
+              }
+              @if (options.length > 0) {
+                <button type="button" class="template-variable__link" (click)="clearOptions()">
+                  Quitar la lista
+                </button>
+              }
+            </div>
+            @if (error('options')) {
+              <p class="form-error" role="alert">{{ error('options') }}</p>
+            }
+          </fieldset>
+        }
+
+        @if (applies('defaultValue')) {
+          <div class="template-variable__field template-variable__field--wide">
+            <app-recipe-value-field
+              [variable]="valueVariable('default')"
+              [value]="config.defaultValue"
+              [error]="error('defaultValue')"
+              [idPrefix]="id('default')"
+              [hideTechnicalName]="true"
+              (valueChange)="onDefaultValue($event)"
+            />
+          </div>
+        }
+      </div>
+    </div>
+  }
+</article>

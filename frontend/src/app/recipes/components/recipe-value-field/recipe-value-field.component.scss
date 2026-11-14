@@ -2,33 +2,160 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
-  padding: var(--spacing-sm) 0;
-  border-bottom: 1px solid var(--border-color);
+  min-width: 0;
 }
 
-.recipe-value-field__name {
+.recipe-value-field__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--spacing-xs) var(--spacing-sm);
+}
+
+.recipe-value-field__label {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+// Nombre del PLC, solo cuando la receta base le da una etiqueta distinta.
+.recipe-value-field__code {
   font-family: monospace;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted-color);
 }
 
+.recipe-value-field__control {
+  min-height: 2.5rem;
+  box-sizing: border-box;
+}
+
+.recipe-value-field--invalid .recipe-value-field__control {
+  border-color: var(--danger-color);
+}
+
+// Unidad como sufijo pegado al campo («mm», «rpm»).
+.recipe-value-field__input-group {
+  display: flex;
+  align-items: stretch;
+}
+
+.recipe-value-field__input-group--unit .recipe-value-field__control {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.recipe-value-field__unit {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--spacing-sm);
+  border: 1px solid var(--border-color);
+  border-left: none;
+  border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
+  background: var(--surface-color);
+  color: var(--text-muted-color);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+// Interruptor: el checkbox nativo (accesible) queda invisible encima de la pista dibujada.
 .recipe-value-field__switch {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+  min-height: 2.5rem;
   cursor: pointer;
 }
 
-.recipe-value-field__checkbox {
+.recipe-value-field__switch-input {
+  position: absolute;
+  width: 2.75rem;
+  height: 1.5rem;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.recipe-value-field__track {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 1.5rem;
+  padding: 2px;
+  box-sizing: border-box;
+  border-radius: var(--border-radius-lg);
+  background: var(--text-muted-color);
+  transition: background-color 0.15s ease;
+}
+
+.recipe-value-field__thumb {
+  display: flex;
   width: 1.25rem;
   height: 1.25rem;
-  accent-color: var(--primary-color);
+  border-radius: 50%;
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
+  box-sizing: border-box;
+  transition: transform 0.15s ease;
+}
+
+.recipe-value-field__switch-input:checked + .recipe-value-field__track {
+  background: var(--primary-color);
+}
+
+.recipe-value-field__switch-input:checked + .recipe-value-field__track .recipe-value-field__thumb {
+  transform: translateX(1.25rem);
+}
+
+.recipe-value-field__switch-input:focus-visible + .recipe-value-field__track {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
 }
 
 .recipe-value-field__state {
-  color: var(--text-muted-color);
+  font-size: var(--font-size-md);
+  color: var(--text-color);
+}
+
+// Valor fijo visible: mismo alto que un campo, pero claramente no editable.
+.recipe-value-field__fixed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xs) var(--spacing-sm);
+  min-height: 2.5rem;
+  box-sizing: border-box;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--border-radius-sm);
+  background: var(--surface-color);
+}
+
+.recipe-value-field__fixed-value {
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.recipe-value-field__fixed-tag {
+  padding: 0 var(--spacing-sm);
+  border-radius: var(--border-radius-md);
+  background: var(--border-color);
+  color: var(--text-color);
   font-size: var(--font-size-sm);
 }
 
 .recipe-value-field__help {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--spacing-xs);
   margin: 0;
   font-size: var(--font-size-sm);
+  color: var(--text-muted-color);
+}
+
+.recipe-value-field__error {
+  margin: 0;
 }

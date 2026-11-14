@@ -1,0 +1,305 @@
+<div class="box template-page">
+  <header class="template-page__header">
+    <div class="template-page__heading">
+      <h1 class="title-xl">Receta base</h1>
+      <p class="text-muted">
+        Decide qué ve quien crea una receta, qué valores son fijos y cómo se ordena el formulario.
+        Guardarla no envía nada a la máquina.
+      </p>
+    </div>
+    @if (lastSaved(); as saved) {
+      <p class="text-muted template-page__saved">Última modificación: {{ saved }}</p>
+    }
+  </header>
+
+  @if (loading()) {
+    <p class="text-muted" role="status">Cargando…</p>
+  } @else if (loadError()) {
+    <p class="form-error" role="alert">{{ loadError() }}</p>
+    <a [routerLink]="['/config/machines', machineId]">Volver a la máquina</a>
+  } @else if (template(); as current) {
+    @if (!current.category || variables().length === 0) {
+      <div class="template-page__notice template-page__notice--warning" role="status">
+        <p class="text-body">
+          Esta máquina no tiene la categoría «Programación para la receta» o ninguna de sus
+          variables está mapeada. Importa las categorías de la GVL.
+        </p>
+        <a [routerLink]="['/config/machines', machineId, 'variable-categories']"
+          >Ir a las categorías de variables</a
+        >
+      </div>
+    } @else {
+      <ul class="template-page__summary" aria-label="Resumen de la receta base">
+        @for (option of modeOptions; track option.mode) {
+          <li class="template-page__summary-item">
+            <span [class]="dotClass(option.mode)" aria-hidden="true"></span>
+            <span class="template-page__summary-count">{{ counts()[option.mode] }}</span>
+            {{ option.label }}
+          </li>
+        }
+      </ul>
+
+      @if (current.isDefault) {
+        <div class="template-page__notice template-page__notice--info" role="status">
+          <p class="text-body">
+            Esta máquina usa la receta base por defecto: todas las variables son editables, en el
+            orden de la GVL. Cámbiala a tu gusto y guárdala.
+          </p>
+        </div>
+      }
+      @if (unconfiguredCount() > 0) {
+        <div class="template-page__notice template-page__notice--info" role="status">
+          <p class="text-body">
+            {{
+              unconfiguredCount() === 1
+                ? 'Hay 1 variable nueva sin configurar.'
+                : 'Hay ' + unconfiguredCount() + ' variables nuevas sin configurar.'
+            }}
+            Están ocultas hasta que decidas qué hacer con ellas.
+          </p>
+          <button
+            type="button"
+            class="template-page__link"
+            (click)="selectTab('variables'); modeFilter.set('UNCONFIGURED')"
+          >
+            Ver solo las nuevas
+          </button>
+        </div>
+      }
+      @if (current.removedVariables.length > 0) {
+        <div class="template-page__notice" role="status">
+          <p class="text-body">
+            Ya no son variables de receta y se quitarán al guardar: {{ removedText() }}.
+          </p>
+        </div>
+      }
+      @if (staleMessages().length > 0) {
+        <div class="template-page__notice template-page__notice--warning" role="status">
+          <p class="text-body">Hay ajustes que ya no valen con las variables actuales:</p>
+          <ul class="template-page__list">
+            @for (message of staleMessages(); track message) {
+              <li>{{ message }}</li>
+            }
+          </ul>
+        </div>
+      }
+
+      <div class="template-page__tabs" role="tablist" aria-label="Secciones de la receta base">
+        @for (tab of tabs; track tab.id) {
+          <button
+            type="button"
+            role="tab"
+            class="template-page__tab"
+            [class.template-page__tab--active]="activeTab() === tab.id"
+            [id]="'template-tab-' + tab.id"
+            [attr.aria-selected]="activeTab() === tab.id"
+            [attr.aria-controls]="'template-panel-' + tab.id"
+            [attr.tabindex]="activeTab() === tab.id ? 0 : -1"
+            (click)="selectTab(tab.id)"
+            (keydown)="onTabKeydown($event)"
+          >
+            {{ tab.label }}
+            @if (tabErrorCount(tab.id) > 0) {
+              <span class="template-page__tab-badge">
+                {{ tabErrorCount(tab.id) }}
+                <span class="visually-hidden">{{
+                  tabErrorCount(tab.id) === 1 ? 'error' : 'errores'
+                }}</span>
+              </span>
+            }
+          </button>
+        }
+      </div>
+
+      @switch (activeTab()) {
+        @case ('variables') {
+          <section
+            class="template-page__panel"
+            role="tabpanel"
+            id="template-panel-variables"
+            aria-labelledby="template-tab-variables"
+          >
+            <div class="template-page__toolbar">
+              <div class="form-field template-page__search">
+                <label class="form-label" for="template-filter">Buscar una variable</label>
+                <input
+                  id="template-filter"
+                  class="form-input"
+                  type="search"
+                  autocomplete="off"
+                  [value]="filter()"
+                  (input)="onFilterInput($event)"
+                />
+              </div>
+              <div class="form-field template-page__mode-filter">
+                <label class="form-label" for="template-mode-filter">Mostrar</label>
+                <select
+                  id="template-mode-filter"
+                  class="form-input"
+                  (change)="onModeFilter($event)"
+                >
+                  <option value="ALL" [selected]="modeFilter() === 'ALL'">Todas</option>
+                  @for (option of modeOptions; track option.mode) {
+                    <option [value]="option.mode" [selected]="modeFilter() === option.mode">
+                      {{ option.label }}
+                    </option>
+                  }
+                  <option value="UNCONFIGURED" [selected]="modeFilter() === 'UNCONFIGURED'">
+                    Sin configurar
+                  </option>
+                </select>
+              </div>
+              <p class="text-muted template-page__count" aria-live="polite">
+                {{ filteredVariables().length }} de {{ variables().length }} variables
+              </p>
+            </div>
+
+            <div class="template-page__variables">
+              @for (variable of filteredVariables(); track variable.signalVariableName) {
+                <app-recipe-template-variable-row
+                  [variable]="variable"
+                  [errors]="errorsOf(variable)"
+                  (variableChange)="updateVariable($event)"
+                />
+              } @empty {
+                <p class="text-muted">Ninguna variable coincide con la búsqueda.</p>
+              }
+            </div>
+          </section>
+        }
+        @case ('layout') {
+          <section
+            class="template-page__panel"
+            role="tabpanel"
+            id="template-panel-layout"
+            aria-labelledby="template-tab-layout"
+          >
+            <p class="text-muted">
+              Cada fila tiene 12 columnas. Elige el ancho de cada elemento y muévelo con las flechas
+              o arrastrándolo. Así se verá en pantallas grandes; en el móvil todo ocupa el 100 %.
+            </p>
+            <p class="text-muted template-page__small-screen">
+              El editor funciona en el móvil, pero se maneja mejor en una pantalla más grande.
+            </p>
+            @if (errors().layout.length > 0) {
+              <ul class="template-page__list template-page__errors" role="alert">
+                @for (message of errors().layout; track message) {
+                  <li>{{ message }}</li>
+                }
+              </ul>
+            }
+            <app-recipe-layout-editor
+              [rows]="rows()"
+              [variables]="variables()"
+              [errors]="errors()"
+              (rowsChange)="onRowsChange($event)"
+            />
+          </section>
+        }
+        @case ('preview') {
+          <section
+            class="template-page__panel"
+            role="tabpanel"
+            id="template-panel-preview"
+            aria-labelledby="template-tab-preview"
+          >
+            <div class="template-page__preview-toolbar">
+              <p class="text-muted">
+                Así verá el formulario quien cree una receta. Puedes probar los campos: no se guarda
+                nada.
+              </p>
+              <fieldset class="template-page__devices">
+                <legend class="visually-hidden">Ancho de pantalla</legend>
+                @for (option of devices; track option.id) {
+                  <label class="template-page__device-option">
+                    <input
+                      type="radio"
+                      name="template-preview-device"
+                      class="template-page__device-input"
+                      [value]="option.id"
+                      [checked]="device() === option.id"
+                      (change)="selectDevice(option.id)"
+                    />
+                    <span class="template-page__device-label">{{ option.label }}</span>
+                  </label>
+                }
+              </fieldset>
+            </div>
+
+            <div [class]="'template-page__frame template-page__frame--' + device()">
+              @if (preview().variables.length > 0) {
+                <app-recipe-layout
+                  [variables]="preview().variables"
+                  [layout]="preview().layout"
+                  [fieldTemplate]="previewField"
+                  [device]="device()"
+                />
+              } @else {
+                <p class="text-muted">
+                  No hay ninguna variable visible: el formulario solo tendría título y descripción.
+                </p>
+              }
+              @if ((preview().hiddenCount ?? 0) > 0) {
+                <p class="text-muted template-page__hidden-note">
+                  {{ preview().hiddenCount }}
+                  {{
+                    preview().hiddenCount === 1 ? 'variable no aparece' : 'variables no aparecen'
+                  }}
+                  porque están ocultas o tienen un valor fijo oculto.
+                </p>
+              }
+            </div>
+          </section>
+        }
+      }
+
+      <ng-template #previewField let-variable>
+        <app-recipe-value-field
+          [variable]="variable"
+          [value]="previewValueOf(variable)"
+          idPrefix="preview"
+          (valueChange)="setPreviewValue(variable, $event)"
+        />
+      </ng-template>
+
+      <footer class="template-page__footer">
+        @if (formError()) {
+          <p class="form-error" role="alert">{{ formError() }}</p>
+        }
+        <div class="template-page__actions">
+          <button type="button" class="btn-primary" [disabled]="saving()" (click)="save()">
+            {{ saving() ? 'Guardando…' : 'Guardar receta base' }}
+          </button>
+          <a class="btn-secondary" [routerLink]="['/config/machines', machineId]"
+            >Volver a la máquina</a
+          >
+          <a class="btn-secondary" routerLink="/recetas">Ir a las recetas</a>
+        </div>
+      </footer>
+    }
+  }
+
+  @if (pendingImpact(); as impact) {
+    <app-confirm-dialog
+      [open]="true"
+      title="Algunas recetas quedarán incompletas"
+      [message]="impactText(impact)"
+      confirmLabel="Guardar igualmente"
+      cancelLabel="Seguir editando"
+      [danger]="false"
+      (confirmed)="confirmImpact()"
+      (cancelled)="cancelImpact()"
+    />
+  }
+
+  <app-confirm-dialog
+    [open]="conflictOpen()"
+    title="La receta base ha cambiado"
+    message="Otra persona ha guardado cambios en la receta base mientras la editabas. Puedes recargarla (perderás tus cambios) o seguir editando para copiarlos a mano."
+    confirmLabel="Recargar la receta base"
+    cancelLabel="Seguir editando"
+    [danger]="false"
+    (confirmed)="reloadAfterConflict()"
+    (cancelled)="keepEditing()"
+  />
+</div>

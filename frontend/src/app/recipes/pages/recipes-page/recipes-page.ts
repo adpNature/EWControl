@@ -64,7 +64,13 @@ export class RecipesPage implements OnInit, OnDestroy {
   readonly pendingAction = signal<PendingAction | null>(null);
 
   readonly isAdmin = computed(() => canConfigure(this.authState.currentUser()?.role));
-  readonly canCreate = computed(() => (this.variableSet()?.variables.length ?? 0) > 0);
+  /** Hay variables de receta (visibles o no): si están todas ocultas, aún se puede crear. */
+  readonly canCreate = computed(() => {
+    const set = this.variableSet();
+    return !!set && (set.variables.length > 0 || (set.hiddenCount ?? 0) > 0);
+  });
+  /** spec 26: un valor fijo de la receta base que ya no vale bloquea las activaciones. */
+  readonly isTemplateInvalid = computed(() => this.variableSet()?.isTemplateValid === false);
   readonly totalPages = computed(() => Math.max(1, Math.ceil(this.total() / PAGE_SIZE)));
   readonly emptyMessage = computed(() =>
     this.appliedSearch()

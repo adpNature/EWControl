@@ -17,6 +17,9 @@
             >
               Categorías
             </a>
+            <a [routerLink]="['/config/machines', m.id, 'recipe-template']" class="btn-secondary">
+              Receta base
+            </a>
           }
           <button type="button" class="btn-edit" (click)="editMachine(m.id)">Editar</button>
           <button type="button" class="btn-danger" (click)="deleteMachineDialogOpen.set(true)">

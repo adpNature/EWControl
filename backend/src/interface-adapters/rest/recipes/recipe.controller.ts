@@ -15,14 +15,17 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import type { RecipeVariableSet } from '../../../entities/recipe.vo';
+import type { RecipeFormDefinition } from '../../../entities/recipe-template.vo';
 import { UserRole } from '../../../entities/user-role.enum';
 import { MachineNotFoundError } from '../../../use-cases/machine-management/errors/machine-not-found.error';
+import { InvalidRecipeTemplateError } from '../../../use-cases/recipes/errors/invalid-recipe-template.error';
 import { InvalidRecipeValuesError } from '../../../use-cases/recipes/errors/invalid-recipe-values.error';
 import { RecipeIncompleteError } from '../../../use-cases/recipes/errors/recipe-incomplete.error';
 import { RecipeLimitReachedError } from '../../../use-cases/recipes/errors/recipe-limit-reached.error';
 import { RecipeModifiedError } from '../../../use-cases/recipes/errors/recipe-modified.error';
 import { RecipeNotFoundError } from '../../../use-cases/recipes/errors/recipe-not-found.error';
+import { RecipeTemplateInvalidError } from '../../../use-cases/recipes/errors/recipe-template-invalid.error';
+import { RecipeTemplateModifiedError } from '../../../use-cases/recipes/errors/recipe-template-modified.error';
 import { RecipeTitleTakenError } from '../../../use-cases/recipes/errors/recipe-title-taken.error';
 import { RecipeVariablesNotAvailableError } from '../../../use-cases/recipes/errors/recipe-variables-not-available.error';
 import {
@@ -67,7 +70,7 @@ export class RecipeController {
   variables(
     @Param('machineId') machineId: string,
     @currentUser() user: CurrentUser,
-  ): Promise<RecipeVariableSet> {
+  ): Promise<RecipeFormDefinition> {
     return run(() => this.getRecipeVariables.execute({ machineId, requester: requesterOf(user) }));
   }
 
@@ -187,7 +190,10 @@ function valuesOf(dto: CreateRecipeDto) {
   return dto.values.map(({ signalVariableName, value }) => ({ signalVariableName, value }));
 }
 
-async function run<T>(work: () => Promise<T>): Promise<T> {
+const run = runRecipeWork;
+
+/** Ejecuta un caso de uso de recetas o de receta base traduciendo sus errores a HTTP. */
+export async function runRecipeWork<T>(work: () => Promise<T>): Promise<T> {
   try {
     return await work();
   } catch (error) {
@@ -195,7 +201,10 @@ async function run<T>(work: () => Promise<T>): Promise<T> {
   }
 }
 
-/** Traduce los errores de los casos de uso a los códigos de docs/specs/25-recetas.md. */
+/**
+ * Traduce los errores de los casos de uso a los códigos de docs/specs/25-recetas.md
+ * y docs/specs/26-receta-base.md.
+ */
 export function toHttpException(error: unknown): HttpException {
   if (error instanceof MachineNotFoundError) {
     return new NotFoundException({ code: 'MACHINE_NOT_FOUND', message: error.message });
@@ -210,7 +219,16 @@ export function toHttpException(error: unknown): HttpException {
       details: error.issues,
     });
   }
+  if (error instanceof InvalidRecipeTemplateError) {
+    return new BadRequestException({
+      code: 'INVALID_RECIPE_TEMPLATE',
+      message: error.message,
+      details: error.issues,
+    });
+  }
   const conflicts: [new (...args: never[]) => Error, string][] = [
+    [RecipeTemplateModifiedError, 'RECIPE_TEMPLATE_MODIFIED'],
+    [RecipeTemplateInvalidError, 'RECIPE_TEMPLATE_INVALID'],
     [RecipeTitleTakenError, 'RECIPE_TITLE_TAKEN'],
     [RecipeModifiedError, 'RECIPE_MODIFIED'],
     [RecipeIncompleteError, 'RECIPE_INCOMPLETE'],

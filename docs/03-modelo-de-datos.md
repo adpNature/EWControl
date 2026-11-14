@@ -1455,7 +1455,7 @@ Implementada en [docs/specs/25-recetas.md](specs/25-recetas.md). Una **Recipe** 
 
 - Pertenece a una Machine (y hereda su Company); se borra físicamente.
 - `title` único en la Machine sin distinguir mayúsculas ni tildes; `description` opcional.
-- `values`: un valor por variable de receta, validado contra su `dataType` y sus límites.
+- `values`: un valor por variable **editable** de la receta base (spec 26), validado contra su `dataType` y sus reglas efectivas.
 - `isActivated` (con quién y cuándo): marca sin efecto sobre la máquina.
 - `version`: sube en cada edición, para detectar ediciones simultáneas.
 
@@ -1463,13 +1463,42 @@ Implementada en [docs/specs/25-recetas.md](specs/25-recetas.md). Una **Recipe** 
 
 ### Reglas del Dominio
 
-**Regla 1.** Al crear o editar una receta, todas las variables de receta tienen un valor válido, y no hay valores de otras variables.
+**Regla 1.** Al crear o editar una receta, todas las variables editables de la receta base tienen un valor válido, y no hay valores de otras variables.
 
-**Regla 2.** Si después cambian las variables de receta, la receta queda incompleta (valores que faltan o que ya no valen), pero no se pierde. Una receta incompleta no se puede activar.
+**Regla 2.** Si después cambian las variables de receta o la receta base, la receta queda incompleta (valores que faltan o que ya no valen), pero no se pierde. Una receta incompleta no se puede activar. Los valores de variables que han dejado de ser editables no la dejan incompleta: se ignoran y desaparecen al volver a guardarla.
 
 **Regla 3.** Como mucho hay una receta activa por Machine.
 
 **Regla 4.** Una receta nunca genera lecturas ni escrituras en el PLC, ni puntos en el histórico.
+
+---
+
+## 3.2.12 RecipeTemplate
+
+### Introducción
+
+Implementada en [docs/specs/26-receta-base.md](specs/26-receta-base.md). La **RecipeTemplate** (receta base) es la configuración de la que parten todas las recetas de una Machine: decide, para cada variable de receta, si aparece en el formulario y si tiene un valor fijo, sus reglas (rango, decimales, longitud, opciones, textos de un `Boolean`, valor por defecto) y la disposición del formulario en una cuadrícula de 12 columnas. Mientras una Machine no tiene receta base guardada, se usa una por defecto que no se guarda (todo editable, en el orden de la GVL).
+
+---
+
+### Responsabilidades
+
+- Pertenece a una Machine (como mucho una por Machine); la gestionan `AdminCliente` y `SuperAdmin`.
+- `variables`: el modo de cada variable de receta (`EDITABLE`, `FIXED_VISIBLE`, `FIXED_HIDDEN`, `HIDDEN`) y sus ajustes.
+- `layout`: filas de como mucho 12 columnas con títulos, textos, huecos y variables.
+- `version`: sube en cada guardado, para detectar ediciones simultáneas.
+
+---
+
+### Reglas del Dominio
+
+**Regla 1.** Cada variable editable o fija visible aparece exactamente una vez en la disposición; las ocultas no aparecen.
+
+**Regla 2.** Un valor fijo se guarda solo en la receta base y cumple el tipo y los límites del mapeo. Lo que llegaría a la máquina con una receta son sus valores editables más los valores fijos de la receta base; las variables ocultas no llegan.
+
+**Regla 3.** Las variables de receta nuevas cuentan como ocultas hasta que se configuran, así que no dejan ninguna receta incompleta.
+
+**Regla 4.** Si un valor fijo deja de ser válido, no se puede activar ninguna receta de la Machine hasta corregirlo. El resto de ajustes que dejan de valer se ignoran.
 
 ---
 

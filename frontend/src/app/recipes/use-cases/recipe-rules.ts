@@ -12,35 +12,106 @@ import {
 } from '../entities/recipe.model';
 
 /**
- * Reglas de presentación de docs/specs/25-recetas.md. El Backend es la
- * autoridad final; aquí solo se evita enviar lo que seguro va a rechazar.
- * Tipos y límites se validan igual que los paquetes de escritura (spec 20).
+ * Reglas de presentación de docs/specs/25-recetas.md y de las reglas efectivas
+ * de la receta base (docs/specs/26-receta-base.md). El Backend es la autoridad
+ * final; aquí solo se evita enviar lo que seguro va a rechazar. Tipos y límites
+ * se validan igual que los paquetes de escritura (spec 20).
  */
 export const MAX_RECIPE_TITLE_LENGTH = 120;
 export const MAX_RECIPE_DESCRIPTION_LENGTH = 500;
 export const RECIPE_CATEGORY_NAME = 'Programación para la receta';
 
 /**
- * Valor inicial de una variable en una receta nueva (spec 25): «No» en los
- * interruptores, texto vacío (que es un valor válido) en los `String` y sin
- * valor en los numéricos, que el usuario tiene que rellenar.
+ * Valor inicial de una variable en una receta nueva: el valor por defecto de
+ * la receta base si lo tiene (spec 26); si no, «No» en los interruptores,
+ * texto vacío (que es un valor válido) en los `String` y sin valor en los
+ * numéricos y desplegables, que el usuario tiene que rellenar (spec 25).
  */
 export function initialValue(variable: RecipeVariable): RecipeValue | null {
+  if (variable.defaultValue !== undefined && variable.defaultValue !== null) {
+    return variable.defaultValue;
+  }
   if (variable.dataType === 'Boolean') {
     return false;
   }
   return variable.dataType === 'String' ? '' : null;
 }
 
-/** Mensaje de error de un valor (todos son obligatorios), o `null` si es válido. */
+/**
+ * Mensaje de error de un valor (todos son obligatorios), o `null` si es válido:
+ * tipo y rango efectivo (spec 25) y, si la receta base los configura,
+ * opciones, decimales y longitud (spec 26).
+ */
 export function recipeValueError(
   variable: RecipeVariable,
   value: RecipeValue | null,
 ): string | null {
   if (value === null || (typeof value === 'number' && Number.isNaN(value))) {
-    return 'Obligatorio.';
+    return variable.options?.length ? 'Elige una opción.' : 'Obligatorio.';
   }
-  return writeValueError(toLimits(variable), value);
+  const typeError = writeValueError(toLimits(variable), value);
+  if (typeError) {
+    return typeError;
+  }
+  if (typeof value === 'number') {
+    if (variable.options?.length && !variable.options.some((option) => option.value === value)) {
+      return 'Elige una de las opciones.';
+    }
+    if (variable.decimals != null && !hasAtMostDecimals(value, variable.decimals)) {
+      return variable.decimals === 0
+        ? 'Sin decimales.'
+        : `Como mucho ${variable.decimals} ${variable.decimals === 1 ? 'decimal' : 'decimales'}.`;
+    }
+  }
+  if (typeof value === 'string') {
+    if (variable.minLength != null && value.length < variable.minLength) {
+      return `Mínimo ${variable.minLength} caracteres.`;
+    }
+    if (variable.maxLength != null && value.length > variable.maxLength) {
+      return `Máximo ${variable.maxLength} caracteres.`;
+    }
+  }
+  return null;
+}
+
+/** `true` si `value` no tiene más de `decimals` decimales (tolerando la representación binaria). */
+export function hasAtMostDecimals(value: number, decimals: number): boolean {
+  const scaled = value * 10 ** decimals;
+  return Math.abs(scaled - Math.round(scaled)) <= 1e-9 * Math.max(1, Math.abs(scaled));
+}
+
+/** Nombre que ve el usuario: la etiqueta de la receta base o, si no hay, el nombre del PLC. */
+export function variableLabel(
+  variable: Pick<RecipeVariable, 'signalVariableName' | 'label'>,
+): string {
+  return variable.label?.trim() ? variable.label : variable.signalVariableName;
+}
+
+/** Texto de ayuda: el de la receta base o, si no hay, el comentario importado de la GVL. */
+export function variableHelp(variable: RecipeVariable): string | null {
+  return variable.helpText?.trim() ? variable.helpText : variable.comment;
+}
+
+/**
+ * Valor legible para mostrarlo en solo lectura: el texto de la opción o del
+ * `Boolean` si la receta base los define, y la unidad si la tiene.
+ */
+export function formatRecipeValue(
+  variable: Pick<RecipeVariable, 'booleanLabels' | 'options' | 'unit'>,
+  value: RecipeValue,
+): string {
+  if (typeof value === 'boolean') {
+    const labels = variable.booleanLabels;
+    return value ? (labels?.trueLabel ?? 'Sí') : (labels?.falseLabel ?? 'No');
+  }
+  const option = variable.options?.find((candidate) => candidate.value === value);
+  if (option) {
+    return option.label;
+  }
+  if (value === '') {
+    return '(vacío)';
+  }
+  return variable.unit ? `${value} ${variable.unit}` : String(value);
 }
 
 /** Convierte lo escrito en un control al valor del tipo de la variable. */
@@ -71,9 +142,13 @@ export function recipeStatusLabel(
 const ISSUE_MESSAGES: ReadonlyMap<RecipeValueIssue['reason'], string> = new Map([
   ['MISSING', 'Obligatorio.'],
   ['NOT_A_RECIPE_VARIABLE', 'Ya no es una variable de la receta.'],
+  ['NOT_EDITABLE', 'Esta variable tiene un valor fijo o está oculta.'],
   ['DUPLICATED', 'Variable repetida.'],
   ['TYPE_MISMATCH', 'El valor no es válido para su tipo.'],
   ['OUT_OF_RANGE', 'Fuera de los límites permitidos.'],
+  ['NOT_AN_OPTION', 'Elige una de las opciones.'],
+  ['TOO_MANY_DECIMALS', 'Tiene demasiados decimales.'],
+  ['INVALID_LENGTH', 'La longitud del texto no es válida.'],
 ]);
 
 /** Mensaje de un problema de valor devuelto por el Backend (`400 INVALID_RECIPE_VALUES`). */
@@ -86,6 +161,15 @@ export function issueMessage(issue: RecipeValueIssue): string {
     return limits.length > 0
       ? `Fuera de los límites (${limits.join(', ')}).`
       : (ISSUE_MESSAGES.get('OUT_OF_RANGE') as string);
+  }
+  if (issue.reason === 'INVALID_LENGTH') {
+    const limits = [
+      ...(issue.minLength !== undefined ? [`mínimo ${issue.minLength}`] : []),
+      ...(issue.maxLength !== undefined ? [`máximo ${issue.maxLength}`] : []),
+    ];
+    if (limits.length > 0) {
+      return `Longitud no válida (${limits.join(', ')} caracteres).`;
+    }
   }
   return ISSUE_MESSAGES.get(issue.reason) ?? issue.reason;
 }
@@ -108,6 +192,10 @@ const API_ERROR_MESSAGES: ReadonlyMap<string, string> = new Map([
     `Esta máquina no tiene la categoría «${RECIPE_CATEGORY_NAME}».`,
   ],
   ['INVALID_RECIPE_VALUES', 'Revisa los valores marcados.'],
+  [
+    'RECIPE_TEMPLATE_INVALID',
+    'La receta base tiene valores fijos que ya no son válidos. Pide a un administrador que la revise.',
+  ],
   ['RECIPE_NOT_FOUND', 'La receta ya no existe.'],
   ['MACHINE_NOT_FOUND', 'La máquina no existe.'],
 ]);

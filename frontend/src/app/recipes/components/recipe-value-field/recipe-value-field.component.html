@@ -1,51 +1,94 @@
-<div class="recipe-value-field" [class.recipe-value-field--invalid]="!!error">
-  @if (isBoolean) {
-    <label class="recipe-value-field__switch" [for]="controlId">
+<div
+  class="recipe-value-field"
+  [class.recipe-value-field--invalid]="!!error"
+  [class.recipe-value-field--fixed]="isFixed"
+>
+  <div class="recipe-value-field__header">
+    <label class="recipe-value-field__label" [for]="controlId">{{ label }}</label>
+    @if (showTechnicalName) {
+      <span class="recipe-value-field__code" aria-hidden="true">{{
+        variable.signalVariableName
+      }}</span>
+    }
+  </div>
+
+  @if (isFixed) {
+    <output
+      class="recipe-value-field__fixed"
+      [id]="controlId"
+      [attr.aria-describedby]="help ? helpId : null"
+    >
+      <span class="recipe-value-field__fixed-value">{{ fixedText }}</span>
+      <span class="recipe-value-field__fixed-tag">Valor fijo</span>
+    </output>
+  } @else if (isBoolean) {
+    <label class="recipe-value-field__switch">
       <input
         type="checkbox"
         role="switch"
-        class="recipe-value-field__checkbox"
+        class="recipe-value-field__switch-input"
         [id]="controlId"
         [checked]="value === true"
         [attr.aria-checked]="value === true"
         [attr.aria-describedby]="describedBy"
         (change)="onToggle($event)"
       />
-      <span class="recipe-value-field__name">{{ variable.signalVariableName }}</span>
-      <span class="recipe-value-field__state" aria-hidden="true">{{
-        value === true ? 'Sí' : 'No'
-      }}</span>
+      <span class="recipe-value-field__track" aria-hidden="true">
+        <span class="recipe-value-field__thumb"></span>
+      </span>
+      <span class="recipe-value-field__state" aria-hidden="true">{{ booleanStateText }}</span>
     </label>
-  } @else {
-    <label class="form-label recipe-value-field__name" [for]="controlId">
-      {{ variable.signalVariableName }}
-    </label>
-    <input
-      class="form-input"
+  } @else if (hasOptions) {
+    <select
+      class="form-input recipe-value-field__control"
       [id]="controlId"
-      [type]="isString ? 'text' : 'number'"
-      [attr.step]="isString ? null : 'any'"
-      [attr.inputmode]="isString ? null : 'decimal'"
-      [attr.min]="variable.min"
-      [attr.max]="variable.max"
-      [attr.maxlength]="isString ? 256 : null"
-      [value]="value ?? ''"
       required
       [attr.aria-invalid]="error ? true : null"
       [attr.aria-describedby]="describedBy"
-      (input)="onInput($event)"
-    />
+      (change)="onSelect($event)"
+    >
+      <option value="" [selected]="value === null">Elige una opción</option>
+      @for (option of variable.options; track option.value) {
+        <option [value]="option.value" [selected]="option.value === value">
+          {{ option.label }}
+        </option>
+      }
+    </select>
+  } @else {
+    <div
+      class="recipe-value-field__input-group"
+      [class.recipe-value-field__input-group--unit]="!!variable.unit"
+    >
+      <input
+        class="form-input recipe-value-field__control"
+        [id]="controlId"
+        [type]="isString ? 'text' : 'number'"
+        [attr.step]="step"
+        [attr.inputmode]="isString ? null : isIntegerInput ? 'numeric' : 'decimal'"
+        [attr.min]="variable.min"
+        [attr.max]="variable.max"
+        [attr.maxlength]="maxLength"
+        [value]="value ?? ''"
+        required
+        [attr.aria-invalid]="error ? true : null"
+        [attr.aria-describedby]="describedBy"
+        (input)="onInput($event)"
+      />
+      @if (variable.unit && !isString) {
+        <span class="recipe-value-field__unit" aria-hidden="true">{{ variable.unit }}</span>
+      }
+    </div>
   }
 
-  @if (variable.comment || limitsText) {
-    <p class="text-muted recipe-value-field__help" [id]="helpId">
-      {{ variable.comment }}
+  @if (help || limitsText) {
+    <p class="recipe-value-field__help" [id]="helpId">
+      {{ help }}
       @if (limitsText) {
-        <span>{{ limitsText }}</span>
+        <span class="recipe-value-field__limits">{{ limitsText }}</span>
       }
     </p>
   }
   @if (error) {
-    <p class="form-error" [id]="errorId">{{ error }}</p>
+    <p class="form-error recipe-value-field__error" [id]="errorId">{{ error }}</p>
   }
 </div>

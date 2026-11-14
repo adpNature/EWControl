@@ -18,6 +18,10 @@ export class RecipeTypeOrmRepository implements IRecipeRepository {
     return repositoryOf(ctx).count({ where: { machineId } });
   }
 
+  listAllByMachine(machineId: string, ctx: TransactionContext): Promise<Recipe[]> {
+    return repositoryOf(ctx).find({ where: { machineId } });
+  }
+
   findById(id: string, ctx: TransactionContext): Promise<Recipe | null> {
     return repositoryOf(ctx).findOne({ where: { id } });
   }

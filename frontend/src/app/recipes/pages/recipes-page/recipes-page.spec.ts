@@ -241,6 +241,37 @@ describe('RecipesPage (docs/specs/25-recetas.md)', () => {
     ).toHaveAttribute('href', '/config/machines/machine-1/variable-categories');
   });
 
+  it('un administrador tiene el enlace a la receta base (spec 26)', async () => {
+    await renderPage('AdminCliente');
+    expect(await screen.findByRole('link', { name: 'Receta base' })).toHaveAttribute(
+      'href',
+      '/config/machines/machine-1/recipe-template',
+    );
+  });
+
+  it('el Operador no ve el enlace a la receta base (spec 26)', async () => {
+    await renderPage();
+    await screen.findByRole('link', { name: 'Nueva receta' });
+    expect(screen.queryByRole('link', { name: 'Receta base' })).not.toBeInTheDocument();
+  });
+
+  it('con un valor fijo que ya no vale avisa y no deja activar (spec 26)', async () => {
+    recipesApi['variables'].mockReturnValue(of({ ...VARIABLES, isTemplateValid: false }));
+    await renderPage();
+
+    expect(await screen.findByText(/valores fijos que ya no son válidos/)).toBeInTheDocument();
+    const activate = await screen.findByRole('button', { name: 'Activar Bobina 120' });
+    expect(activate).toBeDisabled();
+    expect(activate).toHaveAccessibleDescription('Revisa antes la receta base');
+  });
+
+  it('con todas las variables ocultas aún se pueden crear recetas (spec 26)', async () => {
+    recipesApi['variables'].mockReturnValue(of({ ...VARIABLES, variables: [], hiddenCount: 3 }));
+    await renderPage();
+
+    expect(await screen.findByRole('link', { name: 'Nueva receta' })).toBeInTheDocument();
+  });
+
   it('pagina de 20 en 20', async () => {
     recipesApi['list'].mockImplementation(
       (...[, params]: [string, { limit: number; offset: number }]) =>

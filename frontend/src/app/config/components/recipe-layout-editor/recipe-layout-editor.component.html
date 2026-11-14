@@ -1,0 +1,225 @@
+<div class="layout-editor" cdkDropListGroup>
+  <p class="visually-hidden" aria-live="polite">{{ announcement() }}</p>
+
+  @for (row of rows; track row.uid; let rowIndex = $index) {
+    <section
+      class="layout-editor__row"
+      [class.layout-editor__row--invalid]="!!rowError(row)"
+      [attr.aria-label]="'Fila ' + (rowIndex + 1)"
+    >
+      <header class="layout-editor__row-header">
+        <span class="layout-editor__row-title">Fila {{ rowIndex + 1 }}</span>
+        <span
+          class="layout-editor__meter"
+          role="img"
+          [attr.aria-label]="'Ocupa el ' + widthPercent(row) + ' %'"
+        >
+          <span
+            class="layout-editor__meter-fill"
+            [class.layout-editor__meter-fill--over]="width(row) > columns"
+            [style.width]="meterWidth(row)"
+          ></span>
+        </span>
+        <span class="layout-editor__row-width" aria-hidden="true">{{ widthPercent(row) }} %</span>
+        <span class="layout-editor__row-actions">
+          <button
+            type="button"
+            class="layout-editor__icon-button"
+            [disabled]="isFirstRow(rowIndex)"
+            [attr.aria-label]="'Subir la fila ' + (rowIndex + 1)"
+            (click)="moveRowBy(rowIndex, -1)"
+          >
+            <app-icon
+              name="arrow-left"
+              [size]="18"
+              class="layout-editor__arrow layout-editor__arrow--up"
+            />
+          </button>
+          <button
+            type="button"
+            class="layout-editor__icon-button"
+            [disabled]="isLastRow(rowIndex)"
+            [attr.aria-label]="'Bajar la fila ' + (rowIndex + 1)"
+            (click)="moveRowBy(rowIndex, 1)"
+          >
+            <app-icon
+              name="arrow-left"
+              [size]="18"
+              class="layout-editor__arrow layout-editor__arrow--down"
+            />
+          </button>
+        </span>
+      </header>
+
+      <div
+        class="layout-editor__items"
+        cdkDropList
+        cdkDropListOrientation="mixed"
+        [cdkDropListData]="rowIndex"
+        (cdkDropListDropped)="drop($event)"
+      >
+        @for (
+          item of row.items;
+          track item.uid;
+          let itemIndex = $index;
+          let first = $first;
+          let last = $last
+        ) {
+          <div
+            class="layout-editor__item"
+            [class.layout-editor__item--variable]="item.type === 'VARIABLE'"
+            [class.layout-editor__item--title]="item.type === 'TITLE'"
+            [class.layout-editor__item--spacer]="item.type === 'SPACER'"
+            [class.layout-editor__item--invalid]="!!itemError(item)"
+            [style.--span]="item.span"
+            cdkDrag
+          >
+            <div class="layout-editor__item-top">
+              <span
+                class="layout-editor__handle"
+                cdkDragHandle
+                aria-hidden="true"
+                title="Arrastrar"
+              ></span>
+              <span class="layout-editor__type">{{ typeLabel(item) }}</span>
+              @if (item.type !== 'VARIABLE') {
+                <button
+                  type="button"
+                  class="layout-editor__remove"
+                  [attr.aria-label]="'Quitar ' + itemName(item)"
+                  (click)="remove(item)"
+                >
+                  Quitar
+                </button>
+              }
+            </div>
+
+            @switch (item.type) {
+              @case ('VARIABLE') {
+                <span class="layout-editor__name">{{ itemName(item) }}</span>
+              }
+              @case ('TITLE') {
+                <input
+                  class="form-input layout-editor__text"
+                  [attr.maxlength]="titleMaxLength"
+                  placeholder="Título de la sección"
+                  [attr.aria-label]="'Texto del título de la fila ' + (rowIndex + 1)"
+                  [attr.aria-invalid]="itemError(item) ? true : null"
+                  [value]="item.text ?? ''"
+                  (input)="setText(item, $event)"
+                />
+              }
+              @case ('TEXT') {
+                <input
+                  class="form-input layout-editor__text"
+                  [attr.maxlength]="textMaxLength"
+                  placeholder="Texto de ayuda"
+                  [attr.aria-label]="'Texto de ayuda de la fila ' + (rowIndex + 1)"
+                  [attr.aria-invalid]="itemError(item) ? true : null"
+                  [value]="item.text ?? ''"
+                  (input)="setText(item, $event)"
+                />
+              }
+              @case ('SPACER') {
+                <span class="layout-editor__name layout-editor__name--muted"
+                  >Espacio en blanco</span
+                >
+              }
+            }
+            @if (itemError(item)) {
+              <p class="form-error layout-editor__error">{{ itemError(item) }}</p>
+            }
+
+            <div class="layout-editor__item-bottom">
+              <select
+                class="form-input layout-editor__span"
+                [attr.aria-label]="'Ancho de ' + itemName(item)"
+                (change)="setSpan(item, $event)"
+              >
+                @for (option of spanOptions; track option.span) {
+                  <option [value]="option.span" [selected]="option.span === item.span">
+                    {{ option.label }}
+                  </option>
+                }
+              </select>
+              <span class="layout-editor__moves">
+                <button
+                  type="button"
+                  class="layout-editor__icon-button"
+                  [disabled]="first"
+                  [attr.aria-label]="'Mover ' + itemName(item) + ' a la izquierda'"
+                  (click)="moveWithin(rowIndex, itemIndex, -1)"
+                >
+                  <app-icon name="arrow-left" [size]="16" class="layout-editor__arrow" />
+                </button>
+                <button
+                  type="button"
+                  class="layout-editor__icon-button"
+                  [disabled]="last"
+                  [attr.aria-label]="'Mover ' + itemName(item) + ' a la derecha'"
+                  (click)="moveWithin(rowIndex, itemIndex, 1)"
+                >
+                  <app-icon
+                    name="arrow-left"
+                    [size]="16"
+                    class="layout-editor__arrow layout-editor__arrow--right"
+                  />
+                </button>
+                <button
+                  type="button"
+                  class="layout-editor__icon-button"
+                  [disabled]="isFirstRow(rowIndex) && row.items.length === 1"
+                  [attr.aria-label]="'Mover ' + itemName(item) + ' a la fila de arriba'"
+                  (click)="moveToRow(rowIndex, itemIndex, -1)"
+                >
+                  <app-icon
+                    name="arrow-left"
+                    [size]="16"
+                    class="layout-editor__arrow layout-editor__arrow--up"
+                  />
+                </button>
+                <button
+                  type="button"
+                  class="layout-editor__icon-button"
+                  [disabled]="isLastRow(rowIndex) && row.items.length === 1"
+                  [attr.aria-label]="'Mover ' + itemName(item) + ' a la fila de abajo'"
+                  (click)="moveToRow(rowIndex, itemIndex, 1)"
+                >
+                  <app-icon
+                    name="arrow-left"
+                    [size]="16"
+                    class="layout-editor__arrow layout-editor__arrow--down"
+                  />
+                </button>
+              </span>
+            </div>
+          </div>
+        }
+      </div>
+
+      @if (rowError(row)) {
+        <p class="form-error layout-editor__error" role="alert">{{ rowError(row) }}</p>
+      }
+    </section>
+  } @empty {
+    <p class="text-muted">
+      No hay nada en el formulario: marca alguna variable como editable o fija y visible.
+    </p>
+  }
+
+  <div
+    class="layout-editor__new-row"
+    cdkDropList
+    [cdkDropListData]="rows.length"
+    (cdkDropListDropped)="drop($event)"
+  >
+    Suelta aquí para crear una fila nueva
+  </div>
+
+  <div class="layout-editor__add">
+    <span class="text-muted">Añadir al final:</span>
+    <button type="button" class="btn-secondary" (click)="add('TITLE')">Título de sección</button>
+    <button type="button" class="btn-secondary" (click)="add('TEXT')">Texto de ayuda</button>
+    <button type="button" class="btn-secondary" (click)="add('SPACER')">Hueco</button>
+  </div>
+</div>
