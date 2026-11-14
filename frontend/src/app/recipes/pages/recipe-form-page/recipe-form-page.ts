@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, ElementRef, OnInit, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -8,10 +9,14 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
 import { InputComponent } from '../../../shared/ui/input/input.component';
 import { ToastService } from '../../../shared/ui/toast/toast.service';
 import { RecipesApiService } from '../../adapters/recipes-api.service';
+import { RecipeLayoutComponent } from '../../components/recipe-layout/recipe-layout.component';
 import { RecipeValueFieldComponent } from '../../components/recipe-value-field/recipe-value-field.component';
+import { RecipeLayout } from '../../entities/recipe-template.model';
 import {
+  EffectiveRecipeValue,
   Recipe,
   RecipeValue,
+  RecipeValueEntry,
   RecipeValueIssue,
   RecipeVariable,
   StaleRecipeValue,
@@ -21,11 +26,13 @@ import {
   MAX_RECIPE_TITLE_LENGTH,
   RECIPE_CATEGORY_NAME,
   copyTitle,
+  formatRecipeValue,
   initialValue,
   issueMessage,
   recipeErrorMessage,
   recipeValueError,
   staleValueMessage,
+  variableLabel,
 } from '../../use-cases/recipe-rules';
 import { HasUnsavedChanges } from '../../use-cases/unsaved-recipe-changes.guard';
 import { SELECTED_MACHINE_KEY } from '../recipes-page/recipes-page';
@@ -34,18 +41,22 @@ type ValueMap = Record<string, RecipeValue | null>;
 
 /**
  * docs/specs/25-recetas.md, "Crear y editar" y "Duplicar": formulario con
- * título, descripción y un valor obligatorio para cada variable de receta, en
- * el orden de la GVL. La misma página sirve para crear, duplicar
- * (`?duplicar=<id>`) y editar. Valida en el cliente y el Backend revalida.
+ * título, descripción y un valor obligatorio para cada variable editable. La
+ * spec 26 lo pinta según la disposición de la receta base, con los valores
+ * fijos visibles en solo lectura y los valores por defecto en las recetas
+ * nuevas. La misma página sirve para crear, duplicar (`?duplicar=<id>`) y
+ * editar. Valida en el cliente y el Backend revalida.
  */
 @Component({
   selector: 'app-recipe-form-page',
   standalone: true,
   imports: [
     ReactiveFormsModule,
+    NgTemplateOutlet,
     RouterLink,
     InputComponent,
     RecipeValueFieldComponent,
+    RecipeLayoutComponent,
     ConfirmDialogComponent,
   ],
   templateUrl: './recipe-form-page.html',
@@ -81,7 +92,10 @@ export class RecipeFormPage implements OnInit, HasUnsavedChanges {
 
   readonly loading = signal(true);
   readonly loadError = signal<string | null>(null);
+  /** Variables visibles: editables y fijas visibles, en el orden de la GVL. */
   readonly variables = signal<RecipeVariable[]>([]);
+  readonly layout = signal<RecipeLayout | null>(null);
+  readonly hiddenCount = signal(0);
   readonly values = signal<ValueMap>({});
   readonly filter = signal('');
   readonly submitted = signal(false);
@@ -92,6 +106,8 @@ export class RecipeFormPage implements OnInit, HasUnsavedChanges {
   readonly serverIssues = signal<Record<string, string>>({});
   readonly staleValues = signal<StaleRecipeValue[]>([]);
   readonly missingVariables = signal<string[]>([]);
+  readonly ignoredValues = signal<RecipeValueEntry[]>([]);
+  readonly effectiveValues = signal<EffectiveRecipeValue[] | null>(null);
   readonly conflictOpen = signal(false);
 
   private version = 1;
@@ -100,11 +116,16 @@ export class RecipeFormPage implements OnInit, HasUnsavedChanges {
 
   readonly isEditMode = this.recipeId !== null;
 
+  /** Las que se rellenan en la receta: las fijas visibles solo se muestran. */
+  readonly editableVariables = computed(() =>
+    this.variables().filter((variable) => variable.mode !== 'FIXED_VISIBLE'),
+  );
+
   readonly valueErrors = computed<Record<string, string | null>>(() => {
     const values = this.values();
     const serverIssues = this.serverIssues();
     return Object.fromEntries(
-      this.variables().map((variable) => [
+      this.editableVariables().map((variable) => [
         variable.signalVariableName,
         serverIssues[variable.signalVariableName] ??
           recipeValueError(variable, values[variable.signalVariableName] ?? null),
@@ -122,9 +143,14 @@ export class RecipeFormPage implements OnInit, HasUnsavedChanges {
       return this.variables();
     }
     return this.variables().filter((variable) =>
-      normalize(`${variable.signalVariableName} ${variable.comment ?? ''}`).includes(text),
+      normalize(
+        `${variable.signalVariableName} ${variable.label ?? ''} ${variable.comment ?? ''}`,
+      ).includes(text),
     );
   });
+
+  /** Con el filtro activo se ve una lista simple; sin él, la disposición de la receta base. */
+  readonly isFiltering = computed(() => normalize(this.filter()) !== '');
 
   ngOnInit(): void {
     const sourceId = this.recipeId ?? this.duplicateFromId;
@@ -134,6 +160,8 @@ export class RecipeFormPage implements OnInit, HasUnsavedChanges {
     }).subscribe({
       next: ({ variableSet, source }) => {
         this.variables.set(variableSet.variables);
+        this.layout.set(variableSet.layout ?? null);
+        this.hiddenCount.set(variableSet.hiddenCount ?? 0);
         this.applySource(source);
         this.loading.set(false);
       },
@@ -170,8 +198,24 @@ export class RecipeFormPage implements OnInit, HasUnsavedChanges {
 
   /** El error de una variable solo se muestra tras intentar guardar (o si viene del Backend). */
   visibleError(variable: RecipeVariable): string | null {
-    const error = this.valueErrors()[variable.signalVariableName];
+    const error = this.valueErrors()[variable.signalVariableName] ?? null;
     return this.submitted() || this.serverIssues()[variable.signalVariableName] ? error : null;
+  }
+
+  /** Etiqueta visible de una variable por su nombre (las fijas ocultas no tienen otra que el nombre). */
+  labelOf(signalVariableName: string): string {
+    const variable = this.variables().find(
+      (candidate) => candidate.signalVariableName === signalVariableName,
+    );
+    return variable ? variableLabel(variable) : signalVariableName;
+  }
+
+  /** Valor legible con los textos y la unidad de la variable, si es visible. */
+  formatValue(entry: RecipeValueEntry): string {
+    const variable = this.variables().find(
+      (candidate) => candidate.signalVariableName === entry.signalVariableName,
+    );
+    return variable ? formatRecipeValue(variable, entry.value) : formatRecipeValue({}, entry.value);
   }
 
   valueOf(variable: RecipeVariable): RecipeValue | null {
@@ -212,7 +256,7 @@ export class RecipeFormPage implements OnInit, HasUnsavedChanges {
     const request = {
       title: title.trim(),
       description: description.trim() ? description.trim() : null,
-      values: this.variables().map((variable) => ({
+      values: this.editableVariables().map((variable) => ({
         signalVariableName: variable.signalVariableName,
         value: this.values()[variable.signalVariableName] as RecipeValue,
       })),
@@ -255,7 +299,10 @@ export class RecipeFormPage implements OnInit, HasUnsavedChanges {
 
   private applySource(source: Recipe | null): void {
     const values: ValueMap = Object.fromEntries(
-      this.variables().map((variable) => [variable.signalVariableName, initialValue(variable)]),
+      this.editableVariables().map((variable) => [
+        variable.signalVariableName,
+        initialValue(variable),
+      ]),
     );
     if (source) {
       for (const entry of source.values) {
@@ -269,6 +316,8 @@ export class RecipeFormPage implements OnInit, HasUnsavedChanges {
       });
       this.staleValues.set(source.staleValues);
       this.missingVariables.set(source.missingVariables);
+      this.ignoredValues.set(source.ignoredValues ?? []);
+      this.effectiveValues.set(this.isEditMode ? (source.effectiveValues ?? null) : null);
       this.version = source.version;
     }
     this.values.set(values);
@@ -297,7 +346,7 @@ export class RecipeFormPage implements OnInit, HasUnsavedChanges {
 
   /** Lleva el foco al primer campo con error, quitando antes el filtro si lo ocultaba. */
   private focusFirstInvalid(): void {
-    const firstInvalidVariable = this.variables().find(
+    const firstInvalidVariable = this.editableVariables().find(
       (variable) => this.valueErrors()[variable.signalVariableName] !== null,
     );
     if (firstInvalidVariable && !this.visibleVariables().includes(firstInvalidVariable)) {

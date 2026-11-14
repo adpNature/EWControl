@@ -1,0 +1,101 @@
+@use 'breakpoints' as *;
+
+// Cuadrícula de 12 columnas con Flexbox (12.4: nunca float ni posicionamiento
+// absoluto). El ancho de cada celda descuenta el hueco entre columnas para que
+// una fila de 12 columnas encaje exacta: span/12 × (100 % + hueco) − hueco.
+.recipe-layout {
+  --layout-gap: var(--spacing-md);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.recipe-layout__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--layout-gap);
+}
+
+.recipe-layout__cell {
+  flex: 0 0 100%;
+  min-width: 0;
+}
+
+.recipe-layout__cell--spacer {
+  display: none;
+}
+
+@mixin half-cells {
+  .recipe-layout__cell--half {
+    flex-basis: calc(50% - var(--layout-gap) / 2);
+  }
+}
+
+@mixin real-spans {
+  .recipe-layout__cell {
+    flex-basis: calc(var(--span) / 12 * (100% + var(--layout-gap)) - var(--layout-gap));
+  }
+
+  .recipe-layout__cell--spacer {
+    display: flex;
+  }
+}
+
+@include respond(md) {
+  @include half-cells;
+}
+
+@include respond(lg) {
+  @include real-spans;
+}
+
+// Anchos forzados de la vista previa: más específicos que los de la pantalla.
+.recipe-layout--mobile {
+  .recipe-layout__cell {
+    flex-basis: 100%;
+  }
+
+  .recipe-layout__cell--spacer {
+    display: none;
+  }
+}
+
+.recipe-layout--tablet {
+  .recipe-layout__cell {
+    flex-basis: 100%;
+  }
+
+  .recipe-layout__cell--spacer {
+    display: none;
+  }
+
+  @include half-cells;
+}
+
+.recipe-layout--desktop {
+  @include real-spans;
+}
+
+.recipe-layout__cell--title {
+  padding-top: var(--spacing-sm);
+}
+
+.recipe-layout__title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding-bottom: var(--spacing-xs);
+  border-bottom: 2px solid var(--primary-color);
+  font-size: var(--font-size-lg);
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.recipe-layout__text {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted-color);
+}

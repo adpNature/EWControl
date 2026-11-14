@@ -1,0 +1,35 @@
+<div
+  class="recipe-layout"
+  [class.recipe-layout--mobile]="device === 'mobile'"
+  [class.recipe-layout--tablet]="device === 'tablet'"
+  [class.recipe-layout--desktop]="device === 'desktop'"
+>
+  @for (row of rows; track $index) {
+    <div class="recipe-layout__row">
+      @for (item of row; track $index) {
+        <div
+          class="recipe-layout__cell"
+          [class.recipe-layout__cell--half]="isHalfOrLess(item.span)"
+          [class.recipe-layout__cell--spacer]="item.kind === 'spacer'"
+          [class.recipe-layout__cell--title]="item.kind === 'title'"
+          [style.--span]="item.span"
+          [attr.aria-hidden]="item.kind === 'spacer' ? true : null"
+        >
+          @switch (item.kind) {
+            @case ('title') {
+              <h2 class="recipe-layout__title">{{ item.text }}</h2>
+            }
+            @case ('text') {
+              <p class="recipe-layout__text">{{ item.text }}</p>
+            }
+            @case ('variable') {
+              <ng-container
+                *ngTemplateOutlet="fieldTemplate; context: { $implicit: item.variable }"
+              />
+            }
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

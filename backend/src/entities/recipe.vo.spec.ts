@@ -6,6 +6,8 @@ import {
   findRecipeCategory,
   normalizeForComparison,
   recipeSearchKey,
+  recipeValueIssue,
+  type RecipeValueRules,
   type RecipeVariable,
   validateRecipeValues,
 } from './recipe.vo';
@@ -216,11 +218,12 @@ describe('assessRecipe (criterio backend 8)', () => {
       values: COMPLETE,
       missingVariables: [],
       staleValues: [],
+      ignoredValues: [],
       isComplete: true,
     });
   });
 
-  it('detecta variables nuevas, valores que ya no valen y valores de variables que ya no son de receta', () => {
+  it('detecta variables nuevas y valores que ya no valen; aparta sin invalidar los de variables que ya no son editables (spec 26)', () => {
     const stored = [
       { signalVariableName: 'sNombreReceta', value: 'Bobina' },
       { signalVariableName: 'rEspiras', value: 20000 },
@@ -234,12 +237,83 @@ describe('assessRecipe (criterio backend 8)', () => {
         { signalVariableName: 'sNombreReceta', value: 'Bobina' },
       ],
       missingVariables: ['rEspiras', 'iDireccionGuiador'],
-      staleValues: [
-        { signalVariableName: 'rEspiras', value: 20000, reason: 'OUT_OF_RANGE' },
-        { signalVariableName: 'rBorrada', value: 3, reason: 'NOT_A_RECIPE_VARIABLE' },
-      ],
+      staleValues: [{ signalVariableName: 'rEspiras', value: 20000, reason: 'OUT_OF_RANGE' }],
+      ignoredValues: [{ signalVariableName: 'rBorrada', value: 3 }],
       isComplete: false,
     });
+  });
+
+  it('un valor de una variable que ya no es editable no deja la receta incompleta (spec 26)', () => {
+    const editable = VARIABLES.filter(
+      (variable) => variable.signalVariableName !== 'sNombreReceta',
+    );
+    const assessment = assessRecipe(COMPLETE, editable);
+    expect(assessment.isComplete).toBe(true);
+    expect(assessment.ignoredValues).toEqual([
+      { signalVariableName: 'sNombreReceta', value: COMPLETE[3].value },
+    ]);
+  });
+});
+
+describe('recipeValueIssue con reglas de la receta base (spec 26)', () => {
+  const modo: RecipeValueRules = {
+    signalVariableName: 'iModo',
+    dataType: 'Int16',
+    comment: null,
+    min: null,
+    max: null,
+    options: [
+      { value: 0, label: 'Continuar' },
+      { value: 1, label: 'Parar' },
+    ],
+  };
+  const espiras: RecipeValueRules = { ...VARIABLES[0], decimals: 1 };
+  const nombre: RecipeValueRules = {
+    signalVariableName: 'sNombre',
+    dataType: 'String',
+    comment: null,
+    min: null,
+    max: null,
+    minLength: 2,
+    maxLength: 5,
+  };
+
+  it('con opciones solo admite sus valores', () => {
+    expect(recipeValueIssue(modo, 1)).toBeNull();
+    expect(recipeValueIssue(modo, 2)).toEqual({ reason: 'NOT_AN_OPTION' });
+  });
+
+  it('limita los decimales, tolerando la representación binaria', () => {
+    expect(recipeValueIssue(espiras, 0.3)).toBeNull();
+    expect(recipeValueIssue(espiras, 120.1)).toBeNull();
+    expect(recipeValueIssue(espiras, 0.35)).toEqual({ reason: 'TOO_MANY_DECIMALS' });
+    expect(recipeValueIssue({ ...espiras, decimals: 0 }, 3)).toBeNull();
+    expect(recipeValueIssue({ ...espiras, decimals: 0 }, 3.5)).toEqual({
+      reason: 'TOO_MANY_DECIMALS',
+    });
+  });
+
+  it('limita la longitud de los textos', () => {
+    expect(recipeValueIssue(nombre, 'abc')).toBeNull();
+    expect(recipeValueIssue(nombre, 'a')).toEqual({
+      reason: 'INVALID_LENGTH',
+      minLength: 2,
+      maxLength: 5,
+    });
+    expect(recipeValueIssue({ ...nombre, minLength: null }, 'abcdef')).toEqual({
+      reason: 'INVALID_LENGTH',
+      maxLength: 5,
+    });
+  });
+
+  it('un valor de una variable fija u oculta es NOT_EDITABLE', () => {
+    expect(
+      validateRecipeValues(
+        [{ signalVariableName: 'sNombreReceta', value: 'x' }],
+        [],
+        new Set(['sNombreReceta']),
+      ),
+    ).toEqual([{ signalVariableName: 'sNombreReceta', reason: 'NOT_EDITABLE' }]);
   });
 });
 

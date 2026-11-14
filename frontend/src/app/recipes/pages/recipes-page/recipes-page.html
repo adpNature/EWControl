@@ -48,7 +48,27 @@
         <a class="btn-primary" [routerLink]="['/recetas', selectedMachineId(), 'nueva']"
           >Nueva receta</a
         >
+        @if (isAdmin()) {
+          <a
+            class="btn-secondary"
+            [routerLink]="['/config/machines', selectedMachineId(), 'recipe-template']"
+            >Receta base</a
+          >
+        }
       </div>
+      @if (isTemplateInvalid()) {
+        <div class="recipes-page__notice" role="status">
+          <p class="text-body">
+            La receta base tiene valores fijos que ya no son válidos. No se pueden activar recetas
+            hasta que un administrador la revise.
+          </p>
+          @if (isAdmin()) {
+            <a [routerLink]="['/config/machines', selectedMachineId(), 'recipe-template']"
+              >Revisar la receta base</a
+            >
+          }
+        </div>
+      }
     } @else {
       <div class="recipes-page__notice" role="status">
         <p class="text-body">
@@ -135,9 +155,11 @@
         <button
           type="button"
           class="btn-secondary"
-          [disabled]="!recipe.isComplete"
+          [disabled]="!recipe.isComplete || isTemplateInvalid()"
           [attr.aria-label]="'Activar ' + recipe.title"
-          [attr.aria-describedby]="recipe.isComplete ? null : 'incomplete-' + recipe.id"
+          [attr.aria-describedby]="
+            recipe.isComplete && !isTemplateInvalid() ? null : 'incomplete-' + recipe.id
+          "
           (click)="requestActivate(recipe)"
         >
           Activar
@@ -145,6 +167,10 @@
         @if (!recipe.isComplete) {
           <span class="text-muted recipes-page__hint" [id]="'incomplete-' + recipe.id"
             >Complétala antes de activarla</span
+          >
+        } @else if (isTemplateInvalid()) {
+          <span class="text-muted recipes-page__hint" [id]="'incomplete-' + recipe.id"
+            >Revisa antes la receta base</span
           >
         }
       }

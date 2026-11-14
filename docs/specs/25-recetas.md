@@ -1,5 +1,7 @@
 # Spec: Recetas (CRUD + buscador)
 
+> [26-receta-base.md](26-receta-base.md) amplía esta spec con la receta base: qué variables son editables, fijas u ocultas, sus reglas y la disposición del formulario. Donde esta spec dice «cada variable de receta», con receta base se lee «cada variable editable».
+
 ## Contexto
 
 En el HMI de la bobinadora, el operario programa cada trabajo en la pantalla «Programación receta»: espiras, diámetro de hilo, velocidad, topes, modo ortocíclico, piramidal… El programador del PLC agrupa esas variables en la GVL bajo la subcategoría **«Programación para la receta»** (53 variables), que EWControl ya conoce gracias a la importación de categorías de [23-categorias-variables-plc.md](23-categorias-variables-plc.md).

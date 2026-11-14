@@ -6,26 +6,37 @@
   } @else if (loadError()) {
     <p class="form-error" role="alert">{{ loadError() }}</p>
     <a routerLink="/recetas">Volver a las recetas</a>
-  } @else if (variables().length === 0) {
+  } @else if (variables().length === 0 && hiddenCount() === 0) {
     <p class="text-body">
       Esta máquina no tiene la categoría «{{ categoryName }}». Importa las categorías de la GVL.
     </p>
     <a routerLink="/recetas">Volver a las recetas</a>
   } @else {
-    @if (staleValues().length > 0 || missingVariables().length > 0) {
+    @if (staleValues().length > 0 || missingVariables().length > 0 || ignoredValues().length > 0) {
       <div class="recipe-form-page__notice" role="status">
         <p class="text-body">
-          Han cambiado las variables de la receta desde que se guardó. Revisa los campos marcados
-          antes de guardar.
+          La receta base o las variables han cambiado desde que se guardó esta receta. Revisa los
+          campos marcados antes de guardar.
         </p>
         @if (missingVariables().length > 0) {
-          <p class="text-body">Variables sin valor: {{ missingVariables().join(', ') }}.</p>
+          <p class="text-body">
+            Sin valor:
+            @for (name of missingVariables(); track name; let last = $last) {
+              {{ labelOf(name) }}{{ last ? '.' : ', ' }}
+            }
+          </p>
         }
-        @if (staleValues().length > 0) {
+        @if (staleValues().length > 0 || ignoredValues().length > 0) {
           <p class="text-body">Se quitarán al guardar:</p>
           <ul class="recipe-form-page__stale">
             @for (stale of staleValues(); track stale.signalVariableName) {
               <li>{{ staleMessage(stale) }}</li>
+            }
+            @for (ignored of ignoredValues(); track ignored.signalVariableName) {
+              <li>
+                {{ ignored.signalVariableName }}: ya no es editable (tiene un valor fijo o está
+                oculta).
+              </li>
             }
           </ul>
         }
@@ -33,48 +44,94 @@
     }
 
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-      <app-input
-        formControlName="title"
-        label="Título"
-        [errorMessage]="titleError()"
-        (input)="onTitleInput()"
-      />
-      <app-input
-        formControlName="description"
-        label="Descripción (opcional)"
-        [errorMessage]="descriptionError()"
-      />
+      <div class="recipe-form-page__identity">
+        <app-input
+          formControlName="title"
+          label="Título"
+          [errorMessage]="titleError()"
+          (input)="onTitleInput()"
+        />
+        <app-input
+          formControlName="description"
+          label="Descripción (opcional)"
+          [errorMessage]="descriptionError()"
+        />
+      </div>
 
       <fieldset class="recipe-form-page__values">
-        <legend class="title-lg">Valores de «{{ categoryName }}»</legend>
-        <p class="text-muted" aria-live="polite">
-          {{ filledCount() }} de {{ variables().length }} variables con valor. Todas son
-          obligatorias.
-        </p>
+        <legend class="title-lg recipe-form-page__legend">Valores de la receta</legend>
+        <div class="recipe-form-page__card">
+          <div class="recipe-form-page__toolbar">
+            <p class="recipe-form-page__progress" aria-live="polite">
+              <span class="recipe-form-page__progress-count"
+                >{{ filledCount() }} de {{ editableVariables().length }}</span
+              >
+              variables con valor. Todas son obligatorias.
+            </p>
+            <div class="form-field recipe-form-page__filter">
+              <label class="form-label" for="recipe-variables-filter">Buscar una variable</label>
+              <input
+                id="recipe-variables-filter"
+                class="form-input"
+                type="search"
+                autocomplete="off"
+                [value]="filter()"
+                (input)="onFilterInput($event)"
+              />
+            </div>
+          </div>
 
-        <div class="form-field recipe-form-page__filter">
-          <label class="form-label" for="recipe-variables-filter">Filtrar variables</label>
-          <input
-            id="recipe-variables-filter"
-            class="form-input"
-            type="search"
-            autocomplete="off"
-            [value]="filter()"
-            (input)="onFilterInput($event)"
-          />
+          @if (isFiltering()) {
+            <div class="recipe-form-page__results">
+              @for (variable of visibleVariables(); track variable.signalVariableName) {
+                <ng-container *ngTemplateOutlet="field; context: { $implicit: variable }" />
+              } @empty {
+                <p class="text-muted">Ninguna variable coincide con la búsqueda.</p>
+              }
+            </div>
+          } @else {
+            <app-recipe-layout
+              [variables]="variables()"
+              [layout]="layout()"
+              [fieldTemplate]="field"
+            />
+          }
+
+          @if (hiddenCount() > 0) {
+            <p class="text-muted recipe-form-page__hidden-note">
+              {{ hiddenCount() }}
+              {{
+                hiddenCount() === 1
+                  ? 'variable no aparece porque está oculta o tiene un valor fijo oculto.'
+                  : 'variables no aparecen porque están ocultas o tienen un valor fijo oculto.'
+              }}
+            </p>
+          }
         </div>
-
-        @for (variable of visibleVariables(); track variable.signalVariableName) {
-          <app-recipe-value-field
-            [variable]="variable"
-            [value]="valueOf(variable)"
-            [error]="visibleError(variable)"
-            (valueChange)="setValue(variable, $event)"
-          />
-        } @empty {
-          <p class="text-muted">Ninguna variable coincide con el filtro.</p>
-        }
       </fieldset>
+
+      @if (effectiveValues(); as effective) {
+        <details class="recipe-form-page__effective">
+          <summary>Lo que llegaría a la máquina</summary>
+          <p class="text-muted">
+            Valores de esta receta más los valores fijos de la receta base. Por ahora no se envía
+            nada a la máquina.
+          </p>
+          <ul class="recipe-form-page__effective-list">
+            @for (entry of effective; track entry.signalVariableName) {
+              <li class="recipe-form-page__effective-item">
+                <span>{{ labelOf(entry.signalVariableName) }}</span>
+                <span class="recipe-form-page__effective-value">
+                  {{ formatValue(entry) }}
+                  <span class="recipe-form-page__source">{{
+                    entry.source === 'FIXED' ? 'Valor fijo' : 'Receta'
+                  }}</span>
+                </span>
+              </li>
+            }
+          </ul>
+        </details>
+      }
 
       @if (formError()) {
         <p class="form-error" role="alert">{{ formError() }}</p>
@@ -88,6 +145,15 @@
       </div>
     </form>
   }
+
+  <ng-template #field let-variable>
+    <app-recipe-value-field
+      [variable]="variable"
+      [value]="valueOf(variable)"
+      [error]="visibleError(variable)"
+      (valueChange)="setValue(variable, $event)"
+    />
+  </ng-template>
 
   <app-confirm-dialog
     [open]="conflictOpen()"

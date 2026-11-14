@@ -23,7 +23,7 @@ import { PaginationQueryDto } from '../shared/pagination-query.dto';
 
 /** El valor es un escalar; tipo y límites concretos los valida el use-case contra la variable. */
 @ValidatorConstraint({ name: 'IsRecipeValue', async: false })
-class IsRecipeValueConstraint implements ValidatorConstraintInterface {
+export class IsRecipeValueConstraint implements ValidatorConstraintInterface {
   validate(value: unknown): boolean {
     return (
       typeof value === 'boolean' ||

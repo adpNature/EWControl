@@ -90,3 +90,104 @@ describe('RecipeValueFieldComponent (docs/specs/25-recetas.md)', () => {
     expect(screen.getByText('Máximo 9.')).toBeInTheDocument();
   });
 });
+
+describe('RecipeValueFieldComponent con receta base (docs/specs/26-receta-base.md)', () => {
+  it('usa la etiqueta, enseña el nombre del PLC aparte y la unidad como sufijo', async () => {
+    await render(RecipeValueFieldComponent, {
+      inputs: {
+        variable: variable({ label: 'Espiras', unit: 'vueltas', min: 1, max: 500 }),
+        value: 10,
+      },
+    });
+
+    const input = screen.getByRole('spinbutton', { name: 'Espiras' });
+    expect(input).toHaveAccessibleDescription('Entre 1 y 500 vueltas.');
+    expect(screen.getByText('rEspiras')).toBeInTheDocument();
+    expect(screen.getByText('vueltas')).toBeInTheDocument();
+  });
+
+  it('los decimales fijan el paso del campo y los enteros no admiten decimales', async () => {
+    const { rerender } = await render(RecipeValueFieldComponent, {
+      inputs: { variable: variable({ decimals: 2 }), value: null },
+    });
+    expect(screen.getByRole('spinbutton')).toHaveAttribute('step', '0.01');
+
+    await rerender({ inputs: { variable: variable({ dataType: 'Int16' }), value: null } });
+    expect(screen.getByRole('spinbutton')).toHaveAttribute('step', '1');
+    expect(screen.getByRole('spinbutton')).toHaveAttribute('inputmode', 'numeric');
+  });
+
+  it('un Boolean muestra el texto del estado actual', async () => {
+    await render(RecipeValueFieldComponent, {
+      inputs: {
+        variable: variable({
+          dataType: 'Boolean',
+          label: 'Sentido',
+          booleanLabels: { falseLabel: 'Horario', trueLabel: 'Antihorario' },
+        }),
+        value: false,
+      },
+    });
+
+    expect(screen.getByRole('switch', { name: 'Sentido' })).not.toBeChecked();
+    expect(screen.getByText('Horario')).toBeInTheDocument();
+  });
+
+  it('con opciones es un desplegable que emite el número elegido', async () => {
+    const valueChange = vi.fn();
+    await render(RecipeValueFieldComponent, {
+      inputs: {
+        variable: variable({
+          dataType: 'Int16',
+          label: 'Modo',
+          options: [
+            { value: 0, label: 'Continuar' },
+            { value: 1, label: 'Parar' },
+          ],
+        }),
+        value: null,
+      },
+      on: { valueChange },
+    });
+
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Modo' }), '1');
+    expect(valueChange).toHaveBeenLastCalledWith(1);
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Modo' }), '');
+    expect(valueChange).toHaveBeenLastCalledWith(null);
+  });
+
+  it('un valor fijo visible se muestra en solo lectura con su texto', async () => {
+    await render(RecipeValueFieldComponent, {
+      inputs: {
+        variable: variable({
+          dataType: 'Int16',
+          label: 'Modo',
+          mode: 'FIXED_VISIBLE',
+          fixedValue: 1,
+          options: [
+            { value: 0, label: 'Continuar' },
+            { value: 1, label: 'Parar' },
+          ],
+        }),
+        value: null,
+      },
+    });
+
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Modo' })).toHaveTextContent('Parar');
+    expect(screen.getByText('Valor fijo')).toBeInTheDocument();
+  });
+
+  it('un texto enseña sus límites de longitud', async () => {
+    await render(RecipeValueFieldComponent, {
+      inputs: {
+        variable: variable({ dataType: 'String', minLength: 2, maxLength: 10 }),
+        value: '',
+      },
+    });
+
+    const input = screen.getByRole('textbox');
+    expect(input).toHaveAttribute('maxlength', '10');
+    expect(input).toHaveAccessibleDescription('Entre 2 y 10 caracteres.');
+  });
+});

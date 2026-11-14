@@ -1,5 +1,7 @@
 import { vi } from 'vitest';
 import type { OpcUaConnectionConfig } from '../../src/entities/connection-config.vo';
+import type { RecipeTemplate } from '../../src/entities/recipe-template.entity';
+import type { RecipeVariableConfig } from '../../src/entities/recipe-template.vo';
 import type { Recipe } from '../../src/entities/recipe.entity';
 import { ProviderType } from '../../src/entities/provider-type.enum';
 import { UserRole } from '../../src/entities/user-role.enum';
@@ -99,8 +101,55 @@ export const RECIPE: Recipe = {
   updatedByEmail: 'demo@ewcontrol.local',
 };
 
+/** Configuración vacía de una variable, para montar recetas base en los tests. */
+export function templateConfig(
+  signalVariableName: string,
+  mode: RecipeVariableConfig['mode'],
+  extra: Partial<RecipeVariableConfig> = {},
+): RecipeVariableConfig {
+  return {
+    signalVariableName,
+    mode,
+    label: null,
+    helpText: null,
+    unit: null,
+    decimals: null,
+    min: null,
+    max: null,
+    minLength: null,
+    maxLength: null,
+    booleanLabels: null,
+    options: null,
+    defaultValue: null,
+    fixedValue: null,
+    ...extra,
+  };
+}
+
+/** Receta base guardada: `rEspiras` editable y `xSentidoCabezal` fija y oculta. */
+export const TEMPLATE: RecipeTemplate = {
+  id: 'template-1',
+  machineId: 'machine-1',
+  machine: undefined as never,
+  variables: [
+    templateConfig('rEspiras', 'EDITABLE', { label: 'Espiras', max: 500 }),
+    templateConfig('xSentidoCabezal', 'FIXED_HIDDEN', { fixedValue: true }),
+  ],
+  layout: {
+    rows: [{ items: [{ type: 'VARIABLE', span: 6, signalVariableName: 'rEspiras' }] }],
+  },
+  version: 2,
+  createdAt: NOW,
+  updatedAt: NOW,
+  updatedByEmail: 'demo@ewcontrol.local',
+};
+
 export function createRecipeFakes(
-  options: { categories?: unknown[]; recipe?: Partial<Recipe> } = {},
+  options: {
+    categories?: unknown[];
+    recipe?: Partial<Recipe>;
+    template?: RecipeTemplate | null;
+  } = {},
 ) {
   const recipe = { ...RECIPE, ...options.recipe };
   const machineAccessResolver = { resolveActive: vi.fn().mockResolvedValue(MACHINE) };
@@ -115,8 +164,21 @@ export function createRecipeFakes(
       connectionConfig: CONFIG,
     }),
   };
+  const recipeTemplateRepository = {
+    findByMachineId: vi.fn().mockResolvedValue(options.template ?? null),
+    save: vi.fn(
+      (machineId: string, version: number, content: Record<string, unknown>) =>
+        Promise.resolve({
+          ...TEMPLATE,
+          machineId,
+          version: version + 1,
+          ...content,
+        }) as Promise<RecipeTemplate | null>,
+    ),
+  };
   const recipeRepository = {
     countByMachine: vi.fn().mockResolvedValue(1),
+    listAllByMachine: vi.fn().mockResolvedValue([recipe]),
     findById: vi.fn().mockResolvedValue(recipe),
     findByTitleKey: vi.fn().mockResolvedValue(null),
     list: vi.fn().mockResolvedValue({ data: [recipe], total: 1 }),
@@ -141,12 +203,14 @@ export function createRecipeFakes(
     categoryRepository as never,
     connectionRepository as never,
     recipeRepository as never,
+    recipeTemplateRepository as never,
   );
   return {
     machineAccessResolver,
     categoryRepository,
     connectionRepository,
     recipeRepository,
+    recipeTemplateRepository,
     unitOfWork,
     clock,
     access,

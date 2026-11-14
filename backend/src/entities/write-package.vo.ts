@@ -27,6 +27,24 @@ const MAX_STRING_LENGTH = 256;
 const MAX_ITEMS = 50;
 
 /**
+ * Rango numérico que admite un tipo OPC UA (enteros por su tamaño, `Float` por
+ * su máximo de 32 bits), o `null` si el tipo no es numérico o no tiene límite
+ * práctico (`Double`). Lo usa la receta base (spec 26) para validar sus rangos.
+ */
+export function numericTypeRange(dataType: string): readonly [number, number] | null {
+  const integerRange = INTEGER_RANGES.get(dataType);
+  if (integerRange) {
+    return integerRange;
+  }
+  return dataType === 'Float' ? [-FLOAT32_MAX, FLOAT32_MAX] : null;
+}
+
+/** `true` si el tipo OPC UA es entero (`SByte`…`UInt32`). */
+export function isIntegerDataType(dataType: string): boolean {
+  return INTEGER_RANGES.has(dataType);
+}
+
+/**
  * Valida un valor contra el tipo OPC UA de su variable y sus límites
  * opcionales (spec 20, "Casos borde": `"abc"` para un `Float`, `3.5` o
  * `40000` para un `Int16`...). Se usa al guardar el paquete y al ejecutarlo.

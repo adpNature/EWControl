@@ -96,7 +96,7 @@ describe('RecipeFormPage (docs/specs/25-recetas.md)', () => {
     expect(screen.getByRole('switch', { name: /xSentidoCabezal/ })).not.toBeChecked();
     expect(screen.getByRole('textbox', { name: 'sNombre' })).toHaveValue('');
     expect(screen.getByText('2 opciones: 0 - Horario / 1 - Antihorario')).toBeInTheDocument();
-    expect(screen.getByText(/2 de 3 variables con valor/)).toBeInTheDocument();
+    expect(screen.getByText('2 de 3')).toBeInTheDocument();
   });
 
   it('no deja guardar con campos vacíos y lleva el foco al primero con error (criterio 4)', async () => {
@@ -151,7 +151,7 @@ describe('RecipeFormPage (docs/specs/25-recetas.md)', () => {
   it('el filtro reduce la lista de variables', async () => {
     await renderPage();
 
-    await userEvent.type(await screen.findByLabelText('Filtrar variables'), 'horario');
+    await userEvent.type(await screen.findByLabelText('Buscar una variable'), 'horario');
 
     expect(screen.queryByRole('spinbutton', { name: 'rEspiras' })).not.toBeInTheDocument();
     expect(screen.getByRole('switch', { name: /xSentidoCabezal/ })).toBeInTheDocument();
@@ -259,7 +259,7 @@ describe('RecipeFormPage (docs/specs/25-recetas.md)', () => {
     );
     await renderPage({ recipeId: 'recipe-1' });
 
-    expect(await screen.findByText('Variables sin valor: rEspiras.')).toBeInTheDocument();
+    expect(await screen.findByText(/Sin valor:/)).toHaveTextContent('Sin valor: rEspiras.');
     expect(screen.getByText('rBorrada: ya no es una variable de la receta.')).toBeInTheDocument();
   });
 
@@ -290,5 +290,170 @@ describe('RecipeFormPage (docs/specs/25-recetas.md)', () => {
     await renderPage({ recipeId: 'x' });
 
     expect(await screen.findByRole('alert')).toHaveTextContent('La receta ya no existe.');
+  });
+});
+
+describe('RecipeFormPage con receta base (docs/specs/26-receta-base.md)', () => {
+  const TEMPLATE_VARIABLES: RecipeVariableSet = {
+    category: { id: 'cat', name: 'Programación para la receta' },
+    variables: [
+      {
+        signalVariableName: 'rEspiras',
+        dataType: 'Float',
+        comment: null,
+        min: 1,
+        max: 500,
+        mode: 'EDITABLE',
+        label: 'Espiras',
+        unit: 'vueltas',
+        defaultValue: 100,
+      },
+      {
+        signalVariableName: 'iModo',
+        dataType: 'Int16',
+        comment: null,
+        min: null,
+        max: null,
+        mode: 'EDITABLE',
+        label: 'Modo',
+        options: [
+          { value: 0, label: 'Continuar' },
+          { value: 1, label: 'Parar' },
+        ],
+      },
+      {
+        signalVariableName: 'xSentidoCabezal',
+        dataType: 'Boolean',
+        comment: null,
+        min: null,
+        max: null,
+        mode: 'FIXED_VISIBLE',
+        label: 'Sentido',
+        booleanLabels: { falseLabel: 'Horario', trueLabel: 'Antihorario' },
+        fixedValue: true,
+      },
+    ],
+    excludedCount: 0,
+    hiddenCount: 2,
+    isTemplateValid: true,
+    layout: {
+      rows: [
+        { items: [{ type: 'TITLE', span: 12, text: 'Bobinado' }] },
+        {
+          items: [
+            { type: 'VARIABLE', span: 6, signalVariableName: 'rEspiras' },
+            { type: 'VARIABLE', span: 6, signalVariableName: 'xSentidoCabezal' },
+          ],
+        },
+        { items: [{ type: 'VARIABLE', span: 12, signalVariableName: 'iModo' }] },
+      ],
+    },
+  };
+
+  let recipesApi: Record<string, ReturnType<typeof vi.fn>>;
+
+  beforeEach(() => {
+    recipesApi = {
+      variables: vi.fn().mockReturnValue(of(TEMPLATE_VARIABLES)),
+      get: vi.fn().mockReturnValue(of(RECIPE)),
+      create: vi.fn().mockReturnValue(of(RECIPE)),
+      update: vi.fn().mockReturnValue(of(RECIPE)),
+    };
+  });
+
+  async function renderPage(recipeId?: string) {
+    const result = await render(RecipeFormPage, {
+      providers: [
+        provideRouter([]),
+        { provide: RecipesApiService, useValue: recipesApi },
+        { provide: ToastService, useValue: { show: vi.fn() } },
+        { provide: LocalStorageService, useValue: { getItem: vi.fn(), setItem: vi.fn() } },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              paramMap: convertToParamMap({
+                machineId: 'machine-1',
+                ...(recipeId ? { recipeId } : {}),
+              }),
+              queryParamMap: convertToParamMap({}),
+            },
+          },
+        },
+      ],
+    });
+    vi.spyOn(result.fixture.debugElement.injector.get(Router), 'navigate').mockResolvedValue(true);
+    return result;
+  }
+
+  it('pinta la disposición con títulos, etiquetas, unidades y el valor fijo en solo lectura', async () => {
+    await renderPage();
+
+    expect(await screen.findByRole('heading', { name: 'Bobinado' })).toBeInTheDocument();
+    const espiras = screen.getByRole('spinbutton', { name: 'Espiras' });
+    expect(espiras).toHaveValue(100);
+    expect(espiras).toHaveAccessibleDescription('Entre 1 y 500 vueltas.');
+    expect(screen.getByText('Antihorario')).toBeInTheDocument();
+    expect(screen.getByText('Valor fijo')).toBeInTheDocument();
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Modo' })).toHaveValue('');
+    expect(screen.getByText('1 de 2')).toBeInTheDocument();
+    expect(screen.getByText(/2 variables no aparecen/)).toBeInTheDocument();
+  });
+
+  it('solo envía los valores editables y exige elegir una opción', async () => {
+    await renderPage();
+    await userEvent.type(await screen.findByLabelText('Título'), 'Nueva');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    expect(screen.getByRole('combobox', { name: 'Modo' })).toHaveAccessibleDescription(
+      'Elige una opción.',
+    );
+    expect(recipesApi['create']).not.toHaveBeenCalled();
+
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Modo' }), '1');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    expect(recipesApi['create']).toHaveBeenCalledWith('machine-1', {
+      title: 'Nueva',
+      description: null,
+      values: [
+        { signalVariableName: 'rEspiras', value: 100 },
+        { signalVariableName: 'iModo', value: 1 },
+      ],
+    });
+  });
+
+  it('el buscador cambia la disposición por una lista y encuentra por etiqueta', async () => {
+    await renderPage();
+    await userEvent.type(await screen.findByLabelText('Buscar una variable'), 'modo');
+
+    expect(screen.queryByRole('heading', { name: 'Bobinado' })).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Modo' })).toBeInTheDocument();
+    expect(screen.queryByRole('spinbutton', { name: 'Espiras' })).not.toBeInTheDocument();
+  });
+
+  it('enseña lo que llegaría a la máquina y los valores que ya no son editables', async () => {
+    recipesApi['get'].mockReturnValue(
+      of({
+        ...RECIPE,
+        values: [
+          { signalVariableName: 'rEspiras', value: 350 },
+          { signalVariableName: 'iModo', value: 0 },
+        ],
+        ignoredValues: [{ signalVariableName: 'sNombre', value: 'B120' }],
+        effectiveValues: [
+          { signalVariableName: 'rEspiras', value: 350, source: 'RECIPE' },
+          { signalVariableName: 'xSentidoCabezal', value: true, source: 'FIXED' },
+          { signalVariableName: 'xOculta', value: false, source: 'FIXED' },
+        ],
+      }),
+    );
+    await renderPage('recipe-1');
+
+    expect(await screen.findByText(/sNombre: ya no es editable/)).toBeInTheDocument();
+    expect(screen.getByText('Lo que llegaría a la máquina')).toBeInTheDocument();
+    expect(screen.getByText('350 vueltas')).toBeInTheDocument();
+    expect(screen.getByText('xOculta')).toBeInTheDocument();
   });
 });

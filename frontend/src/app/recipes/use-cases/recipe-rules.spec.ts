@@ -1,6 +1,8 @@
 import { RecipeVariable } from '../entities/recipe.model';
 import {
   copyTitle,
+  formatRecipeValue,
+  hasAtMostDecimals,
   initialValue,
   issueMessage,
   parseRecipeInput,
@@ -8,6 +10,8 @@ import {
   recipeStatusLabel,
   recipeValueError,
   staleValueMessage,
+  variableHelp,
+  variableLabel,
 } from './recipe-rules';
 import { unsavedRecipeChangesGuard } from './unsaved-recipe-changes.guard';
 
@@ -112,5 +116,85 @@ describe('unsavedRecipeChangesGuard', () => {
     expect(run(true)).toBe(false);
     expect(confirmSpy).toHaveBeenCalled();
     confirmSpy.mockRestore();
+  });
+});
+
+describe('reglas de la receta base en el formulario (docs/specs/26-receta-base.md)', () => {
+  it('el valor por defecto es el valor inicial de una receta nueva', () => {
+    expect(initialValue({ ...variable('Float'), defaultValue: 120 })).toBe(120);
+    expect(initialValue({ ...variable('Boolean'), defaultValue: true })).toBe(true);
+    expect(initialValue({ ...variable('Float'), defaultValue: null })).toBeNull();
+  });
+
+  it('valida opciones, decimales y longitud', () => {
+    const modo = {
+      ...variable('Int16'),
+      options: [
+        { value: 0, label: 'A' },
+        { value: 1, label: 'B' },
+      ],
+    };
+    expect(recipeValueError(modo, null)).toBe('Elige una opción.');
+    expect(recipeValueError(modo, 2)).toBe('Elige una de las opciones.');
+    expect(recipeValueError(modo, 1)).toBeNull();
+
+    expect(recipeValueError({ ...variable('Float'), decimals: 1 }, 0.25)).toBe(
+      'Como mucho 1 decimal.',
+    );
+    expect(recipeValueError({ ...variable('Float'), decimals: 2 }, 0.255)).toBe(
+      'Como mucho 2 decimales.',
+    );
+    expect(recipeValueError({ ...variable('Float'), decimals: 0 }, 1.5)).toBe('Sin decimales.');
+    expect(recipeValueError({ ...variable('Float'), decimals: 1 }, 120.1)).toBeNull();
+
+    expect(recipeValueError({ ...variable('String'), minLength: 2 }, 'a')).toBe(
+      'Mínimo 2 caracteres.',
+    );
+    expect(recipeValueError({ ...variable('String'), maxLength: 3 }, 'abcd')).toBe(
+      'Máximo 3 caracteres.',
+    );
+  });
+
+  it('tolera la representación binaria al contar decimales', () => {
+    expect(hasAtMostDecimals(0.1 + 0.2, 1)).toBe(true);
+    expect(hasAtMostDecimals(0.35, 1)).toBe(false);
+  });
+
+  it('usa la etiqueta y la ayuda de la receta base, y si no las de la GVL', () => {
+    expect(variableLabel({ signalVariableName: 'rEspiras', label: 'Espiras' })).toBe('Espiras');
+    expect(variableLabel({ signalVariableName: 'rEspiras', label: ' ' })).toBe('rEspiras');
+    expect(variableHelp({ ...variable('Float'), comment: 'GVL', helpText: 'Propia' })).toBe(
+      'Propia',
+    );
+    expect(variableHelp({ ...variable('Float'), comment: 'GVL', helpText: null })).toBe('GVL');
+  });
+
+  it('muestra un valor con sus textos y su unidad', () => {
+    const labels = { falseLabel: 'Horario', trueLabel: 'Antihorario' };
+    expect(formatRecipeValue({ booleanLabels: labels }, true)).toBe('Antihorario');
+    expect(formatRecipeValue({}, false)).toBe('No');
+    expect(formatRecipeValue({ options: [{ value: 1, label: 'Parar' }] }, 1)).toBe('Parar');
+    expect(formatRecipeValue({ unit: 'mm' }, 120)).toBe('120 mm');
+    expect(formatRecipeValue({}, '')).toBe('(vacío)');
+  });
+
+  it('explica los nuevos motivos del Backend', () => {
+    expect(issueMessage({ signalVariableName: 'v', reason: 'NOT_EDITABLE' })).toBe(
+      'Esta variable tiene un valor fijo o está oculta.',
+    );
+    expect(
+      issueMessage({
+        signalVariableName: 'v',
+        reason: 'INVALID_LENGTH',
+        minLength: 2,
+        maxLength: 5,
+      }),
+    ).toBe('Longitud no válida (mínimo 2, máximo 5 caracteres).');
+    expect(issueMessage({ signalVariableName: 'v', reason: 'INVALID_LENGTH' })).toBe(
+      'La longitud del texto no es válida.',
+    );
+    expect(
+      recipeErrorMessage({ status: 409, code: 'RECIPE_TEMPLATE_INVALID', message: '' }),
+    ).toMatch(/valores fijos que ya no son válidos/);
   });
 });

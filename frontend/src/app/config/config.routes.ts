@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { superAdminGuard } from '../core/guards/super-admin.guard';
+import { unsavedRecipeChangesGuard } from '../recipes/use-cases/unsaved-recipe-changes.guard';
 import {
   alarmDefinitionFormEditBreadcrumb,
   alarmDefinitionFormNewBreadcrumb,
@@ -11,6 +12,7 @@ import {
   machineFormEditBreadcrumb,
   machineFormNewBreadcrumb,
   machineOpcUaVariablesBreadcrumb,
+  machineRecipeTemplateBreadcrumb,
   machineVariableCategoriesBreadcrumb,
   machinesListBreadcrumb,
   signalFormEditBreadcrumb,
@@ -30,6 +32,7 @@ import {
  * docs/specs/20-paquetes-escritura-opc-ua.md añade el alta/edición de paquetes de escritura.
  * docs/specs/21-sincronizacion-variables-opc-ua.md añade `machines/:machineId/opcua-variables`.
  * docs/specs/23-categorias-variables-plc.md añade `machines/:machineId/variable-categories`.
+ * docs/specs/26-receta-base.md añade `machines/:machineId/recipe-template`.
  */
 export const configRoutes: Routes = [
   {
@@ -118,6 +121,13 @@ export const configRoutes: Routes = [
       import('./pages/machine-variable-categories-page/machine-variable-categories-page').then(
         (m) => m.MachineVariableCategoriesPage,
       ),
+  },
+  {
+    path: 'machines/:machineId/recipe-template',
+    data: { breadcrumb: machineRecipeTemplateBreadcrumb },
+    canDeactivate: [unsavedRecipeChangesGuard],
+    loadComponent: () =>
+      import('./pages/recipe-template-page/recipe-template-page').then((m) => m.RecipeTemplatePage),
   },
   {
     path: 'machines/:machineId/write-packages/new',

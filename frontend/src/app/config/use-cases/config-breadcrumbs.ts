@@ -119,6 +119,13 @@ export const machineVariableCategoriesBreadcrumb: BreadcrumbCrumb[] = [
   { label: 'Categorías' },
 ];
 
+/** docs/specs/26-receta-base.md: receta base de las recetas de la Machine. */
+export const machineRecipeTemplateBreadcrumb: BreadcrumbCrumb[] = [
+  machinesCrumb,
+  { label: machineNameResolver, link: machineLink },
+  { label: 'Receta base' },
+];
+
 /** docs/specs/20-paquetes-escritura-opc-ua.md: alta y edición de paquetes de escritura. */
 export const writePackagesPseudoCrumb: BreadcrumbCrumb = { label: 'Paquetes' };
 

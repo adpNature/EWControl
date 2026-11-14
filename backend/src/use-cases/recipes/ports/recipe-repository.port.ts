@@ -23,6 +23,8 @@ export type RecipeListQuery = {
 /** docs/specs/25-recetas.md: persistencia de recetas. */
 export interface IRecipeRepository {
   countByMachine(machineId: string, ctx: TransactionContext): Promise<number>;
+  /** Todas las recetas de la Machine (como mucho 500), para calcular el impacto de la receta base (spec 26). */
+  listAllByMachine(machineId: string, ctx: TransactionContext): Promise<Recipe[]>;
   findById(id: string, ctx: TransactionContext): Promise<Recipe | null>;
   /** Receta de la Machine con ese título normalizado, o `null`. */
   findByTitleKey(

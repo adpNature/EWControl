@@ -1,4 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
+import {
+  buildRecipeForm,
+  type EffectiveRecipeValue,
+  effectiveRecipeValues,
+  type RecipeFormDefinition,
+  type ResolvedRecipeTemplate,
+} from '../../entities/recipe-template.vo';
 import type { Recipe } from '../../entities/recipe.entity';
 import {
   assessRecipe,
@@ -7,7 +14,6 @@ import {
   type RecipeAssessment,
   recipeSearchKey,
   type RecipeValueEntry,
-  type RecipeVariable,
   type RecipeVariableSet,
   validateRecipeValues,
 } from '../../entities/recipe.vo';
@@ -19,6 +25,7 @@ import { InvalidRecipeValuesError } from './errors/invalid-recipe-values.error';
 import { RecipeIncompleteError } from './errors/recipe-incomplete.error';
 import { RecipeLimitReachedError } from './errors/recipe-limit-reached.error';
 import { RecipeModifiedError } from './errors/recipe-modified.error';
+import { RecipeTemplateInvalidError } from './errors/recipe-template-invalid.error';
 import { RecipeTitleTakenError } from './errors/recipe-title-taken.error';
 import { RecipeVariablesNotAvailableError } from './errors/recipe-variables-not-available.error';
 import {
@@ -43,12 +50,22 @@ export type RecipeSummary = Pick<
   'id' | 'title' | 'description' | 'isActivated' | 'activatedAt' | 'updatedAt' | 'updatedByEmail'
 > & { isComplete: boolean };
 
-/** Receta completa tal como la devuelve la API: valores vigentes y, si procede, lo que falta o sobra. */
-export type RecipeView = Omit<Recipe, 'machine' | 'titleKey' | 'searchKey'> & RecipeAssessment;
+/**
+ * Receta completa tal como la devuelve la API: valores vigentes y, si procede,
+ * lo que falta o sobra, y lo que llegaría a la máquina (spec 26).
+ */
+export type RecipeView = Omit<Recipe, 'machine' | 'titleKey' | 'searchKey'> &
+  RecipeAssessment & { effectiveValues: EffectiveRecipeValue[] | null };
+
+/** Contexto de evaluación de una receta: variables de receta y receta base en vigor. */
+type RecipeContext = { variableSet: RecipeVariableSet; template: ResolvedRecipeTemplate };
 
 export type RecipePage = { data: RecipeSummary[]; total: number; limit: number; offset: number };
 
-/** spec 25, criterio backend 1: variables de receta de la Machine, para los tres roles. */
+/**
+ * spec 25, criterio backend 1, ampliado por la spec 26 (criterio backend 10):
+ * lo que necesita el formulario de recetas, para los tres roles.
+ */
 @Injectable()
 export class GetRecipeVariablesUseCase {
   constructor(
@@ -56,14 +73,14 @@ export class GetRecipeVariablesUseCase {
     @Inject(UNIT_OF_WORK) private readonly unitOfWork: IUnitOfWork,
   ) {}
 
-  execute(input: RecipeMachineRef): Promise<RecipeVariableSet> {
+  execute(input: RecipeMachineRef): Promise<RecipeFormDefinition> {
     return this.unitOfWork.runInTransaction(async (ctx) => {
-      const { variableSet } = await this.access.resolveMachine(
+      const { variableSet, template } = await this.access.resolveMachine(
         input.machineId,
         input.requester,
         ctx,
       );
-      return variableSet;
+      return buildRecipeForm(variableSet, template);
     });
   }
 }
@@ -81,7 +98,7 @@ export class ListRecipesUseCase {
     input: RecipeMachineRef & { search?: string; limit: number; offset: number },
   ): Promise<RecipePage> {
     return this.unitOfWork.runInTransaction(async (ctx) => {
-      const { machine, variableSet } = await this.access.resolveMachine(
+      const { machine, template } = await this.access.resolveMachine(
         input.machineId,
         input.requester,
         ctx,
@@ -93,7 +110,7 @@ export class ListRecipesUseCase {
         ctx,
       );
       return {
-        data: page.data.map((recipe) => toSummary(recipe, variableSet.variables)),
+        data: page.data.map((recipe) => toSummary(recipe, template)),
         total: page.total,
         limit: input.limit,
         offset: input.offset,
@@ -112,13 +129,9 @@ export class GetRecipeUseCase {
   /** @throws RecipeNotFoundError / MachineNotFoundError */
   execute(input: RecipeRef): Promise<RecipeView> {
     return this.unitOfWork.runInTransaction(async (ctx) => {
-      const { machine, variableSet } = await this.access.resolveMachine(
-        input.machineId,
-        input.requester,
-        ctx,
-      );
-      const recipe = await this.access.resolveRecipe(machine.id, input.recipeId, ctx);
-      return toView(recipe, variableSet.variables);
+      const resolved = await this.access.resolveMachine(input.machineId, input.requester, ctx);
+      const recipe = await this.access.resolveRecipe(resolved.machine.id, input.recipeId, ctx);
+      return toView(recipe, resolved);
     });
   }
 }
@@ -139,21 +152,18 @@ export class CreateRecipeUseCase {
    */
   execute(input: RecipeMachineRef & RecipeInput & { actorEmail: string }): Promise<RecipeView> {
     return this.unitOfWork.runInTransaction(async (ctx) => {
-      const { machine, variableSet } = await this.access.resolveMachine(
-        input.machineId,
-        input.requester,
-        ctx,
-      );
-      const content = buildContent(machine.id, input, variableSet);
-      await assertTitleAvailable(this.repository, machine.id, content, null, ctx);
-      if ((await this.repository.countByMachine(machine.id, ctx)) >= MAX_RECIPES_PER_MACHINE) {
+      const resolved = await this.access.resolveMachine(input.machineId, input.requester, ctx);
+      const machineId = resolved.machine.id;
+      const content = buildContent(machineId, input, resolved);
+      await assertTitleAvailable(this.repository, machineId, content, null, ctx);
+      if ((await this.repository.countByMachine(machineId, ctx)) >= MAX_RECIPES_PER_MACHINE) {
         throw new RecipeLimitReachedError(MAX_RECIPES_PER_MACHINE);
       }
       const recipe = await this.repository.create(
-        { ...content, machineId: machine.id, actorEmail: input.actorEmail, at: this.clock.now() },
+        { ...content, machineId, actorEmail: input.actorEmail, at: this.clock.now() },
         ctx,
       );
-      return toView(recipe, variableSet.variables);
+      return toView(recipe, resolved);
     });
   }
 }
@@ -176,17 +186,14 @@ export class UpdateRecipeUseCase {
     input: RecipeRef & RecipeInput & { version: number; actorEmail: string },
   ): Promise<RecipeView> {
     return this.unitOfWork.runInTransaction(async (ctx) => {
-      const { machine, variableSet } = await this.access.resolveMachine(
-        input.machineId,
-        input.requester,
-        ctx,
-      );
-      const current = await this.access.resolveRecipe(machine.id, input.recipeId, ctx);
+      const resolved = await this.access.resolveMachine(input.machineId, input.requester, ctx);
+      const machineId = resolved.machine.id;
+      const current = await this.access.resolveRecipe(machineId, input.recipeId, ctx);
       if (current.version !== input.version) {
         throw new RecipeModifiedError(current.id);
       }
-      const content = buildContent(machine.id, input, variableSet);
-      await assertTitleAvailable(this.repository, machine.id, content, current.id, ctx);
+      const content = buildContent(machineId, input, resolved);
+      await assertTitleAvailable(this.repository, machineId, content, current.id, ctx);
       const updated = await this.repository.update(
         current.id,
         input.version,
@@ -196,7 +203,7 @@ export class UpdateRecipeUseCase {
       if (!updated) {
         throw new RecipeModifiedError(current.id);
       }
-      return toView(updated, variableSet.variables);
+      return toView(updated, resolved);
     });
   }
 }
@@ -233,28 +240,30 @@ export class ActivateRecipeUseCase {
     @Inject(CLOCK) private readonly clock: IClock,
   ) {}
 
-  /** @throws RecipeIncompleteError / RecipeNotFoundError / MachineNotFoundError */
+  /**
+   * @throws RecipeIncompleteError / RecipeTemplateInvalidError (spec 26) /
+   *   RecipeNotFoundError / MachineNotFoundError
+   */
   execute(input: RecipeRef & { actorEmail: string }): Promise<RecipeView> {
     return this.unitOfWork.runInTransaction(async (ctx) => {
-      const { machine, variableSet } = await this.access.resolveMachine(
-        input.machineId,
-        input.requester,
-        ctx,
-      );
-      const recipe = await this.access.resolveRecipe(machine.id, input.recipeId, ctx);
+      const resolved = await this.access.resolveMachine(input.machineId, input.requester, ctx);
+      const recipe = await this.access.resolveRecipe(resolved.machine.id, input.recipeId, ctx);
       if (recipe.isActivated) {
-        return toView(recipe, variableSet.variables);
+        return toView(recipe, resolved);
       }
-      if (!assessRecipe(recipe.values, variableSet.variables).isComplete) {
+      if (!assessRecipe(recipe.values, resolved.template.editableRules).isComplete) {
         throw new RecipeIncompleteError(recipe.id);
       }
+      if (!resolved.template.isValid) {
+        throw new RecipeTemplateInvalidError(resolved.machine.id);
+      }
       const activated = await this.repository.activate(
-        machine.id,
+        resolved.machine.id,
         recipe.id,
         { actorEmail: input.actorEmail, at: this.clock.now() },
         ctx,
       );
-      return toView(activated, variableSet.variables);
+      return toView(activated, resolved);
     });
   }
 }
@@ -271,28 +280,31 @@ export class DeactivateRecipeUseCase {
   /** @throws RecipeNotFoundError / MachineNotFoundError */
   execute(input: RecipeRef): Promise<RecipeView> {
     return this.unitOfWork.runInTransaction(async (ctx) => {
-      const { machine, variableSet } = await this.access.resolveMachine(
-        input.machineId,
-        input.requester,
-        ctx,
-      );
-      const recipe = await this.access.resolveRecipe(machine.id, input.recipeId, ctx);
+      const resolved = await this.access.resolveMachine(input.machineId, input.requester, ctx);
+      const recipe = await this.access.resolveRecipe(resolved.machine.id, input.recipeId, ctx);
       const result = recipe.isActivated ? await this.repository.deactivate(recipe.id, ctx) : recipe;
-      return toView(result, variableSet.variables);
+      return toView(result, resolved);
     });
   }
 }
 
-/** Valida la entrada contra las variables de receta y la convierte en contenido persistible. */
+/**
+ * Valida la entrada contra las variables editables de la receta base (spec 26)
+ * y la convierte en contenido persistible.
+ */
 function buildContent(
   machineId: string,
   input: RecipeInput,
-  variableSet: RecipeVariableSet,
+  { variableSet, template }: RecipeContext,
 ): RecipeContent {
   if (variableSet.variables.length === 0) {
     throw new RecipeVariablesNotAvailableError(machineId);
   }
-  const issues = validateRecipeValues(input.values, variableSet.variables);
+  const issues = validateRecipeValues(
+    input.values,
+    template.editableRules,
+    template.nonEditableNames,
+  );
   if (issues.length > 0) {
     throw new InvalidRecipeValuesError(issues);
   }
@@ -304,10 +316,11 @@ function buildContent(
     titleKey: normalizeForComparison(title),
     description,
     searchKey: recipeSearchKey(title, description),
-    // Se guardan en el orden de la GVL, como se muestran.
-    values: variableSet.variables.map((variable) => ({
-      signalVariableName: variable.signalVariableName,
-      value: byName.get(variable.signalVariableName) as RecipeValueEntry['value'],
+    // Solo las editables, en el orden de la GVL: los valores de variables que
+    // ya no son editables desaparecen al guardar (spec 26, "Valores de más").
+    values: template.editableRules.map((rule) => ({
+      signalVariableName: rule.signalVariableName,
+      value: byName.get(rule.signalVariableName) as RecipeValueEntry['value'],
     })),
   };
 }
@@ -325,7 +338,8 @@ async function assertTitleAvailable(
   }
 }
 
-function toView(recipe: Recipe, variables: readonly RecipeVariable[]): RecipeView {
+function toView(recipe: Recipe, { variableSet, template }: RecipeContext): RecipeView {
+  const assessment = assessRecipe(recipe.values, template.editableRules);
   return {
     id: recipe.id,
     machineId: recipe.machineId,
@@ -339,11 +353,17 @@ function toView(recipe: Recipe, variables: readonly RecipeVariable[]): RecipeVie
     createdByEmail: recipe.createdByEmail,
     updatedAt: recipe.updatedAt,
     updatedByEmail: recipe.updatedByEmail,
-    ...assessRecipe(recipe.values, variables),
+    ...assessment,
+    effectiveValues: effectiveRecipeValues(
+      variableSet.variables,
+      assessment.values,
+      assessment.isComplete,
+      template,
+    ),
   };
 }
 
-function toSummary(recipe: Recipe, variables: readonly RecipeVariable[]): RecipeSummary {
+function toSummary(recipe: Recipe, template: ResolvedRecipeTemplate): RecipeSummary {
   return {
     id: recipe.id,
     title: recipe.title,
@@ -352,6 +372,6 @@ function toSummary(recipe: Recipe, variables: readonly RecipeVariable[]): Recipe
     activatedAt: recipe.activatedAt,
     updatedAt: recipe.updatedAt,
     updatedByEmail: recipe.updatedByEmail,
-    isComplete: assessRecipe(recipe.values, variables).isComplete,
+    isComplete: assessRecipe(recipe.values, template.editableRules).isComplete,
   };
 }
