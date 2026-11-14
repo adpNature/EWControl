@@ -297,6 +297,34 @@ Un timeout de la escritura no es un error de la petición: responde `200` con `s
 
 ---
 
+## Recipe
+
+Recetas de una Machine ([docs/specs/25-recetas.md](specs/25-recetas.md)): plantillas con un valor para cada variable de la categoría «Programación para la receta» (sus **variables de receta**). Solo viven en PostgreSQL: ninguna ruta lee ni escribe en el PLC. Todas son de los tres roles, también el `Operador`.
+
+| Método | Ruta                                                       | Roles    | Descripción                                                                                                                                                                                                                                          |
+| ------ | ---------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/v1/machines/:machineId/recipe-variables`             | Los tres | `200 { "category": { id, name } \| null, "variables": [{ signalVariableName, dataType, comment, min, max }], "excludedCount" }`, en el orden de la GVL.                                                                                              |
+| GET    | `/api/v1/machines/:machineId/recipes`                      | Los tres | Listado paginado (`?limit=&offset=`) con `?search=` (título o descripción, sin mayúsculas ni tildes, hasta 100 caracteres). Primero la activa. Cada fila: `id, title, description, isActivated, activatedAt, isComplete, updatedAt, updatedByEmail`. |
+| POST   | `/api/v1/machines/:machineId/recipes`                      | Los tres | Body `{ "title", "description"?, "values": [{ "signalVariableName", "value" }] }` con un valor para **cada** variable de receta. `201` con la receta.                                                                                                |
+| GET    | `/api/v1/machines/:machineId/recipes/:recipeId`            | Los tres | La receta con `values` vigentes, `isComplete`, `missingVariables` y `staleValues: [{ signalVariableName, value, reason }]`.                                                                                                                          |
+| PUT    | `/api/v1/machines/:machineId/recipes/:recipeId`            | Los tres | Body como en `POST` más la `version` leída. Sustituye el contenido y sube la versión.                                                                                                                                                                |
+| DELETE | `/api/v1/machines/:machineId/recipes/:recipeId`            | Los tres | Borrado físico (`204`).                                                                                                                                                                                                                              |
+| POST   | `/api/v1/machines/:machineId/recipes/:recipeId/activate`   | Los tres | Marca la receta como activa y desmarca la anterior de la Machine. Solo una marca: no se envía nada a la máquina. `200` con la receta.                                                                                                                |
+| POST   | `/api/v1/machines/:machineId/recipes/:recipeId/deactivate` | Los tres | Quita la marca. `200` con la receta.                                                                                                                                                                                                                 |
+
+| Código                           | HTTP | Cuándo                                                                                                                                                   |
+| -------------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `INVALID_RECIPE_VALUES`          | 400  | `details: [{ signalVariableName, reason, min?, max? }]` con `reason` `MISSING`, `NOT_A_RECIPE_VARIABLE`, `DUPLICATED`, `TYPE_MISMATCH` u `OUT_OF_RANGE`. |
+| `MACHINE_NOT_FOUND`              | 404  | Machine inexistente, inactiva o de otra Company.                                                                                                         |
+| `RECIPE_NOT_FOUND`               | 404  | Receta inexistente o de otra Machine.                                                                                                                    |
+| `RECIPE_TITLE_TAKEN`             | 409  | Otra receta de la Machine tiene el mismo título sin distinguir mayúsculas ni tildes.                                                                     |
+| `RECIPE_MODIFIED`                | 409  | La `version` enviada ya no es la vigente (edición simultánea). No se sobrescribe nada.                                                                   |
+| `RECIPE_INCOMPLETE`              | 409  | Se intenta activar una receta a la que le falta algún valor o tiene valores que ya no valen.                                                             |
+| `RECIPE_LIMIT_REACHED`           | 409  | La Machine ya tiene 500 recetas.                                                                                                                         |
+| `RECIPE_VARIABLES_NOT_AVAILABLE` | 409  | Crear o editar en una Machine sin la categoría «Programación para la receta» o sin variables de receta mapeadas.                                         |
+
+---
+
 ## Dashboard / DashboardWidget
 
 | Método | Ruta                                       | Descripción                                                                     |

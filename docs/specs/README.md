@@ -84,9 +84,11 @@ Si una spec no tiene parte de frontend (por ejemplo, funcionalidad de fundación
 | [22-anadir-carpeta-opc-ua-desde-explorador.md](22-anadir-carpeta-opc-ua-desde-explorador.md) | Añadir al mapeo todas las variables de una carpeta desde el explorador de nodos de «Conexión»; los arrays ya no se añaden como variable suelta                              | No (reutiliza la spec 21) | Sí                      |
 | [23-categorias-variables-plc.md](23-categorias-variables-plc.md)                             | Categorías de variables del PLC: importar la exportación CSV de la GVL (categorías y subcategorías de sus comentarios), renombrarlas y usarlas para organizar las variables | Sí                        | Sí                      |
 | [24-conexion-opc-ua-estable.md](24-conexion-opc-ua-estable.md)                               | Conexión OPC UA estable: suscribir solo las variables de las Signals, MonitoredItems por lotes, freno de reconexiones y cierre limpio de sesiones                           | Sí                        | No (solo backend)       |
+| [25-recetas.md](25-recetas.md)                                                               | Recetas (CRUD + buscador): plantillas con un valor obligatorio para cada variable de «Programación para la receta», duplicar y marca «Activa». Sin comunicación con el PLC  | Sí                        | Sí                      |
 
 ## Pendientes
 
-Specs identificadas pero aún no redactadas — numeración tentativa, correlativa a partir de `25`.
+Specs identificadas pero aún no redactadas — numeración tentativa, correlativa a partir de `26`.
 
+- Carga de recetas en la máquina: escribir en el PLC la receta activa, con las variables de notificación (`xCmd…`) de «Comandos para la gestión de los datos de la receta» — continuación de [25-recetas.md](25-recetas.md).
 - Modalidad remota de OPC UA (Data Provider en el edge → Backend en la nube, mTLS, buffer local) — continuación de [18-integracion-opc-ua.md](18-integracion-opc-ua.md).

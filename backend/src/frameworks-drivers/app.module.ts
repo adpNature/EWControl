@@ -11,6 +11,7 @@ import { HealthModule } from './health.module';
 import { MachineManagementModule } from './machine-management.module';
 import { MetricsModule } from './metrics.module';
 import { OpcUaModule } from './opc-ua.module';
+import { RecipesModule } from './recipes.module';
 import { SimulatorModule } from './simulator.module';
 import { UserManagementModule } from './user-management.module';
 import { VariableCategoriesModule } from './variable-categories.module';
@@ -34,6 +35,7 @@ import { postgresConnectionOptions } from './database/postgres.config';
     OpcUaModule,
     WritePackagesModule,
     VariableCategoriesModule,
+    RecipesModule,
     CompanyManagementModule,
     UserManagementModule,
     MachineManagementModule,

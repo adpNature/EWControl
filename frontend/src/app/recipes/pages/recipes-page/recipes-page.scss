@@ -1,0 +1,58 @@
+@use 'breakpoints' as *;
+
+.recipes-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.recipes-page__filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+
+  @include respond(md) {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+}
+
+.recipes-page__machine,
+.recipes-page__search {
+  flex: 1 1 auto;
+
+  @include respond(md) {
+    max-width: 24rem;
+  }
+}
+
+.recipes-page__actions {
+  display: flex;
+}
+
+.recipes-page__notice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-md);
+  border: 1px solid var(--warning-color);
+  border-radius: var(--border-radius-md);
+  background-color: var(--warning-background);
+}
+
+.recipes-page__row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.recipes-page__hint {
+  font-size: var(--font-size-sm);
+}
+
+.recipes-page__pagination {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}

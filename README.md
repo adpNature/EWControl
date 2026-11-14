@@ -227,6 +227,7 @@ Detalle completo de capas, componentes y flujo de datos en [docs/02-arquitectura
 | Fase 10 | Feature vertical: Históricos — pantalla independiente y comparativas                                                  | Completada |
 | Fase 11 | Observabilidad técnica (health checks, métricas, alerting de infraestructura)                                         | Completada |
 | Fase 12 | Integración OPC UA real (spec 18: modalidad local en planta; spec 19: rol `Operador`; spec 20: paquetes de escritura) | En curso   |
+| Fase 13 | Feature vertical: Recetas (spec 25: CRUD, buscador y marca «Activa», sin escribir en el PLC)                          | En curso   |
 
 Cada fase a partir de la 2 se especifica en `docs/specs/` antes de implementarse (Documento 0). La Fase 11 es la única puramente backend/infraestructura, sin feature vertical Back+Front asociada.
 
