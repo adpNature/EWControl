@@ -1,3 +1,9 @@
+# [1.20.0](https://github.com/adpNature/EWControl/compare/v1.19.0...v1.20.0) (2026-11-14)
+
+### Features
+
+- añade receta base por máquina con disposición en cuadrícula (spec 26) ([ca3b843](https://github.com/adpNature/EWControl/commit/ca3b843a44738684a321013dad066471e0e63932))
+
 # [1.19.0](https://github.com/adpNature/EWControl/compare/v1.18.0...v1.19.0) (2026-11-14)
 
 ### Features
