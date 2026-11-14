@@ -1,3 +1,9 @@
+# [1.19.0](https://github.com/adpNature/EWControl/compare/v1.18.0...v1.19.0) (2026-11-14)
+
+### Features
+
+- añade recetas por máquina con buscador y marca «Activa» (spec 25) ([ec29826](https://github.com/adpNature/EWControl/commit/ec2982608f62f4ae005987fad50d1b7275d183b9))
+
 # [1.18.0](https://github.com/adpNature/EWControl/compare/v1.17.0...v1.18.0) (2026-11-13)
 
 ### Bug Fixes
